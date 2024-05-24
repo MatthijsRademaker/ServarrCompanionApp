@@ -194,6 +194,7 @@ export * from "./retagBookResource";
 export * from "./revision";
 export * from "./rootFolderResource";
 export * from "./runtimeMode";
+export * from "./searchResource";
 export * from "./selectOption";
 export * from "./series";
 export * from "./seriesBookLink";

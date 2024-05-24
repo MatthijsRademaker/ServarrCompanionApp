@@ -6,6 +6,7 @@ export default defineConfig({
       mock: true,
       clean: true,
       mode: 'split',
+      client: 'vue-query',
       baseUrl: 'http://localhost:3001',
       allParamsOptional: true,
       schemas: './thirdPartyApis/readarr/models',
