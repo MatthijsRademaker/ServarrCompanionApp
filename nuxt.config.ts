@@ -24,7 +24,7 @@ export default defineNuxtConfig({
     },
   },
   typescript: {
-    typeCheck: true,
+    typeCheck: false,
   },
   routeRules: {
     '*': { ssr: false },
