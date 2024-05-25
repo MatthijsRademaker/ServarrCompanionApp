@@ -6,7 +6,7 @@
  * Readarr API docs
  * OpenAPI spec version: 1.0.0
  */
-import { useMutation, useQuery } from '@tanstack/vue-query';
+import { useMutation, useQuery } from "@tanstack/vue-query";
 import type {
   MutationFunction,
   QueryFunction,
@@ -15,11 +15,9 @@ import type {
   UseMutationReturnType,
   UseQueryOptions,
   UseQueryReturnType,
-} from '@tanstack/vue-query';
-import axios from 'axios';
-import type { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
-import { computed, unref } from 'vue';
-import type { MaybeRef } from 'vue';
+} from "@tanstack/vue-query";
+import { computed, unref } from "vue";
+import type { MaybeRef } from "vue";
 import type {
   ApiInfoResource,
   AuthorEditorResource,
@@ -138,7 +136,8 @@ import type {
   TaskResource,
   UiConfigResource,
   UpdateResource,
-} from './models';
+} from "./models";
+import { customInstance } from "../mutator";
 
 // https://stackoverflow.com/questions/49579094/typescript-conditional-types-filter-out-readonly-properties-pick-only-requir/49579497#49579497
 type IfEquals<X, Y, A = X, B = never> = (<T>() => T extends X ? 1 : 2) extends <
@@ -171,32 +170,33 @@ type NonReadonly<T> = [T] extends [UnionToIntersection<T>]
     }
   : DistributeReadOnlyOverUnions<T>;
 
-export const getApi = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<ApiInfoResource>> => {
-  return axios.get(`http://localhost:3001/api`, options);
+export const getApi = (signal?: AbortSignal) => {
+  return customInstance<ApiInfoResource>({
+    url: `/api`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiQueryKey = () => {
-  return ['http:', 'localhost:3001', 'api'] as const;
+  return ["api"] as const;
 };
 
 export const getGetApiQueryOptions = <
   TData = Awaited<ReturnType<typeof getApi>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<Awaited<ReturnType<typeof getApi>>, TError, TData>
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiQueryKey();
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getApi>>> = ({
     signal,
-  }) => getApi({ signal, ...axiosOptions });
+  }) => getApi(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApi>>,
@@ -206,16 +206,15 @@ export const getGetApiQueryOptions = <
 };
 
 export type GetApiQueryResult = NonNullable<Awaited<ReturnType<typeof getApi>>>;
-export type GetApiQueryError = AxiosError<unknown>;
+export type GetApiQueryError = unknown;
 
 export const useGetApi = <
   TData = Awaited<ReturnType<typeof getApi>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<Awaited<ReturnType<typeof getApi>>, TError, TData>
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiQueryOptions(options);
 
@@ -230,30 +229,32 @@ export const useGetApi = <
 
 export const postLogin = (
   postLoginBody: MaybeRef<PostLoginBody>,
-  params?: MaybeRef<PostLoginParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
-  const formData = new FormData();
-  if (postLoginBody.username !== undefined) {
-    formData.append('username', postLoginBody.username);
-  }
-  if (postLoginBody.password !== undefined) {
-    formData.append('password', postLoginBody.password);
-  }
-  if (postLoginBody.rememberMe !== undefined) {
-    formData.append('rememberMe', postLoginBody.rememberMe);
-  }
-
+  params?: MaybeRef<PostLoginParams>
+) => {
   postLoginBody = unref(postLoginBody);
   params = unref(params);
-  return axios.post(`http://localhost:3001/login`, formData, {
-    ...options,
-    params: { ...unref(params), ...options?.params },
+  const formData = new FormData();
+  if (postLoginBody.username !== undefined) {
+    formData.append("username", postLoginBody.username);
+  }
+  if (postLoginBody.password !== undefined) {
+    formData.append("password", postLoginBody.password);
+  }
+  if (postLoginBody.rememberMe !== undefined) {
+    formData.append("rememberMe", postLoginBody.rememberMe);
+  }
+
+  return customInstance<void>({
+    url: `/login`,
+    method: "POST",
+    headers: { "Content-Type": "multipart/form-data" },
+    data: formData,
+    params: unref(params),
   });
 };
 
 export const getPostLoginMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -262,14 +263,13 @@ export const getPostLoginMutationOptions = <
     { data: PostLoginBody; params?: PostLoginParams },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postLogin>>,
   TError,
   { data: PostLoginBody; params?: PostLoginParams },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postLogin>>,
@@ -277,7 +277,7 @@ export const getPostLoginMutationOptions = <
   > = (props) => {
     const { data, params } = props ?? {};
 
-    return postLogin(data, params, axiosOptions);
+    return postLogin(data, params);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -287,19 +287,15 @@ export type PostLoginMutationResult = NonNullable<
   Awaited<ReturnType<typeof postLogin>>
 >;
 export type PostLoginMutationBody = PostLoginBody;
-export type PostLoginMutationError = AxiosError<unknown>;
+export type PostLoginMutationError = unknown;
 
-export const usePostLogin = <
-  TError = AxiosError<unknown>,
-  TContext = unknown
->(options?: {
+export const usePostLogin = <TError = unknown, TContext = unknown>(options?: {
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof postLogin>>,
     TError,
     { data: PostLoginBody; params?: PostLoginParams },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postLogin>>,
   TError,
@@ -311,32 +307,29 @@ export const usePostLogin = <
   return useMutation(mutationOptions);
 };
 
-export const getLogin = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
-  return axios.get(`http://localhost:3001/login`, options);
+export const getLogin = (signal?: AbortSignal) => {
+  return customInstance<void>({ url: `/login`, method: "GET", signal });
 };
 
 export const getGetLoginQueryKey = () => {
-  return ['http:', 'localhost:3001', 'login'] as const;
+  return ["login"] as const;
 };
 
 export const getGetLoginQueryOptions = <
   TData = Awaited<ReturnType<typeof getLogin>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<Awaited<ReturnType<typeof getLogin>>, TError, TData>
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetLoginQueryKey();
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getLogin>>> = ({
     signal,
-  }) => getLogin({ signal, ...axiosOptions });
+  }) => getLogin(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getLogin>>,
@@ -348,16 +341,15 @@ export const getGetLoginQueryOptions = <
 export type GetLoginQueryResult = NonNullable<
   Awaited<ReturnType<typeof getLogin>>
 >;
-export type GetLoginQueryError = AxiosError<unknown>;
+export type GetLoginQueryError = unknown;
 
 export const useGetLogin = <
   TData = Awaited<ReturnType<typeof getLogin>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<Awaited<ReturnType<typeof getLogin>>, TError, TData>
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetLoginQueryOptions(options);
 
@@ -370,32 +362,29 @@ export const useGetLogin = <
   return query;
 };
 
-export const getLogout = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
-  return axios.get(`http://localhost:3001/logout`, options);
+export const getLogout = (signal?: AbortSignal) => {
+  return customInstance<void>({ url: `/logout`, method: "GET", signal });
 };
 
 export const getGetLogoutQueryKey = () => {
-  return ['http:', 'localhost:3001', 'logout'] as const;
+  return ["logout"] as const;
 };
 
 export const getGetLogoutQueryOptions = <
   TData = Awaited<ReturnType<typeof getLogout>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<Awaited<ReturnType<typeof getLogout>>, TError, TData>
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetLogoutQueryKey();
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getLogout>>> = ({
     signal,
-  }) => getLogout({ signal, ...axiosOptions });
+  }) => getLogout(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getLogout>>,
@@ -407,16 +396,15 @@ export const getGetLogoutQueryOptions = <
 export type GetLogoutQueryResult = NonNullable<
   Awaited<ReturnType<typeof getLogout>>
 >;
-export type GetLogoutQueryError = AxiosError<unknown>;
+export type GetLogoutQueryError = unknown;
 
 export const useGetLogout = <
   TData = Awaited<ReturnType<typeof getLogout>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<Awaited<ReturnType<typeof getLogout>>, TError, TData>
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetLogoutQueryOptions(options);
 
@@ -429,32 +417,33 @@ export const useGetLogout = <
   return query;
 };
 
-export const getApiV1Author = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<AuthorResource[]>> => {
-  return axios.get(`http://localhost:3001/api/v1/author`, options);
+export const getApiV1Author = (signal?: AbortSignal) => {
+  return customInstance<AuthorResource[]>({
+    url: `/api/v1/author`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1AuthorQueryKey = () => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'author'] as const;
+  return ["api", "v1", "author"] as const;
 };
 
 export const getGetApiV1AuthorQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1Author>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<Awaited<ReturnType<typeof getApiV1Author>>, TError, TData>
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1AuthorQueryKey();
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiV1Author>>> = ({
     signal,
-  }) => getApiV1Author({ signal, ...axiosOptions });
+  }) => getApiV1Author(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1Author>>,
@@ -466,16 +455,15 @@ export const getGetApiV1AuthorQueryOptions = <
 export type GetApiV1AuthorQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1Author>>
 >;
-export type GetApiV1AuthorQueryError = AxiosError<unknown>;
+export type GetApiV1AuthorQueryError = unknown;
 
 export const useGetApiV1Author = <
   TData = Awaited<ReturnType<typeof getApiV1Author>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<Awaited<ReturnType<typeof getApiV1Author>>, TError, TData>
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1AuthorQueryOptions(options);
 
@@ -489,19 +477,20 @@ export const useGetApiV1Author = <
 };
 
 export const postApiV1Author = (
-  authorResource: MaybeRef<NonReadonly<AuthorResource>>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<AuthorResource>> => {
+  authorResource: MaybeRef<NonReadonly<AuthorResource>>
+) => {
   authorResource = unref(authorResource);
-  return axios.post(
-    `http://localhost:3001/api/v1/author`,
-    authorResource,
-    options
-  );
+
+  return customInstance<AuthorResource>({
+    url: `/api/v1/author`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: authorResource,
+  });
 };
 
 export const getPostApiV1AuthorMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -510,14 +499,13 @@ export const getPostApiV1AuthorMutationOptions = <
     { data: NonReadonly<AuthorResource> },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1Author>>,
   TError,
   { data: NonReadonly<AuthorResource> },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1Author>>,
@@ -525,7 +513,7 @@ export const getPostApiV1AuthorMutationOptions = <
   > = (props) => {
     const { data } = props ?? {};
 
-    return postApiV1Author(data, axiosOptions);
+    return postApiV1Author(data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -535,10 +523,10 @@ export type PostApiV1AuthorMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1Author>>
 >;
 export type PostApiV1AuthorMutationBody = NonReadonly<AuthorResource>;
-export type PostApiV1AuthorMutationError = AxiosError<unknown>;
+export type PostApiV1AuthorMutationError = unknown;
 
 export const usePostApiV1Author = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -547,7 +535,6 @@ export const usePostApiV1Author = <
     { data: NonReadonly<AuthorResource> },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1Author>>,
   TError,
@@ -562,24 +549,23 @@ export const usePostApiV1Author = <
 export const putApiV1AuthorId = (
   id: MaybeRef<string | undefined | null>,
   authorResource: MaybeRef<NonReadonly<AuthorResource>>,
-  params?: MaybeRef<PutApiV1AuthorIdParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<AuthorResource>> => {
+  params?: MaybeRef<PutApiV1AuthorIdParams>
+) => {
   id = unref(id);
   authorResource = unref(authorResource);
   params = unref(params);
-  return axios.put(
-    `http://localhost:3001/api/v1/author/${id}`,
-    authorResource,
-    {
-      ...options,
-      params: { ...unref(params), ...options?.params },
-    }
-  );
+
+  return customInstance<AuthorResource>({
+    url: `/api/v1/author/${id}`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: authorResource,
+    params: unref(params),
+  });
 };
 
 export const getPutApiV1AuthorIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -592,7 +578,6 @@ export const getPutApiV1AuthorIdMutationOptions = <
     },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof putApiV1AuthorId>>,
   TError,
@@ -603,7 +588,7 @@ export const getPutApiV1AuthorIdMutationOptions = <
   },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof putApiV1AuthorId>>,
@@ -615,7 +600,7 @@ export const getPutApiV1AuthorIdMutationOptions = <
   > = (props) => {
     const { id, data, params } = props ?? {};
 
-    return putApiV1AuthorId(id, data, params, axiosOptions);
+    return putApiV1AuthorId(id, data, params);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -625,10 +610,10 @@ export type PutApiV1AuthorIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof putApiV1AuthorId>>
 >;
 export type PutApiV1AuthorIdMutationBody = NonReadonly<AuthorResource>;
-export type PutApiV1AuthorIdMutationError = AxiosError<unknown>;
+export type PutApiV1AuthorIdMutationError = unknown;
 
 export const usePutApiV1AuthorId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -641,7 +626,6 @@ export const usePutApiV1AuthorId = <
     },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof putApiV1AuthorId>>,
   TError,
@@ -659,19 +643,20 @@ export const usePutApiV1AuthorId = <
 
 export const deleteApiV1AuthorId = (
   id: MaybeRef<number | undefined | null>,
-  params?: MaybeRef<DeleteApiV1AuthorIdParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  params?: MaybeRef<DeleteApiV1AuthorIdParams>
+) => {
   id = unref(id);
   params = unref(params);
-  return axios.delete(`http://localhost:3001/api/v1/author/${id}`, {
-    ...options,
-    params: { ...unref(params), ...options?.params },
+
+  return customInstance<void>({
+    url: `/api/v1/author/${id}`,
+    method: "DELETE",
+    params: unref(params),
   });
 };
 
 export const getDeleteApiV1AuthorIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -680,14 +665,13 @@ export const getDeleteApiV1AuthorIdMutationOptions = <
     { id: number; params?: DeleteApiV1AuthorIdParams },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof deleteApiV1AuthorId>>,
   TError,
   { id: number; params?: DeleteApiV1AuthorIdParams },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deleteApiV1AuthorId>>,
@@ -695,7 +679,7 @@ export const getDeleteApiV1AuthorIdMutationOptions = <
   > = (props) => {
     const { id, params } = props ?? {};
 
-    return deleteApiV1AuthorId(id, params, axiosOptions);
+    return deleteApiV1AuthorId(id, params);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -705,10 +689,10 @@ export type DeleteApiV1AuthorIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof deleteApiV1AuthorId>>
 >;
 
-export type DeleteApiV1AuthorIdMutationError = AxiosError<unknown>;
+export type DeleteApiV1AuthorIdMutationError = unknown;
 
 export const useDeleteApiV1AuthorId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -717,7 +701,6 @@ export const useDeleteApiV1AuthorId = <
     { id: number; params?: DeleteApiV1AuthorIdParams },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof deleteApiV1AuthorId>>,
   TError,
@@ -731,21 +714,26 @@ export const useDeleteApiV1AuthorId = <
 
 export const getApiV1AuthorId = (
   id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<AuthorResource>> => {
+  signal?: AbortSignal
+) => {
   id = unref(id);
-  return axios.get(`http://localhost:3001/api/v1/author/${id}`, options);
+
+  return customInstance<AuthorResource>({
+    url: `/api/v1/author/${id}`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1AuthorIdQueryKey = (
   id: MaybeRef<number | undefined | null>
 ) => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'author', id] as const;
+  return ["api", "v1", "author", id] as const;
 };
 
 export const getGetApiV1AuthorIdQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1AuthorId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -756,16 +744,15 @@ export const getGetApiV1AuthorIdQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1AuthorIdQueryKey(id);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1AuthorId>>
-  > = ({ signal }) => getApiV1AuthorId(id, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1AuthorId(id, signal);
 
   return {
     queryKey,
@@ -782,11 +769,11 @@ export const getGetApiV1AuthorIdQueryOptions = <
 export type GetApiV1AuthorIdQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1AuthorId>>
 >;
-export type GetApiV1AuthorIdQueryError = AxiosError<unknown>;
+export type GetApiV1AuthorIdQueryError = unknown;
 
 export const useGetApiV1AuthorId = <
   TData = Awaited<ReturnType<typeof getApiV1AuthorId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -797,7 +784,6 @@ export const useGetApiV1AuthorId = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1AuthorIdQueryOptions(id, options);
@@ -812,19 +798,20 @@ export const useGetApiV1AuthorId = <
 };
 
 export const putApiV1AuthorEditor = (
-  authorEditorResource: MaybeRef<AuthorEditorResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  authorEditorResource: MaybeRef<AuthorEditorResource>
+) => {
   authorEditorResource = unref(authorEditorResource);
-  return axios.put(
-    `http://localhost:3001/api/v1/author/editor`,
-    authorEditorResource,
-    options
-  );
+
+  return customInstance<void>({
+    url: `/api/v1/author/editor`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: authorEditorResource,
+  });
 };
 
 export const getPutApiV1AuthorEditorMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -833,14 +820,13 @@ export const getPutApiV1AuthorEditorMutationOptions = <
     { data: AuthorEditorResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof putApiV1AuthorEditor>>,
   TError,
   { data: AuthorEditorResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof putApiV1AuthorEditor>>,
@@ -848,7 +834,7 @@ export const getPutApiV1AuthorEditorMutationOptions = <
   > = (props) => {
     const { data } = props ?? {};
 
-    return putApiV1AuthorEditor(data, axiosOptions);
+    return putApiV1AuthorEditor(data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -858,10 +844,10 @@ export type PutApiV1AuthorEditorMutationResult = NonNullable<
   Awaited<ReturnType<typeof putApiV1AuthorEditor>>
 >;
 export type PutApiV1AuthorEditorMutationBody = AuthorEditorResource;
-export type PutApiV1AuthorEditorMutationError = AxiosError<unknown>;
+export type PutApiV1AuthorEditorMutationError = unknown;
 
 export const usePutApiV1AuthorEditor = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -870,7 +856,6 @@ export const usePutApiV1AuthorEditor = <
     { data: AuthorEditorResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof putApiV1AuthorEditor>>,
   TError,
@@ -883,18 +868,20 @@ export const usePutApiV1AuthorEditor = <
 };
 
 export const deleteApiV1AuthorEditor = (
-  authorEditorResource: MaybeRef<AuthorEditorResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  authorEditorResource: MaybeRef<AuthorEditorResource>
+) => {
   authorEditorResource = unref(authorEditorResource);
-  return axios.delete(`http://localhost:3001/api/v1/author/editor`, {
+
+  return customInstance<void>({
+    url: `/api/v1/author/editor`,
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
     data: authorEditorResource,
-    ...options,
   });
 };
 
 export const getDeleteApiV1AuthorEditorMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -903,14 +890,13 @@ export const getDeleteApiV1AuthorEditorMutationOptions = <
     { data: AuthorEditorResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof deleteApiV1AuthorEditor>>,
   TError,
   { data: AuthorEditorResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deleteApiV1AuthorEditor>>,
@@ -918,7 +904,7 @@ export const getDeleteApiV1AuthorEditorMutationOptions = <
   > = (props) => {
     const { data } = props ?? {};
 
-    return deleteApiV1AuthorEditor(data, axiosOptions);
+    return deleteApiV1AuthorEditor(data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -928,10 +914,10 @@ export type DeleteApiV1AuthorEditorMutationResult = NonNullable<
   Awaited<ReturnType<typeof deleteApiV1AuthorEditor>>
 >;
 export type DeleteApiV1AuthorEditorMutationBody = AuthorEditorResource;
-export type DeleteApiV1AuthorEditorMutationError = AxiosError<unknown>;
+export type DeleteApiV1AuthorEditorMutationError = unknown;
 
 export const useDeleteApiV1AuthorEditor = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -940,7 +926,6 @@ export const useDeleteApiV1AuthorEditor = <
     { data: AuthorEditorResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof deleteApiV1AuthorEditor>>,
   TError,
@@ -954,12 +939,15 @@ export const useDeleteApiV1AuthorEditor = <
 
 export const getApiV1AuthorLookup = (
   params?: MaybeRef<GetApiV1AuthorLookupParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  signal?: AbortSignal
+) => {
   params = unref(params);
-  return axios.get(`http://localhost:3001/api/v1/author/lookup`, {
-    ...options,
-    params: { ...unref(params), ...options?.params },
+
+  return customInstance<void>({
+    url: `/api/v1/author/lookup`,
+    method: "GET",
+    params: unref(params),
+    signal,
   });
 };
 
@@ -967,19 +955,17 @@ export const getGetApiV1AuthorLookupQueryKey = (
   params?: MaybeRef<GetApiV1AuthorLookupParams>
 ) => {
   return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'author',
-    'lookup',
+    "api",
+    "v1",
+    "author",
+    "lookup",
     ...(params ? [params] : []),
   ] as const;
 };
 
 export const getGetApiV1AuthorLookupQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1AuthorLookup>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1AuthorLookupParams>,
   options?: {
@@ -990,16 +976,15 @@ export const getGetApiV1AuthorLookupQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1AuthorLookupQueryKey(params);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1AuthorLookup>>
-  > = ({ signal }) => getApiV1AuthorLookup(params, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1AuthorLookup(params, signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1AuthorLookup>>,
@@ -1011,11 +996,11 @@ export const getGetApiV1AuthorLookupQueryOptions = <
 export type GetApiV1AuthorLookupQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1AuthorLookup>>
 >;
-export type GetApiV1AuthorLookupQueryError = AxiosError<unknown>;
+export type GetApiV1AuthorLookupQueryError = unknown;
 
 export const useGetApiV1AuthorLookup = <
   TData = Awaited<ReturnType<typeof getApiV1AuthorLookup>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1AuthorLookupParams>,
   options?: {
@@ -1026,7 +1011,6 @@ export const useGetApiV1AuthorLookup = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1AuthorLookupQueryOptions(params, options);
@@ -1040,19 +1024,21 @@ export const useGetApiV1AuthorLookup = <
   return query;
 };
 
-export const getApiV1SystemBackup = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<BackupResource[]>> => {
-  return axios.get(`http://localhost:3001/api/v1/system/backup`, options);
+export const getApiV1SystemBackup = (signal?: AbortSignal) => {
+  return customInstance<BackupResource[]>({
+    url: `/api/v1/system/backup`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1SystemBackupQueryKey = () => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'system', 'backup'] as const;
+  return ["api", "v1", "system", "backup"] as const;
 };
 
 export const getGetApiV1SystemBackupQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1SystemBackup>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -1061,15 +1047,14 @@ export const getGetApiV1SystemBackupQueryOptions = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1SystemBackupQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1SystemBackup>>
-  > = ({ signal }) => getApiV1SystemBackup({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1SystemBackup(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1SystemBackup>>,
@@ -1081,11 +1066,11 @@ export const getGetApiV1SystemBackupQueryOptions = <
 export type GetApiV1SystemBackupQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1SystemBackup>>
 >;
-export type GetApiV1SystemBackupQueryError = AxiosError<unknown>;
+export type GetApiV1SystemBackupQueryError = unknown;
 
 export const useGetApiV1SystemBackup = <
   TData = Awaited<ReturnType<typeof getApiV1SystemBackup>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -1094,7 +1079,6 @@ export const useGetApiV1SystemBackup = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1SystemBackupQueryOptions(options);
 
@@ -1108,18 +1092,18 @@ export const useGetApiV1SystemBackup = <
 };
 
 export const deleteApiV1SystemBackupId = (
-  id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  id: MaybeRef<number | undefined | null>
+) => {
   id = unref(id);
-  return axios.delete(
-    `http://localhost:3001/api/v1/system/backup/${id}`,
-    options
-  );
+
+  return customInstance<void>({
+    url: `/api/v1/system/backup/${id}`,
+    method: "DELETE",
+  });
 };
 
 export const getDeleteApiV1SystemBackupIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -1128,14 +1112,13 @@ export const getDeleteApiV1SystemBackupIdMutationOptions = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof deleteApiV1SystemBackupId>>,
   TError,
   { id: number },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deleteApiV1SystemBackupId>>,
@@ -1143,7 +1126,7 @@ export const getDeleteApiV1SystemBackupIdMutationOptions = <
   > = (props) => {
     const { id } = props ?? {};
 
-    return deleteApiV1SystemBackupId(id, axiosOptions);
+    return deleteApiV1SystemBackupId(id);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -1153,10 +1136,10 @@ export type DeleteApiV1SystemBackupIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof deleteApiV1SystemBackupId>>
 >;
 
-export type DeleteApiV1SystemBackupIdMutationError = AxiosError<unknown>;
+export type DeleteApiV1SystemBackupIdMutationError = unknown;
 
 export const useDeleteApiV1SystemBackupId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -1165,7 +1148,6 @@ export const useDeleteApiV1SystemBackupId = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof deleteApiV1SystemBackupId>>,
   TError,
@@ -1178,19 +1160,18 @@ export const useDeleteApiV1SystemBackupId = <
 };
 
 export const postApiV1SystemBackupRestoreId = (
-  id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  id: MaybeRef<number | undefined | null>
+) => {
   id = unref(id);
-  return axios.post(
-    `http://localhost:3001/api/v1/system/backup/restore/${id}`,
-    undefined,
-    options
-  );
+
+  return customInstance<void>({
+    url: `/api/v1/system/backup/restore/${id}`,
+    method: "POST",
+  });
 };
 
 export const getPostApiV1SystemBackupRestoreIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -1199,14 +1180,13 @@ export const getPostApiV1SystemBackupRestoreIdMutationOptions = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1SystemBackupRestoreId>>,
   TError,
   { id: number },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1SystemBackupRestoreId>>,
@@ -1214,7 +1194,7 @@ export const getPostApiV1SystemBackupRestoreIdMutationOptions = <
   > = (props) => {
     const { id } = props ?? {};
 
-    return postApiV1SystemBackupRestoreId(id, axiosOptions);
+    return postApiV1SystemBackupRestoreId(id);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -1224,10 +1204,10 @@ export type PostApiV1SystemBackupRestoreIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1SystemBackupRestoreId>>
 >;
 
-export type PostApiV1SystemBackupRestoreIdMutationError = AxiosError<unknown>;
+export type PostApiV1SystemBackupRestoreIdMutationError = unknown;
 
 export const usePostApiV1SystemBackupRestoreId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -1236,7 +1216,6 @@ export const usePostApiV1SystemBackupRestoreId = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1SystemBackupRestoreId>>,
   TError,
@@ -1249,18 +1228,15 @@ export const usePostApiV1SystemBackupRestoreId = <
   return useMutation(mutationOptions);
 };
 
-export const postApiV1SystemBackupRestoreUpload = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
-  return axios.post(
-    `http://localhost:3001/api/v1/system/backup/restore/upload`,
-    undefined,
-    options
-  );
+export const postApiV1SystemBackupRestoreUpload = () => {
+  return customInstance<void>({
+    url: `/api/v1/system/backup/restore/upload`,
+    method: "POST",
+  });
 };
 
 export const getPostApiV1SystemBackupRestoreUploadMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -1269,20 +1245,19 @@ export const getPostApiV1SystemBackupRestoreUploadMutationOptions = <
     void,
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1SystemBackupRestoreUpload>>,
   TError,
   void,
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1SystemBackupRestoreUpload>>,
     void
   > = () => {
-    return postApiV1SystemBackupRestoreUpload(axiosOptions);
+    return postApiV1SystemBackupRestoreUpload();
   };
 
   return { mutationFn, ...mutationOptions };
@@ -1292,11 +1267,10 @@ export type PostApiV1SystemBackupRestoreUploadMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1SystemBackupRestoreUpload>>
 >;
 
-export type PostApiV1SystemBackupRestoreUploadMutationError =
-  AxiosError<unknown>;
+export type PostApiV1SystemBackupRestoreUploadMutationError = unknown;
 
 export const usePostApiV1SystemBackupRestoreUpload = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -1305,7 +1279,6 @@ export const usePostApiV1SystemBackupRestoreUpload = <
     void,
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1SystemBackupRestoreUpload>>,
   TError,
@@ -1320,31 +1293,27 @@ export const usePostApiV1SystemBackupRestoreUpload = <
 
 export const getApiV1Blocklist = (
   params?: MaybeRef<GetApiV1BlocklistParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<BlocklistResourcePagingResource>> => {
+  signal?: AbortSignal
+) => {
   params = unref(params);
-  return axios.get(`http://localhost:3001/api/v1/blocklist`, {
-    ...options,
-    params: { ...unref(params), ...options?.params },
+
+  return customInstance<BlocklistResourcePagingResource>({
+    url: `/api/v1/blocklist`,
+    method: "GET",
+    params: unref(params),
+    signal,
   });
 };
 
 export const getGetApiV1BlocklistQueryKey = (
   params?: MaybeRef<GetApiV1BlocklistParams>
 ) => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'blocklist',
-    ...(params ? [params] : []),
-  ] as const;
+  return ["api", "v1", "blocklist", ...(params ? [params] : [])] as const;
 };
 
 export const getGetApiV1BlocklistQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1Blocklist>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1BlocklistParams>,
   options?: {
@@ -1355,16 +1324,15 @@ export const getGetApiV1BlocklistQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1BlocklistQueryKey(params);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1Blocklist>>
-  > = ({ signal }) => getApiV1Blocklist(params, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1Blocklist(params, signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1Blocklist>>,
@@ -1376,11 +1344,11 @@ export const getGetApiV1BlocklistQueryOptions = <
 export type GetApiV1BlocklistQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1Blocklist>>
 >;
-export type GetApiV1BlocklistQueryError = AxiosError<unknown>;
+export type GetApiV1BlocklistQueryError = unknown;
 
 export const useGetApiV1Blocklist = <
   TData = Awaited<ReturnType<typeof getApiV1Blocklist>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1BlocklistParams>,
   options?: {
@@ -1391,7 +1359,6 @@ export const useGetApiV1Blocklist = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1BlocklistQueryOptions(params, options);
@@ -1406,15 +1373,18 @@ export const useGetApiV1Blocklist = <
 };
 
 export const deleteApiV1BlocklistId = (
-  id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  id: MaybeRef<number | undefined | null>
+) => {
   id = unref(id);
-  return axios.delete(`http://localhost:3001/api/v1/blocklist/${id}`, options);
+
+  return customInstance<void>({
+    url: `/api/v1/blocklist/${id}`,
+    method: "DELETE",
+  });
 };
 
 export const getDeleteApiV1BlocklistIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -1423,14 +1393,13 @@ export const getDeleteApiV1BlocklistIdMutationOptions = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof deleteApiV1BlocklistId>>,
   TError,
   { id: number },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deleteApiV1BlocklistId>>,
@@ -1438,7 +1407,7 @@ export const getDeleteApiV1BlocklistIdMutationOptions = <
   > = (props) => {
     const { id } = props ?? {};
 
-    return deleteApiV1BlocklistId(id, axiosOptions);
+    return deleteApiV1BlocklistId(id);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -1448,10 +1417,10 @@ export type DeleteApiV1BlocklistIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof deleteApiV1BlocklistId>>
 >;
 
-export type DeleteApiV1BlocklistIdMutationError = AxiosError<unknown>;
+export type DeleteApiV1BlocklistIdMutationError = unknown;
 
 export const useDeleteApiV1BlocklistId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -1460,7 +1429,6 @@ export const useDeleteApiV1BlocklistId = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof deleteApiV1BlocklistId>>,
   TError,
@@ -1473,18 +1441,20 @@ export const useDeleteApiV1BlocklistId = <
 };
 
 export const deleteApiV1BlocklistBulk = (
-  blocklistBulkResource: MaybeRef<BlocklistBulkResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  blocklistBulkResource: MaybeRef<BlocklistBulkResource>
+) => {
   blocklistBulkResource = unref(blocklistBulkResource);
-  return axios.delete(`http://localhost:3001/api/v1/blocklist/bulk`, {
+
+  return customInstance<void>({
+    url: `/api/v1/blocklist/bulk`,
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
     data: blocklistBulkResource,
-    ...options,
   });
 };
 
 export const getDeleteApiV1BlocklistBulkMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -1493,14 +1463,13 @@ export const getDeleteApiV1BlocklistBulkMutationOptions = <
     { data: BlocklistBulkResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof deleteApiV1BlocklistBulk>>,
   TError,
   { data: BlocklistBulkResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deleteApiV1BlocklistBulk>>,
@@ -1508,7 +1477,7 @@ export const getDeleteApiV1BlocklistBulkMutationOptions = <
   > = (props) => {
     const { data } = props ?? {};
 
-    return deleteApiV1BlocklistBulk(data, axiosOptions);
+    return deleteApiV1BlocklistBulk(data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -1518,10 +1487,10 @@ export type DeleteApiV1BlocklistBulkMutationResult = NonNullable<
   Awaited<ReturnType<typeof deleteApiV1BlocklistBulk>>
 >;
 export type DeleteApiV1BlocklistBulkMutationBody = BlocklistBulkResource;
-export type DeleteApiV1BlocklistBulkMutationError = AxiosError<unknown>;
+export type DeleteApiV1BlocklistBulkMutationError = unknown;
 
 export const useDeleteApiV1BlocklistBulk = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -1530,7 +1499,6 @@ export const useDeleteApiV1BlocklistBulk = <
     { data: BlocklistBulkResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof deleteApiV1BlocklistBulk>>,
   TError,
@@ -1544,47 +1512,42 @@ export const useDeleteApiV1BlocklistBulk = <
 
 export const getApiV1Book = (
   params?: MaybeRef<GetApiV1BookParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<BookResource[]>> => {
+  signal?: AbortSignal
+) => {
   params = unref(params);
-  return axios.get(`http://localhost:3001/api/v1/book`, {
-    ...options,
-    params: { ...unref(params), ...options?.params },
+
+  return customInstance<BookResource[]>({
+    url: `/api/v1/book`,
+    method: "GET",
+    params: unref(params),
+    signal,
   });
 };
 
 export const getGetApiV1BookQueryKey = (
   params?: MaybeRef<GetApiV1BookParams>
 ) => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'book',
-    ...(params ? [params] : []),
-  ] as const;
+  return ["api", "v1", "book", ...(params ? [params] : [])] as const;
 };
 
 export const getGetApiV1BookQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1Book>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1BookParams>,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getApiV1Book>>, TError, TData>
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1BookQueryKey(params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiV1Book>>> = ({
     signal,
-  }) => getApiV1Book(params, { signal, ...axiosOptions });
+  }) => getApiV1Book(params, signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1Book>>,
@@ -1596,18 +1559,17 @@ export const getGetApiV1BookQueryOptions = <
 export type GetApiV1BookQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1Book>>
 >;
-export type GetApiV1BookQueryError = AxiosError<unknown>;
+export type GetApiV1BookQueryError = unknown;
 
 export const useGetApiV1Book = <
   TData = Awaited<ReturnType<typeof getApiV1Book>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1BookParams>,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getApiV1Book>>, TError, TData>
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1BookQueryOptions(params, options);
@@ -1621,16 +1583,19 @@ export const useGetApiV1Book = <
   return query;
 };
 
-export const postApiV1Book = (
-  bookResource: MaybeRef<BookResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<BookResource>> => {
+export const postApiV1Book = (bookResource: MaybeRef<BookResource>) => {
   bookResource = unref(bookResource);
-  return axios.post(`http://localhost:3001/api/v1/book`, bookResource, options);
+
+  return customInstance<BookResource>({
+    url: `/api/v1/book`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: bookResource,
+  });
 };
 
 export const getPostApiV1BookMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -1639,14 +1604,13 @@ export const getPostApiV1BookMutationOptions = <
     { data: BookResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1Book>>,
   TError,
   { data: BookResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1Book>>,
@@ -1654,7 +1618,7 @@ export const getPostApiV1BookMutationOptions = <
   > = (props) => {
     const { data } = props ?? {};
 
-    return postApiV1Book(data, axiosOptions);
+    return postApiV1Book(data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -1664,10 +1628,10 @@ export type PostApiV1BookMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1Book>>
 >;
 export type PostApiV1BookMutationBody = BookResource;
-export type PostApiV1BookMutationError = AxiosError<unknown>;
+export type PostApiV1BookMutationError = unknown;
 
 export const usePostApiV1Book = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -1676,7 +1640,6 @@ export const usePostApiV1Book = <
     { data: BookResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1Book>>,
   TError,
@@ -1690,29 +1653,26 @@ export const usePostApiV1Book = <
 
 export const getApiV1BookIdOverview = (
   id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  signal?: AbortSignal
+) => {
   id = unref(id);
-  return axios.get(`http://localhost:3001/api/v1/book/${id}/overview`, options);
+
+  return customInstance<void>({
+    url: `/api/v1/book/${id}/overview`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1BookIdOverviewQueryKey = (
   id: MaybeRef<number | undefined | null>
 ) => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'book',
-    id,
-    'overview',
-  ] as const;
+  return ["api", "v1", "book", id, "overview"] as const;
 };
 
 export const getGetApiV1BookIdOverviewQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1BookIdOverview>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -1723,16 +1683,15 @@ export const getGetApiV1BookIdOverviewQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1BookIdOverviewQueryKey(id);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1BookIdOverview>>
-  > = ({ signal }) => getApiV1BookIdOverview(id, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1BookIdOverview(id, signal);
 
   return {
     queryKey,
@@ -1749,11 +1708,11 @@ export const getGetApiV1BookIdOverviewQueryOptions = <
 export type GetApiV1BookIdOverviewQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1BookIdOverview>>
 >;
-export type GetApiV1BookIdOverviewQueryError = AxiosError<unknown>;
+export type GetApiV1BookIdOverviewQueryError = unknown;
 
 export const useGetApiV1BookIdOverview = <
   TData = Awaited<ReturnType<typeof getApiV1BookIdOverview>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -1764,7 +1723,6 @@ export const useGetApiV1BookIdOverview = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1BookIdOverviewQueryOptions(id, options);
@@ -1780,20 +1738,21 @@ export const useGetApiV1BookIdOverview = <
 
 export const putApiV1BookId = (
   id: MaybeRef<string | undefined | null>,
-  bookResource: MaybeRef<BookResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<BookResource>> => {
+  bookResource: MaybeRef<BookResource>
+) => {
   id = unref(id);
   bookResource = unref(bookResource);
-  return axios.put(
-    `http://localhost:3001/api/v1/book/${id}`,
-    bookResource,
-    options
-  );
+
+  return customInstance<BookResource>({
+    url: `/api/v1/book/${id}`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: bookResource,
+  });
 };
 
 export const getPutApiV1BookIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -1802,14 +1761,13 @@ export const getPutApiV1BookIdMutationOptions = <
     { id: string; data: BookResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof putApiV1BookId>>,
   TError,
   { id: string; data: BookResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof putApiV1BookId>>,
@@ -1817,7 +1775,7 @@ export const getPutApiV1BookIdMutationOptions = <
   > = (props) => {
     const { id, data } = props ?? {};
 
-    return putApiV1BookId(id, data, axiosOptions);
+    return putApiV1BookId(id, data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -1827,10 +1785,10 @@ export type PutApiV1BookIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof putApiV1BookId>>
 >;
 export type PutApiV1BookIdMutationBody = BookResource;
-export type PutApiV1BookIdMutationError = AxiosError<unknown>;
+export type PutApiV1BookIdMutationError = unknown;
 
 export const usePutApiV1BookId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -1839,7 +1797,6 @@ export const usePutApiV1BookId = <
     { id: string; data: BookResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof putApiV1BookId>>,
   TError,
@@ -1853,19 +1810,20 @@ export const usePutApiV1BookId = <
 
 export const deleteApiV1BookId = (
   id: MaybeRef<number | undefined | null>,
-  params?: MaybeRef<DeleteApiV1BookIdParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  params?: MaybeRef<DeleteApiV1BookIdParams>
+) => {
   id = unref(id);
   params = unref(params);
-  return axios.delete(`http://localhost:3001/api/v1/book/${id}`, {
-    ...options,
-    params: { ...unref(params), ...options?.params },
+
+  return customInstance<void>({
+    url: `/api/v1/book/${id}`,
+    method: "DELETE",
+    params: unref(params),
   });
 };
 
 export const getDeleteApiV1BookIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -1874,14 +1832,13 @@ export const getDeleteApiV1BookIdMutationOptions = <
     { id: number; params?: DeleteApiV1BookIdParams },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof deleteApiV1BookId>>,
   TError,
   { id: number; params?: DeleteApiV1BookIdParams },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deleteApiV1BookId>>,
@@ -1889,7 +1846,7 @@ export const getDeleteApiV1BookIdMutationOptions = <
   > = (props) => {
     const { id, params } = props ?? {};
 
-    return deleteApiV1BookId(id, params, axiosOptions);
+    return deleteApiV1BookId(id, params);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -1899,10 +1856,10 @@ export type DeleteApiV1BookIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof deleteApiV1BookId>>
 >;
 
-export type DeleteApiV1BookIdMutationError = AxiosError<unknown>;
+export type DeleteApiV1BookIdMutationError = unknown;
 
 export const useDeleteApiV1BookId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -1911,7 +1868,6 @@ export const useDeleteApiV1BookId = <
     { id: number; params?: DeleteApiV1BookIdParams },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof deleteApiV1BookId>>,
   TError,
@@ -1925,37 +1881,41 @@ export const useDeleteApiV1BookId = <
 
 export const getApiV1BookId = (
   id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<BookResource>> => {
+  signal?: AbortSignal
+) => {
   id = unref(id);
-  return axios.get(`http://localhost:3001/api/v1/book/${id}`, options);
+
+  return customInstance<BookResource>({
+    url: `/api/v1/book/${id}`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1BookIdQueryKey = (
   id: MaybeRef<number | undefined | null>
 ) => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'book', id] as const;
+  return ["api", "v1", "book", id] as const;
 };
 
 export const getGetApiV1BookIdQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1BookId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getApiV1BookId>>, TError, TData>
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1BookIdQueryKey(id);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiV1BookId>>> = ({
     signal,
-  }) => getApiV1BookId(id, { signal, ...axiosOptions });
+  }) => getApiV1BookId(id, signal);
 
   return {
     queryKey,
@@ -1972,18 +1932,17 @@ export const getGetApiV1BookIdQueryOptions = <
 export type GetApiV1BookIdQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1BookId>>
 >;
-export type GetApiV1BookIdQueryError = AxiosError<unknown>;
+export type GetApiV1BookIdQueryError = unknown;
 
 export const useGetApiV1BookId = <
   TData = Awaited<ReturnType<typeof getApiV1BookId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getApiV1BookId>>, TError, TData>
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1BookIdQueryOptions(id, options);
@@ -1998,19 +1957,20 @@ export const useGetApiV1BookId = <
 };
 
 export const putApiV1BookMonitor = (
-  booksMonitoredResource: MaybeRef<BooksMonitoredResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  booksMonitoredResource: MaybeRef<BooksMonitoredResource>
+) => {
   booksMonitoredResource = unref(booksMonitoredResource);
-  return axios.put(
-    `http://localhost:3001/api/v1/book/monitor`,
-    booksMonitoredResource,
-    options
-  );
+
+  return customInstance<void>({
+    url: `/api/v1/book/monitor`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: booksMonitoredResource,
+  });
 };
 
 export const getPutApiV1BookMonitorMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -2019,14 +1979,13 @@ export const getPutApiV1BookMonitorMutationOptions = <
     { data: BooksMonitoredResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof putApiV1BookMonitor>>,
   TError,
   { data: BooksMonitoredResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof putApiV1BookMonitor>>,
@@ -2034,7 +1993,7 @@ export const getPutApiV1BookMonitorMutationOptions = <
   > = (props) => {
     const { data } = props ?? {};
 
-    return putApiV1BookMonitor(data, axiosOptions);
+    return putApiV1BookMonitor(data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -2044,10 +2003,10 @@ export type PutApiV1BookMonitorMutationResult = NonNullable<
   Awaited<ReturnType<typeof putApiV1BookMonitor>>
 >;
 export type PutApiV1BookMonitorMutationBody = BooksMonitoredResource;
-export type PutApiV1BookMonitorMutationError = AxiosError<unknown>;
+export type PutApiV1BookMonitorMutationError = unknown;
 
 export const usePutApiV1BookMonitor = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -2056,7 +2015,6 @@ export const usePutApiV1BookMonitor = <
     { data: BooksMonitoredResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof putApiV1BookMonitor>>,
   TError,
@@ -2069,19 +2027,20 @@ export const usePutApiV1BookMonitor = <
 };
 
 export const putApiV1BookEditor = (
-  bookEditorResource: MaybeRef<BookEditorResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  bookEditorResource: MaybeRef<BookEditorResource>
+) => {
   bookEditorResource = unref(bookEditorResource);
-  return axios.put(
-    `http://localhost:3001/api/v1/book/editor`,
-    bookEditorResource,
-    options
-  );
+
+  return customInstance<void>({
+    url: `/api/v1/book/editor`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: bookEditorResource,
+  });
 };
 
 export const getPutApiV1BookEditorMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -2090,14 +2049,13 @@ export const getPutApiV1BookEditorMutationOptions = <
     { data: BookEditorResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof putApiV1BookEditor>>,
   TError,
   { data: BookEditorResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof putApiV1BookEditor>>,
@@ -2105,7 +2063,7 @@ export const getPutApiV1BookEditorMutationOptions = <
   > = (props) => {
     const { data } = props ?? {};
 
-    return putApiV1BookEditor(data, axiosOptions);
+    return putApiV1BookEditor(data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -2115,10 +2073,10 @@ export type PutApiV1BookEditorMutationResult = NonNullable<
   Awaited<ReturnType<typeof putApiV1BookEditor>>
 >;
 export type PutApiV1BookEditorMutationBody = BookEditorResource;
-export type PutApiV1BookEditorMutationError = AxiosError<unknown>;
+export type PutApiV1BookEditorMutationError = unknown;
 
 export const usePutApiV1BookEditor = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -2127,7 +2085,6 @@ export const usePutApiV1BookEditor = <
     { data: BookEditorResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof putApiV1BookEditor>>,
   TError,
@@ -2140,18 +2097,20 @@ export const usePutApiV1BookEditor = <
 };
 
 export const deleteApiV1BookEditor = (
-  bookEditorResource: MaybeRef<BookEditorResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  bookEditorResource: MaybeRef<BookEditorResource>
+) => {
   bookEditorResource = unref(bookEditorResource);
-  return axios.delete(`http://localhost:3001/api/v1/book/editor`, {
+
+  return customInstance<void>({
+    url: `/api/v1/book/editor`,
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
     data: bookEditorResource,
-    ...options,
   });
 };
 
 export const getDeleteApiV1BookEditorMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -2160,14 +2119,13 @@ export const getDeleteApiV1BookEditorMutationOptions = <
     { data: BookEditorResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof deleteApiV1BookEditor>>,
   TError,
   { data: BookEditorResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deleteApiV1BookEditor>>,
@@ -2175,7 +2133,7 @@ export const getDeleteApiV1BookEditorMutationOptions = <
   > = (props) => {
     const { data } = props ?? {};
 
-    return deleteApiV1BookEditor(data, axiosOptions);
+    return deleteApiV1BookEditor(data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -2185,10 +2143,10 @@ export type DeleteApiV1BookEditorMutationResult = NonNullable<
   Awaited<ReturnType<typeof deleteApiV1BookEditor>>
 >;
 export type DeleteApiV1BookEditorMutationBody = BookEditorResource;
-export type DeleteApiV1BookEditorMutationError = AxiosError<unknown>;
+export type DeleteApiV1BookEditorMutationError = unknown;
 
 export const useDeleteApiV1BookEditor = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -2197,7 +2155,6 @@ export const useDeleteApiV1BookEditor = <
     { data: BookEditorResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof deleteApiV1BookEditor>>,
   TError,
@@ -2211,31 +2168,27 @@ export const useDeleteApiV1BookEditor = <
 
 export const getApiV1Bookfile = (
   params?: MaybeRef<GetApiV1BookfileParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<BookFileResource[]>> => {
+  signal?: AbortSignal
+) => {
   params = unref(params);
-  return axios.get(`http://localhost:3001/api/v1/bookfile`, {
-    ...options,
-    params: { ...unref(params), ...options?.params },
+
+  return customInstance<BookFileResource[]>({
+    url: `/api/v1/bookfile`,
+    method: "GET",
+    params: unref(params),
+    signal,
   });
 };
 
 export const getGetApiV1BookfileQueryKey = (
   params?: MaybeRef<GetApiV1BookfileParams>
 ) => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'bookfile',
-    ...(params ? [params] : []),
-  ] as const;
+  return ["api", "v1", "bookfile", ...(params ? [params] : [])] as const;
 };
 
 export const getGetApiV1BookfileQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1Bookfile>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1BookfileParams>,
   options?: {
@@ -2246,16 +2199,15 @@ export const getGetApiV1BookfileQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1BookfileQueryKey(params);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1Bookfile>>
-  > = ({ signal }) => getApiV1Bookfile(params, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1Bookfile(params, signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1Bookfile>>,
@@ -2267,11 +2219,11 @@ export const getGetApiV1BookfileQueryOptions = <
 export type GetApiV1BookfileQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1Bookfile>>
 >;
-export type GetApiV1BookfileQueryError = AxiosError<unknown>;
+export type GetApiV1BookfileQueryError = unknown;
 
 export const useGetApiV1Bookfile = <
   TData = Awaited<ReturnType<typeof getApiV1Bookfile>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1BookfileParams>,
   options?: {
@@ -2282,7 +2234,6 @@ export const useGetApiV1Bookfile = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1BookfileQueryOptions(params, options);
@@ -2298,20 +2249,21 @@ export const useGetApiV1Bookfile = <
 
 export const putApiV1BookfileId = (
   id: MaybeRef<string | undefined | null>,
-  bookFileResource: MaybeRef<BookFileResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<BookFileResource>> => {
+  bookFileResource: MaybeRef<BookFileResource>
+) => {
   id = unref(id);
   bookFileResource = unref(bookFileResource);
-  return axios.put(
-    `http://localhost:3001/api/v1/bookfile/${id}`,
-    bookFileResource,
-    options
-  );
+
+  return customInstance<BookFileResource>({
+    url: `/api/v1/bookfile/${id}`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: bookFileResource,
+  });
 };
 
 export const getPutApiV1BookfileIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -2320,14 +2272,13 @@ export const getPutApiV1BookfileIdMutationOptions = <
     { id: string; data: BookFileResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof putApiV1BookfileId>>,
   TError,
   { id: string; data: BookFileResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof putApiV1BookfileId>>,
@@ -2335,7 +2286,7 @@ export const getPutApiV1BookfileIdMutationOptions = <
   > = (props) => {
     const { id, data } = props ?? {};
 
-    return putApiV1BookfileId(id, data, axiosOptions);
+    return putApiV1BookfileId(id, data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -2345,10 +2296,10 @@ export type PutApiV1BookfileIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof putApiV1BookfileId>>
 >;
 export type PutApiV1BookfileIdMutationBody = BookFileResource;
-export type PutApiV1BookfileIdMutationError = AxiosError<unknown>;
+export type PutApiV1BookfileIdMutationError = unknown;
 
 export const usePutApiV1BookfileId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -2357,7 +2308,6 @@ export const usePutApiV1BookfileId = <
     { id: string; data: BookFileResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof putApiV1BookfileId>>,
   TError,
@@ -2370,15 +2320,18 @@ export const usePutApiV1BookfileId = <
 };
 
 export const deleteApiV1BookfileId = (
-  id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  id: MaybeRef<number | undefined | null>
+) => {
   id = unref(id);
-  return axios.delete(`http://localhost:3001/api/v1/bookfile/${id}`, options);
+
+  return customInstance<void>({
+    url: `/api/v1/bookfile/${id}`,
+    method: "DELETE",
+  });
 };
 
 export const getDeleteApiV1BookfileIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -2387,14 +2340,13 @@ export const getDeleteApiV1BookfileIdMutationOptions = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof deleteApiV1BookfileId>>,
   TError,
   { id: number },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deleteApiV1BookfileId>>,
@@ -2402,7 +2354,7 @@ export const getDeleteApiV1BookfileIdMutationOptions = <
   > = (props) => {
     const { id } = props ?? {};
 
-    return deleteApiV1BookfileId(id, axiosOptions);
+    return deleteApiV1BookfileId(id);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -2412,10 +2364,10 @@ export type DeleteApiV1BookfileIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof deleteApiV1BookfileId>>
 >;
 
-export type DeleteApiV1BookfileIdMutationError = AxiosError<unknown>;
+export type DeleteApiV1BookfileIdMutationError = unknown;
 
 export const useDeleteApiV1BookfileId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -2424,7 +2376,6 @@ export const useDeleteApiV1BookfileId = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof deleteApiV1BookfileId>>,
   TError,
@@ -2438,21 +2389,26 @@ export const useDeleteApiV1BookfileId = <
 
 export const getApiV1BookfileId = (
   id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<BookFileResource>> => {
+  signal?: AbortSignal
+) => {
   id = unref(id);
-  return axios.get(`http://localhost:3001/api/v1/bookfile/${id}`, options);
+
+  return customInstance<BookFileResource>({
+    url: `/api/v1/bookfile/${id}`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1BookfileIdQueryKey = (
   id: MaybeRef<number | undefined | null>
 ) => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'bookfile', id] as const;
+  return ["api", "v1", "bookfile", id] as const;
 };
 
 export const getGetApiV1BookfileIdQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1BookfileId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -2463,16 +2419,15 @@ export const getGetApiV1BookfileIdQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1BookfileIdQueryKey(id);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1BookfileId>>
-  > = ({ signal }) => getApiV1BookfileId(id, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1BookfileId(id, signal);
 
   return {
     queryKey,
@@ -2489,11 +2444,11 @@ export const getGetApiV1BookfileIdQueryOptions = <
 export type GetApiV1BookfileIdQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1BookfileId>>
 >;
-export type GetApiV1BookfileIdQueryError = AxiosError<unknown>;
+export type GetApiV1BookfileIdQueryError = unknown;
 
 export const useGetApiV1BookfileId = <
   TData = Awaited<ReturnType<typeof getApiV1BookfileId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -2504,7 +2459,6 @@ export const useGetApiV1BookfileId = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1BookfileIdQueryOptions(id, options);
@@ -2519,19 +2473,20 @@ export const useGetApiV1BookfileId = <
 };
 
 export const putApiV1BookfileEditor = (
-  bookFileListResource: MaybeRef<BookFileListResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  bookFileListResource: MaybeRef<BookFileListResource>
+) => {
   bookFileListResource = unref(bookFileListResource);
-  return axios.put(
-    `http://localhost:3001/api/v1/bookfile/editor`,
-    bookFileListResource,
-    options
-  );
+
+  return customInstance<void>({
+    url: `/api/v1/bookfile/editor`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: bookFileListResource,
+  });
 };
 
 export const getPutApiV1BookfileEditorMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -2540,14 +2495,13 @@ export const getPutApiV1BookfileEditorMutationOptions = <
     { data: BookFileListResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof putApiV1BookfileEditor>>,
   TError,
   { data: BookFileListResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof putApiV1BookfileEditor>>,
@@ -2555,7 +2509,7 @@ export const getPutApiV1BookfileEditorMutationOptions = <
   > = (props) => {
     const { data } = props ?? {};
 
-    return putApiV1BookfileEditor(data, axiosOptions);
+    return putApiV1BookfileEditor(data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -2565,10 +2519,10 @@ export type PutApiV1BookfileEditorMutationResult = NonNullable<
   Awaited<ReturnType<typeof putApiV1BookfileEditor>>
 >;
 export type PutApiV1BookfileEditorMutationBody = BookFileListResource;
-export type PutApiV1BookfileEditorMutationError = AxiosError<unknown>;
+export type PutApiV1BookfileEditorMutationError = unknown;
 
 export const usePutApiV1BookfileEditor = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -2577,7 +2531,6 @@ export const usePutApiV1BookfileEditor = <
     { data: BookFileListResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof putApiV1BookfileEditor>>,
   TError,
@@ -2590,18 +2543,20 @@ export const usePutApiV1BookfileEditor = <
 };
 
 export const deleteApiV1BookfileBulk = (
-  bookFileListResource: MaybeRef<BookFileListResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  bookFileListResource: MaybeRef<BookFileListResource>
+) => {
   bookFileListResource = unref(bookFileListResource);
-  return axios.delete(`http://localhost:3001/api/v1/bookfile/bulk`, {
+
+  return customInstance<void>({
+    url: `/api/v1/bookfile/bulk`,
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
     data: bookFileListResource,
-    ...options,
   });
 };
 
 export const getDeleteApiV1BookfileBulkMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -2610,14 +2565,13 @@ export const getDeleteApiV1BookfileBulkMutationOptions = <
     { data: BookFileListResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof deleteApiV1BookfileBulk>>,
   TError,
   { data: BookFileListResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deleteApiV1BookfileBulk>>,
@@ -2625,7 +2579,7 @@ export const getDeleteApiV1BookfileBulkMutationOptions = <
   > = (props) => {
     const { data } = props ?? {};
 
-    return deleteApiV1BookfileBulk(data, axiosOptions);
+    return deleteApiV1BookfileBulk(data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -2635,10 +2589,10 @@ export type DeleteApiV1BookfileBulkMutationResult = NonNullable<
   Awaited<ReturnType<typeof deleteApiV1BookfileBulk>>
 >;
 export type DeleteApiV1BookfileBulkMutationBody = BookFileListResource;
-export type DeleteApiV1BookfileBulkMutationError = AxiosError<unknown>;
+export type DeleteApiV1BookfileBulkMutationError = unknown;
 
 export const useDeleteApiV1BookfileBulk = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -2647,7 +2601,6 @@ export const useDeleteApiV1BookfileBulk = <
     { data: BookFileListResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof deleteApiV1BookfileBulk>>,
   TError,
@@ -2661,32 +2614,27 @@ export const useDeleteApiV1BookfileBulk = <
 
 export const getApiV1BookLookup = (
   params?: MaybeRef<GetApiV1BookLookupParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  signal?: AbortSignal
+) => {
   params = unref(params);
-  return axios.get(`http://localhost:3001/api/v1/book/lookup`, {
-    ...options,
-    params: { ...unref(params), ...options?.params },
+
+  return customInstance<void>({
+    url: `/api/v1/book/lookup`,
+    method: "GET",
+    params: unref(params),
+    signal,
   });
 };
 
 export const getGetApiV1BookLookupQueryKey = (
   params?: MaybeRef<GetApiV1BookLookupParams>
 ) => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'book',
-    'lookup',
-    ...(params ? [params] : []),
-  ] as const;
+  return ["api", "v1", "book", "lookup", ...(params ? [params] : [])] as const;
 };
 
 export const getGetApiV1BookLookupQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1BookLookup>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1BookLookupParams>,
   options?: {
@@ -2697,16 +2645,15 @@ export const getGetApiV1BookLookupQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1BookLookupQueryKey(params);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1BookLookup>>
-  > = ({ signal }) => getApiV1BookLookup(params, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1BookLookup(params, signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1BookLookup>>,
@@ -2718,11 +2665,11 @@ export const getGetApiV1BookLookupQueryOptions = <
 export type GetApiV1BookLookupQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1BookLookup>>
 >;
-export type GetApiV1BookLookupQueryError = AxiosError<unknown>;
+export type GetApiV1BookLookupQueryError = unknown;
 
 export const useGetApiV1BookLookup = <
   TData = Awaited<ReturnType<typeof getApiV1BookLookup>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1BookLookupParams>,
   options?: {
@@ -2733,7 +2680,6 @@ export const useGetApiV1BookLookup = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1BookLookupQueryOptions(params, options);
@@ -2748,19 +2694,20 @@ export const useGetApiV1BookLookup = <
 };
 
 export const postApiV1Bookshelf = (
-  bookshelfResource: MaybeRef<BookshelfResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  bookshelfResource: MaybeRef<BookshelfResource>
+) => {
   bookshelfResource = unref(bookshelfResource);
-  return axios.post(
-    `http://localhost:3001/api/v1/bookshelf`,
-    bookshelfResource,
-    options
-  );
+
+  return customInstance<void>({
+    url: `/api/v1/bookshelf`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: bookshelfResource,
+  });
 };
 
 export const getPostApiV1BookshelfMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -2769,14 +2716,13 @@ export const getPostApiV1BookshelfMutationOptions = <
     { data: BookshelfResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1Bookshelf>>,
   TError,
   { data: BookshelfResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1Bookshelf>>,
@@ -2784,7 +2730,7 @@ export const getPostApiV1BookshelfMutationOptions = <
   > = (props) => {
     const { data } = props ?? {};
 
-    return postApiV1Bookshelf(data, axiosOptions);
+    return postApiV1Bookshelf(data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -2794,10 +2740,10 @@ export type PostApiV1BookshelfMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1Bookshelf>>
 >;
 export type PostApiV1BookshelfMutationBody = BookshelfResource;
-export type PostApiV1BookshelfMutationError = AxiosError<unknown>;
+export type PostApiV1BookshelfMutationError = unknown;
 
 export const usePostApiV1Bookshelf = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -2806,7 +2752,6 @@ export const usePostApiV1Bookshelf = <
     { data: BookshelfResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1Bookshelf>>,
   TError,
@@ -2820,31 +2765,27 @@ export const usePostApiV1Bookshelf = <
 
 export const getApiV1Calendar = (
   params?: MaybeRef<GetApiV1CalendarParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<BookResource[]>> => {
+  signal?: AbortSignal
+) => {
   params = unref(params);
-  return axios.get(`http://localhost:3001/api/v1/calendar`, {
-    ...options,
-    params: { ...unref(params), ...options?.params },
+
+  return customInstance<BookResource[]>({
+    url: `/api/v1/calendar`,
+    method: "GET",
+    params: unref(params),
+    signal,
   });
 };
 
 export const getGetApiV1CalendarQueryKey = (
   params?: MaybeRef<GetApiV1CalendarParams>
 ) => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'calendar',
-    ...(params ? [params] : []),
-  ] as const;
+  return ["api", "v1", "calendar", ...(params ? [params] : [])] as const;
 };
 
 export const getGetApiV1CalendarQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1Calendar>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1CalendarParams>,
   options?: {
@@ -2855,16 +2796,15 @@ export const getGetApiV1CalendarQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1CalendarQueryKey(params);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1Calendar>>
-  > = ({ signal }) => getApiV1Calendar(params, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1Calendar(params, signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1Calendar>>,
@@ -2876,11 +2816,11 @@ export const getGetApiV1CalendarQueryOptions = <
 export type GetApiV1CalendarQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1Calendar>>
 >;
-export type GetApiV1CalendarQueryError = AxiosError<unknown>;
+export type GetApiV1CalendarQueryError = unknown;
 
 export const useGetApiV1Calendar = <
   TData = Awaited<ReturnType<typeof getApiV1Calendar>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1CalendarParams>,
   options?: {
@@ -2891,7 +2831,6 @@ export const useGetApiV1Calendar = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1CalendarQueryOptions(params, options);
@@ -2907,21 +2846,26 @@ export const useGetApiV1Calendar = <
 
 export const getApiV1CalendarId = (
   id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<BookResource>> => {
+  signal?: AbortSignal
+) => {
   id = unref(id);
-  return axios.get(`http://localhost:3001/api/v1/calendar/${id}`, options);
+
+  return customInstance<BookResource>({
+    url: `/api/v1/calendar/${id}`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1CalendarIdQueryKey = (
   id: MaybeRef<number | undefined | null>
 ) => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'calendar', id] as const;
+  return ["api", "v1", "calendar", id] as const;
 };
 
 export const getGetApiV1CalendarIdQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1CalendarId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -2932,16 +2876,15 @@ export const getGetApiV1CalendarIdQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1CalendarIdQueryKey(id);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1CalendarId>>
-  > = ({ signal }) => getApiV1CalendarId(id, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1CalendarId(id, signal);
 
   return {
     queryKey,
@@ -2958,11 +2901,11 @@ export const getGetApiV1CalendarIdQueryOptions = <
 export type GetApiV1CalendarIdQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1CalendarId>>
 >;
-export type GetApiV1CalendarIdQueryError = AxiosError<unknown>;
+export type GetApiV1CalendarIdQueryError = unknown;
 
 export const useGetApiV1CalendarId = <
   TData = Awaited<ReturnType<typeof getApiV1CalendarId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -2973,7 +2916,6 @@ export const useGetApiV1CalendarId = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1CalendarIdQueryOptions(id, options);
@@ -2989,12 +2931,15 @@ export const useGetApiV1CalendarId = <
 
 export const getFeedV1CalendarReadarrIcs = (
   params?: MaybeRef<GetFeedV1CalendarReadarrIcsParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  signal?: AbortSignal
+) => {
   params = unref(params);
-  return axios.get(`http://localhost:3001/feed/v1/calendar/readarr.ics`, {
-    ...options,
-    params: { ...unref(params), ...options?.params },
+
+  return customInstance<void>({
+    url: `/feed/v1/calendar/readarr.ics`,
+    method: "GET",
+    params: unref(params),
+    signal,
   });
 };
 
@@ -3002,19 +2947,17 @@ export const getGetFeedV1CalendarReadarrIcsQueryKey = (
   params?: MaybeRef<GetFeedV1CalendarReadarrIcsParams>
 ) => {
   return [
-    'http:',
-    'localhost:3001',
-    'feed',
-    'v1',
-    'calendar',
-    'readarr.ics',
+    "feed",
+    "v1",
+    "calendar",
+    "readarr.ics",
     ...(params ? [params] : []),
   ] as const;
 };
 
 export const getGetFeedV1CalendarReadarrIcsQueryOptions = <
   TData = Awaited<ReturnType<typeof getFeedV1CalendarReadarrIcs>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetFeedV1CalendarReadarrIcsParams>,
   options?: {
@@ -3025,17 +2968,15 @@ export const getGetFeedV1CalendarReadarrIcsQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetFeedV1CalendarReadarrIcsQueryKey(params);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getFeedV1CalendarReadarrIcs>>
-  > = ({ signal }) =>
-    getFeedV1CalendarReadarrIcs(params, { signal, ...axiosOptions });
+  > = ({ signal }) => getFeedV1CalendarReadarrIcs(params, signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getFeedV1CalendarReadarrIcs>>,
@@ -3047,11 +2988,11 @@ export const getGetFeedV1CalendarReadarrIcsQueryOptions = <
 export type GetFeedV1CalendarReadarrIcsQueryResult = NonNullable<
   Awaited<ReturnType<typeof getFeedV1CalendarReadarrIcs>>
 >;
-export type GetFeedV1CalendarReadarrIcsQueryError = AxiosError<unknown>;
+export type GetFeedV1CalendarReadarrIcsQueryError = unknown;
 
 export const useGetFeedV1CalendarReadarrIcs = <
   TData = Awaited<ReturnType<typeof getFeedV1CalendarReadarrIcs>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetFeedV1CalendarReadarrIcsParams>,
   options?: {
@@ -3062,7 +3003,6 @@ export const useGetFeedV1CalendarReadarrIcs = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetFeedV1CalendarReadarrIcsQueryOptions(
@@ -3080,19 +3020,20 @@ export const useGetFeedV1CalendarReadarrIcs = <
 };
 
 export const postApiV1Command = (
-  commandResource: MaybeRef<CommandResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<CommandResource>> => {
+  commandResource: MaybeRef<CommandResource>
+) => {
   commandResource = unref(commandResource);
-  return axios.post(
-    `http://localhost:3001/api/v1/command`,
-    commandResource,
-    options
-  );
+
+  return customInstance<CommandResource>({
+    url: `/api/v1/command`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: commandResource,
+  });
 };
 
 export const getPostApiV1CommandMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -3101,14 +3042,13 @@ export const getPostApiV1CommandMutationOptions = <
     { data: CommandResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1Command>>,
   TError,
   { data: CommandResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1Command>>,
@@ -3116,7 +3056,7 @@ export const getPostApiV1CommandMutationOptions = <
   > = (props) => {
     const { data } = props ?? {};
 
-    return postApiV1Command(data, axiosOptions);
+    return postApiV1Command(data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -3126,10 +3066,10 @@ export type PostApiV1CommandMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1Command>>
 >;
 export type PostApiV1CommandMutationBody = CommandResource;
-export type PostApiV1CommandMutationError = AxiosError<unknown>;
+export type PostApiV1CommandMutationError = unknown;
 
 export const usePostApiV1Command = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -3138,7 +3078,6 @@ export const usePostApiV1Command = <
     { data: CommandResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1Command>>,
   TError,
@@ -3150,32 +3089,33 @@ export const usePostApiV1Command = <
   return useMutation(mutationOptions);
 };
 
-export const getApiV1Command = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<CommandResource[]>> => {
-  return axios.get(`http://localhost:3001/api/v1/command`, options);
+export const getApiV1Command = (signal?: AbortSignal) => {
+  return customInstance<CommandResource[]>({
+    url: `/api/v1/command`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1CommandQueryKey = () => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'command'] as const;
+  return ["api", "v1", "command"] as const;
 };
 
 export const getGetApiV1CommandQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1Command>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<Awaited<ReturnType<typeof getApiV1Command>>, TError, TData>
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1CommandQueryKey();
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiV1Command>>> = ({
     signal,
-  }) => getApiV1Command({ signal, ...axiosOptions });
+  }) => getApiV1Command(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1Command>>,
@@ -3187,16 +3127,15 @@ export const getGetApiV1CommandQueryOptions = <
 export type GetApiV1CommandQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1Command>>
 >;
-export type GetApiV1CommandQueryError = AxiosError<unknown>;
+export type GetApiV1CommandQueryError = unknown;
 
 export const useGetApiV1Command = <
   TData = Awaited<ReturnType<typeof getApiV1Command>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<Awaited<ReturnType<typeof getApiV1Command>>, TError, TData>
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1CommandQueryOptions(options);
 
@@ -3210,15 +3149,18 @@ export const useGetApiV1Command = <
 };
 
 export const deleteApiV1CommandId = (
-  id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  id: MaybeRef<number | undefined | null>
+) => {
   id = unref(id);
-  return axios.delete(`http://localhost:3001/api/v1/command/${id}`, options);
+
+  return customInstance<void>({
+    url: `/api/v1/command/${id}`,
+    method: "DELETE",
+  });
 };
 
 export const getDeleteApiV1CommandIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -3227,14 +3169,13 @@ export const getDeleteApiV1CommandIdMutationOptions = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof deleteApiV1CommandId>>,
   TError,
   { id: number },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deleteApiV1CommandId>>,
@@ -3242,7 +3183,7 @@ export const getDeleteApiV1CommandIdMutationOptions = <
   > = (props) => {
     const { id } = props ?? {};
 
-    return deleteApiV1CommandId(id, axiosOptions);
+    return deleteApiV1CommandId(id);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -3252,10 +3193,10 @@ export type DeleteApiV1CommandIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof deleteApiV1CommandId>>
 >;
 
-export type DeleteApiV1CommandIdMutationError = AxiosError<unknown>;
+export type DeleteApiV1CommandIdMutationError = unknown;
 
 export const useDeleteApiV1CommandId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -3264,7 +3205,6 @@ export const useDeleteApiV1CommandId = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof deleteApiV1CommandId>>,
   TError,
@@ -3278,21 +3218,26 @@ export const useDeleteApiV1CommandId = <
 
 export const getApiV1CommandId = (
   id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<CommandResource>> => {
+  signal?: AbortSignal
+) => {
   id = unref(id);
-  return axios.get(`http://localhost:3001/api/v1/command/${id}`, options);
+
+  return customInstance<CommandResource>({
+    url: `/api/v1/command/${id}`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1CommandIdQueryKey = (
   id: MaybeRef<number | undefined | null>
 ) => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'command', id] as const;
+  return ["api", "v1", "command", id] as const;
 };
 
 export const getGetApiV1CommandIdQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1CommandId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -3303,16 +3248,15 @@ export const getGetApiV1CommandIdQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1CommandIdQueryKey(id);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1CommandId>>
-  > = ({ signal }) => getApiV1CommandId(id, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1CommandId(id, signal);
 
   return {
     queryKey,
@@ -3329,11 +3273,11 @@ export const getGetApiV1CommandIdQueryOptions = <
 export type GetApiV1CommandIdQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1CommandId>>
 >;
-export type GetApiV1CommandIdQueryError = AxiosError<unknown>;
+export type GetApiV1CommandIdQueryError = unknown;
 
 export const useGetApiV1CommandId = <
   TData = Awaited<ReturnType<typeof getApiV1CommandId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -3344,7 +3288,6 @@ export const useGetApiV1CommandId = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1CommandIdQueryOptions(id, options);
@@ -3358,19 +3301,21 @@ export const useGetApiV1CommandId = <
   return query;
 };
 
-export const getApiV1Customfilter = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<CustomFilterResource[]>> => {
-  return axios.get(`http://localhost:3001/api/v1/customfilter`, options);
+export const getApiV1Customfilter = (signal?: AbortSignal) => {
+  return customInstance<CustomFilterResource[]>({
+    url: `/api/v1/customfilter`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1CustomfilterQueryKey = () => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'customfilter'] as const;
+  return ["api", "v1", "customfilter"] as const;
 };
 
 export const getGetApiV1CustomfilterQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1Customfilter>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -3379,15 +3324,14 @@ export const getGetApiV1CustomfilterQueryOptions = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1CustomfilterQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1Customfilter>>
-  > = ({ signal }) => getApiV1Customfilter({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1Customfilter(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1Customfilter>>,
@@ -3399,11 +3343,11 @@ export const getGetApiV1CustomfilterQueryOptions = <
 export type GetApiV1CustomfilterQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1Customfilter>>
 >;
-export type GetApiV1CustomfilterQueryError = AxiosError<unknown>;
+export type GetApiV1CustomfilterQueryError = unknown;
 
 export const useGetApiV1Customfilter = <
   TData = Awaited<ReturnType<typeof getApiV1Customfilter>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -3412,7 +3356,6 @@ export const useGetApiV1Customfilter = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1CustomfilterQueryOptions(options);
 
@@ -3426,19 +3369,20 @@ export const useGetApiV1Customfilter = <
 };
 
 export const postApiV1Customfilter = (
-  customFilterResource: MaybeRef<CustomFilterResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<CustomFilterResource>> => {
+  customFilterResource: MaybeRef<CustomFilterResource>
+) => {
   customFilterResource = unref(customFilterResource);
-  return axios.post(
-    `http://localhost:3001/api/v1/customfilter`,
-    customFilterResource,
-    options
-  );
+
+  return customInstance<CustomFilterResource>({
+    url: `/api/v1/customfilter`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: customFilterResource,
+  });
 };
 
 export const getPostApiV1CustomfilterMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -3447,14 +3391,13 @@ export const getPostApiV1CustomfilterMutationOptions = <
     { data: CustomFilterResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1Customfilter>>,
   TError,
   { data: CustomFilterResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1Customfilter>>,
@@ -3462,7 +3405,7 @@ export const getPostApiV1CustomfilterMutationOptions = <
   > = (props) => {
     const { data } = props ?? {};
 
-    return postApiV1Customfilter(data, axiosOptions);
+    return postApiV1Customfilter(data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -3472,10 +3415,10 @@ export type PostApiV1CustomfilterMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1Customfilter>>
 >;
 export type PostApiV1CustomfilterMutationBody = CustomFilterResource;
-export type PostApiV1CustomfilterMutationError = AxiosError<unknown>;
+export type PostApiV1CustomfilterMutationError = unknown;
 
 export const usePostApiV1Customfilter = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -3484,7 +3427,6 @@ export const usePostApiV1Customfilter = <
     { data: CustomFilterResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1Customfilter>>,
   TError,
@@ -3498,20 +3440,21 @@ export const usePostApiV1Customfilter = <
 
 export const putApiV1CustomfilterId = (
   id: MaybeRef<string | undefined | null>,
-  customFilterResource: MaybeRef<CustomFilterResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<CustomFilterResource>> => {
+  customFilterResource: MaybeRef<CustomFilterResource>
+) => {
   id = unref(id);
   customFilterResource = unref(customFilterResource);
-  return axios.put(
-    `http://localhost:3001/api/v1/customfilter/${id}`,
-    customFilterResource,
-    options
-  );
+
+  return customInstance<CustomFilterResource>({
+    url: `/api/v1/customfilter/${id}`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: customFilterResource,
+  });
 };
 
 export const getPutApiV1CustomfilterIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -3520,14 +3463,13 @@ export const getPutApiV1CustomfilterIdMutationOptions = <
     { id: string; data: CustomFilterResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof putApiV1CustomfilterId>>,
   TError,
   { id: string; data: CustomFilterResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof putApiV1CustomfilterId>>,
@@ -3535,7 +3477,7 @@ export const getPutApiV1CustomfilterIdMutationOptions = <
   > = (props) => {
     const { id, data } = props ?? {};
 
-    return putApiV1CustomfilterId(id, data, axiosOptions);
+    return putApiV1CustomfilterId(id, data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -3545,10 +3487,10 @@ export type PutApiV1CustomfilterIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof putApiV1CustomfilterId>>
 >;
 export type PutApiV1CustomfilterIdMutationBody = CustomFilterResource;
-export type PutApiV1CustomfilterIdMutationError = AxiosError<unknown>;
+export type PutApiV1CustomfilterIdMutationError = unknown;
 
 export const usePutApiV1CustomfilterId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -3557,7 +3499,6 @@ export const usePutApiV1CustomfilterId = <
     { id: string; data: CustomFilterResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof putApiV1CustomfilterId>>,
   TError,
@@ -3570,18 +3511,18 @@ export const usePutApiV1CustomfilterId = <
 };
 
 export const deleteApiV1CustomfilterId = (
-  id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  id: MaybeRef<number | undefined | null>
+) => {
   id = unref(id);
-  return axios.delete(
-    `http://localhost:3001/api/v1/customfilter/${id}`,
-    options
-  );
+
+  return customInstance<void>({
+    url: `/api/v1/customfilter/${id}`,
+    method: "DELETE",
+  });
 };
 
 export const getDeleteApiV1CustomfilterIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -3590,14 +3531,13 @@ export const getDeleteApiV1CustomfilterIdMutationOptions = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof deleteApiV1CustomfilterId>>,
   TError,
   { id: number },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deleteApiV1CustomfilterId>>,
@@ -3605,7 +3545,7 @@ export const getDeleteApiV1CustomfilterIdMutationOptions = <
   > = (props) => {
     const { id } = props ?? {};
 
-    return deleteApiV1CustomfilterId(id, axiosOptions);
+    return deleteApiV1CustomfilterId(id);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -3615,10 +3555,10 @@ export type DeleteApiV1CustomfilterIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof deleteApiV1CustomfilterId>>
 >;
 
-export type DeleteApiV1CustomfilterIdMutationError = AxiosError<unknown>;
+export type DeleteApiV1CustomfilterIdMutationError = unknown;
 
 export const useDeleteApiV1CustomfilterId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -3627,7 +3567,6 @@ export const useDeleteApiV1CustomfilterId = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof deleteApiV1CustomfilterId>>,
   TError,
@@ -3641,21 +3580,26 @@ export const useDeleteApiV1CustomfilterId = <
 
 export const getApiV1CustomfilterId = (
   id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<CustomFilterResource>> => {
+  signal?: AbortSignal
+) => {
   id = unref(id);
-  return axios.get(`http://localhost:3001/api/v1/customfilter/${id}`, options);
+
+  return customInstance<CustomFilterResource>({
+    url: `/api/v1/customfilter/${id}`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1CustomfilterIdQueryKey = (
   id: MaybeRef<number | undefined | null>
 ) => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'customfilter', id] as const;
+  return ["api", "v1", "customfilter", id] as const;
 };
 
 export const getGetApiV1CustomfilterIdQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1CustomfilterId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -3666,16 +3610,15 @@ export const getGetApiV1CustomfilterIdQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1CustomfilterIdQueryKey(id);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1CustomfilterId>>
-  > = ({ signal }) => getApiV1CustomfilterId(id, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1CustomfilterId(id, signal);
 
   return {
     queryKey,
@@ -3692,11 +3635,11 @@ export const getGetApiV1CustomfilterIdQueryOptions = <
 export type GetApiV1CustomfilterIdQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1CustomfilterId>>
 >;
-export type GetApiV1CustomfilterIdQueryError = AxiosError<unknown>;
+export type GetApiV1CustomfilterIdQueryError = unknown;
 
 export const useGetApiV1CustomfilterId = <
   TData = Awaited<ReturnType<typeof getApiV1CustomfilterId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -3707,7 +3650,6 @@ export const useGetApiV1CustomfilterId = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1CustomfilterIdQueryOptions(id, options);
@@ -3722,19 +3664,20 @@ export const useGetApiV1CustomfilterId = <
 };
 
 export const postApiV1Customformat = (
-  customFormatResource: MaybeRef<CustomFormatResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<CustomFormatResource>> => {
+  customFormatResource: MaybeRef<CustomFormatResource>
+) => {
   customFormatResource = unref(customFormatResource);
-  return axios.post(
-    `http://localhost:3001/api/v1/customformat`,
-    customFormatResource,
-    options
-  );
+
+  return customInstance<CustomFormatResource>({
+    url: `/api/v1/customformat`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: customFormatResource,
+  });
 };
 
 export const getPostApiV1CustomformatMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -3743,14 +3686,13 @@ export const getPostApiV1CustomformatMutationOptions = <
     { data: CustomFormatResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1Customformat>>,
   TError,
   { data: CustomFormatResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1Customformat>>,
@@ -3758,7 +3700,7 @@ export const getPostApiV1CustomformatMutationOptions = <
   > = (props) => {
     const { data } = props ?? {};
 
-    return postApiV1Customformat(data, axiosOptions);
+    return postApiV1Customformat(data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -3768,10 +3710,10 @@ export type PostApiV1CustomformatMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1Customformat>>
 >;
 export type PostApiV1CustomformatMutationBody = CustomFormatResource;
-export type PostApiV1CustomformatMutationError = AxiosError<unknown>;
+export type PostApiV1CustomformatMutationError = unknown;
 
 export const usePostApiV1Customformat = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -3780,7 +3722,6 @@ export const usePostApiV1Customformat = <
     { data: CustomFormatResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1Customformat>>,
   TError,
@@ -3792,19 +3733,21 @@ export const usePostApiV1Customformat = <
   return useMutation(mutationOptions);
 };
 
-export const getApiV1Customformat = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<CustomFormatResource[]>> => {
-  return axios.get(`http://localhost:3001/api/v1/customformat`, options);
+export const getApiV1Customformat = (signal?: AbortSignal) => {
+  return customInstance<CustomFormatResource[]>({
+    url: `/api/v1/customformat`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1CustomformatQueryKey = () => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'customformat'] as const;
+  return ["api", "v1", "customformat"] as const;
 };
 
 export const getGetApiV1CustomformatQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1Customformat>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -3813,15 +3756,14 @@ export const getGetApiV1CustomformatQueryOptions = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1CustomformatQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1Customformat>>
-  > = ({ signal }) => getApiV1Customformat({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1Customformat(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1Customformat>>,
@@ -3833,11 +3775,11 @@ export const getGetApiV1CustomformatQueryOptions = <
 export type GetApiV1CustomformatQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1Customformat>>
 >;
-export type GetApiV1CustomformatQueryError = AxiosError<unknown>;
+export type GetApiV1CustomformatQueryError = unknown;
 
 export const useGetApiV1Customformat = <
   TData = Awaited<ReturnType<typeof getApiV1Customformat>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -3846,7 +3788,6 @@ export const useGetApiV1Customformat = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1CustomformatQueryOptions(options);
 
@@ -3861,20 +3802,21 @@ export const useGetApiV1Customformat = <
 
 export const putApiV1CustomformatId = (
   id: MaybeRef<string | undefined | null>,
-  customFormatResource: MaybeRef<CustomFormatResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<CustomFormatResource>> => {
+  customFormatResource: MaybeRef<CustomFormatResource>
+) => {
   id = unref(id);
   customFormatResource = unref(customFormatResource);
-  return axios.put(
-    `http://localhost:3001/api/v1/customformat/${id}`,
-    customFormatResource,
-    options
-  );
+
+  return customInstance<CustomFormatResource>({
+    url: `/api/v1/customformat/${id}`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: customFormatResource,
+  });
 };
 
 export const getPutApiV1CustomformatIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -3883,14 +3825,13 @@ export const getPutApiV1CustomformatIdMutationOptions = <
     { id: string; data: CustomFormatResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof putApiV1CustomformatId>>,
   TError,
   { id: string; data: CustomFormatResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof putApiV1CustomformatId>>,
@@ -3898,7 +3839,7 @@ export const getPutApiV1CustomformatIdMutationOptions = <
   > = (props) => {
     const { id, data } = props ?? {};
 
-    return putApiV1CustomformatId(id, data, axiosOptions);
+    return putApiV1CustomformatId(id, data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -3908,10 +3849,10 @@ export type PutApiV1CustomformatIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof putApiV1CustomformatId>>
 >;
 export type PutApiV1CustomformatIdMutationBody = CustomFormatResource;
-export type PutApiV1CustomformatIdMutationError = AxiosError<unknown>;
+export type PutApiV1CustomformatIdMutationError = unknown;
 
 export const usePutApiV1CustomformatId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -3920,7 +3861,6 @@ export const usePutApiV1CustomformatId = <
     { id: string; data: CustomFormatResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof putApiV1CustomformatId>>,
   TError,
@@ -3933,18 +3873,18 @@ export const usePutApiV1CustomformatId = <
 };
 
 export const deleteApiV1CustomformatId = (
-  id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  id: MaybeRef<number | undefined | null>
+) => {
   id = unref(id);
-  return axios.delete(
-    `http://localhost:3001/api/v1/customformat/${id}`,
-    options
-  );
+
+  return customInstance<void>({
+    url: `/api/v1/customformat/${id}`,
+    method: "DELETE",
+  });
 };
 
 export const getDeleteApiV1CustomformatIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -3953,14 +3893,13 @@ export const getDeleteApiV1CustomformatIdMutationOptions = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof deleteApiV1CustomformatId>>,
   TError,
   { id: number },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deleteApiV1CustomformatId>>,
@@ -3968,7 +3907,7 @@ export const getDeleteApiV1CustomformatIdMutationOptions = <
   > = (props) => {
     const { id } = props ?? {};
 
-    return deleteApiV1CustomformatId(id, axiosOptions);
+    return deleteApiV1CustomformatId(id);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -3978,10 +3917,10 @@ export type DeleteApiV1CustomformatIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof deleteApiV1CustomformatId>>
 >;
 
-export type DeleteApiV1CustomformatIdMutationError = AxiosError<unknown>;
+export type DeleteApiV1CustomformatIdMutationError = unknown;
 
 export const useDeleteApiV1CustomformatId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -3990,7 +3929,6 @@ export const useDeleteApiV1CustomformatId = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof deleteApiV1CustomformatId>>,
   TError,
@@ -4004,21 +3942,26 @@ export const useDeleteApiV1CustomformatId = <
 
 export const getApiV1CustomformatId = (
   id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<CustomFormatResource>> => {
+  signal?: AbortSignal
+) => {
   id = unref(id);
-  return axios.get(`http://localhost:3001/api/v1/customformat/${id}`, options);
+
+  return customInstance<CustomFormatResource>({
+    url: `/api/v1/customformat/${id}`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1CustomformatIdQueryKey = (
   id: MaybeRef<number | undefined | null>
 ) => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'customformat', id] as const;
+  return ["api", "v1", "customformat", id] as const;
 };
 
 export const getGetApiV1CustomformatIdQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1CustomformatId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -4029,16 +3972,15 @@ export const getGetApiV1CustomformatIdQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1CustomformatIdQueryKey(id);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1CustomformatId>>
-  > = ({ signal }) => getApiV1CustomformatId(id, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1CustomformatId(id, signal);
 
   return {
     queryKey,
@@ -4055,11 +3997,11 @@ export const getGetApiV1CustomformatIdQueryOptions = <
 export type GetApiV1CustomformatIdQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1CustomformatId>>
 >;
-export type GetApiV1CustomformatIdQueryError = AxiosError<unknown>;
+export type GetApiV1CustomformatIdQueryError = unknown;
 
 export const useGetApiV1CustomformatId = <
   TData = Awaited<ReturnType<typeof getApiV1CustomformatId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -4070,7 +4012,6 @@ export const useGetApiV1CustomformatId = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1CustomformatIdQueryOptions(id, options);
@@ -4084,26 +4025,21 @@ export const useGetApiV1CustomformatId = <
   return query;
 };
 
-export const getApiV1CustomformatSchema = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
-  return axios.get(`http://localhost:3001/api/v1/customformat/schema`, options);
+export const getApiV1CustomformatSchema = (signal?: AbortSignal) => {
+  return customInstance<void>({
+    url: `/api/v1/customformat/schema`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1CustomformatSchemaQueryKey = () => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'customformat',
-    'schema',
-  ] as const;
+  return ["api", "v1", "customformat", "schema"] as const;
 };
 
 export const getGetApiV1CustomformatSchemaQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1CustomformatSchema>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -4112,15 +4048,14 @@ export const getGetApiV1CustomformatSchemaQueryOptions = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1CustomformatSchemaQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1CustomformatSchema>>
-  > = ({ signal }) => getApiV1CustomformatSchema({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1CustomformatSchema(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1CustomformatSchema>>,
@@ -4132,11 +4067,11 @@ export const getGetApiV1CustomformatSchemaQueryOptions = <
 export type GetApiV1CustomformatSchemaQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1CustomformatSchema>>
 >;
-export type GetApiV1CustomformatSchemaQueryError = AxiosError<unknown>;
+export type GetApiV1CustomformatSchemaQueryError = unknown;
 
 export const useGetApiV1CustomformatSchema = <
   TData = Awaited<ReturnType<typeof getApiV1CustomformatSchema>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -4145,7 +4080,6 @@ export const useGetApiV1CustomformatSchema = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1CustomformatSchemaQueryOptions(options);
 
@@ -4160,12 +4094,15 @@ export const useGetApiV1CustomformatSchema = <
 
 export const getApiV1WantedCutoff = (
   params?: MaybeRef<GetApiV1WantedCutoffParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<BookResourcePagingResource>> => {
+  signal?: AbortSignal
+) => {
   params = unref(params);
-  return axios.get(`http://localhost:3001/api/v1/wanted/cutoff`, {
-    ...options,
-    params: { ...unref(params), ...options?.params },
+
+  return customInstance<BookResourcePagingResource>({
+    url: `/api/v1/wanted/cutoff`,
+    method: "GET",
+    params: unref(params),
+    signal,
   });
 };
 
@@ -4173,19 +4110,17 @@ export const getGetApiV1WantedCutoffQueryKey = (
   params?: MaybeRef<GetApiV1WantedCutoffParams>
 ) => {
   return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'wanted',
-    'cutoff',
+    "api",
+    "v1",
+    "wanted",
+    "cutoff",
     ...(params ? [params] : []),
   ] as const;
 };
 
 export const getGetApiV1WantedCutoffQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1WantedCutoff>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1WantedCutoffParams>,
   options?: {
@@ -4196,16 +4131,15 @@ export const getGetApiV1WantedCutoffQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1WantedCutoffQueryKey(params);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1WantedCutoff>>
-  > = ({ signal }) => getApiV1WantedCutoff(params, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1WantedCutoff(params, signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1WantedCutoff>>,
@@ -4217,11 +4151,11 @@ export const getGetApiV1WantedCutoffQueryOptions = <
 export type GetApiV1WantedCutoffQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1WantedCutoff>>
 >;
-export type GetApiV1WantedCutoffQueryError = AxiosError<unknown>;
+export type GetApiV1WantedCutoffQueryError = unknown;
 
 export const useGetApiV1WantedCutoff = <
   TData = Awaited<ReturnType<typeof getApiV1WantedCutoff>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1WantedCutoffParams>,
   options?: {
@@ -4232,7 +4166,6 @@ export const useGetApiV1WantedCutoff = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1WantedCutoffQueryOptions(params, options);
@@ -4248,29 +4181,26 @@ export const useGetApiV1WantedCutoff = <
 
 export const getApiV1WantedCutoffId = (
   id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<BookResource>> => {
+  signal?: AbortSignal
+) => {
   id = unref(id);
-  return axios.get(`http://localhost:3001/api/v1/wanted/cutoff/${id}`, options);
+
+  return customInstance<BookResource>({
+    url: `/api/v1/wanted/cutoff/${id}`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1WantedCutoffIdQueryKey = (
   id: MaybeRef<number | undefined | null>
 ) => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'wanted',
-    'cutoff',
-    id,
-  ] as const;
+  return ["api", "v1", "wanted", "cutoff", id] as const;
 };
 
 export const getGetApiV1WantedCutoffIdQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1WantedCutoffId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -4281,16 +4211,15 @@ export const getGetApiV1WantedCutoffIdQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1WantedCutoffIdQueryKey(id);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1WantedCutoffId>>
-  > = ({ signal }) => getApiV1WantedCutoffId(id, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1WantedCutoffId(id, signal);
 
   return {
     queryKey,
@@ -4307,11 +4236,11 @@ export const getGetApiV1WantedCutoffIdQueryOptions = <
 export type GetApiV1WantedCutoffIdQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1WantedCutoffId>>
 >;
-export type GetApiV1WantedCutoffIdQueryError = AxiosError<unknown>;
+export type GetApiV1WantedCutoffIdQueryError = unknown;
 
 export const useGetApiV1WantedCutoffId = <
   TData = Awaited<ReturnType<typeof getApiV1WantedCutoffId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -4322,7 +4251,6 @@ export const useGetApiV1WantedCutoffId = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1WantedCutoffIdQueryOptions(id, options);
@@ -4337,19 +4265,20 @@ export const useGetApiV1WantedCutoffId = <
 };
 
 export const postApiV1Delayprofile = (
-  delayProfileResource: MaybeRef<DelayProfileResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<DelayProfileResource>> => {
+  delayProfileResource: MaybeRef<DelayProfileResource>
+) => {
   delayProfileResource = unref(delayProfileResource);
-  return axios.post(
-    `http://localhost:3001/api/v1/delayprofile`,
-    delayProfileResource,
-    options
-  );
+
+  return customInstance<DelayProfileResource>({
+    url: `/api/v1/delayprofile`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: delayProfileResource,
+  });
 };
 
 export const getPostApiV1DelayprofileMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -4358,14 +4287,13 @@ export const getPostApiV1DelayprofileMutationOptions = <
     { data: DelayProfileResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1Delayprofile>>,
   TError,
   { data: DelayProfileResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1Delayprofile>>,
@@ -4373,7 +4301,7 @@ export const getPostApiV1DelayprofileMutationOptions = <
   > = (props) => {
     const { data } = props ?? {};
 
-    return postApiV1Delayprofile(data, axiosOptions);
+    return postApiV1Delayprofile(data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -4383,10 +4311,10 @@ export type PostApiV1DelayprofileMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1Delayprofile>>
 >;
 export type PostApiV1DelayprofileMutationBody = DelayProfileResource;
-export type PostApiV1DelayprofileMutationError = AxiosError<unknown>;
+export type PostApiV1DelayprofileMutationError = unknown;
 
 export const usePostApiV1Delayprofile = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -4395,7 +4323,6 @@ export const usePostApiV1Delayprofile = <
     { data: DelayProfileResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1Delayprofile>>,
   TError,
@@ -4407,19 +4334,21 @@ export const usePostApiV1Delayprofile = <
   return useMutation(mutationOptions);
 };
 
-export const getApiV1Delayprofile = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<DelayProfileResource[]>> => {
-  return axios.get(`http://localhost:3001/api/v1/delayprofile`, options);
+export const getApiV1Delayprofile = (signal?: AbortSignal) => {
+  return customInstance<DelayProfileResource[]>({
+    url: `/api/v1/delayprofile`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1DelayprofileQueryKey = () => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'delayprofile'] as const;
+  return ["api", "v1", "delayprofile"] as const;
 };
 
 export const getGetApiV1DelayprofileQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1Delayprofile>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -4428,15 +4357,14 @@ export const getGetApiV1DelayprofileQueryOptions = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1DelayprofileQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1Delayprofile>>
-  > = ({ signal }) => getApiV1Delayprofile({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1Delayprofile(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1Delayprofile>>,
@@ -4448,11 +4376,11 @@ export const getGetApiV1DelayprofileQueryOptions = <
 export type GetApiV1DelayprofileQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1Delayprofile>>
 >;
-export type GetApiV1DelayprofileQueryError = AxiosError<unknown>;
+export type GetApiV1DelayprofileQueryError = unknown;
 
 export const useGetApiV1Delayprofile = <
   TData = Awaited<ReturnType<typeof getApiV1Delayprofile>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -4461,7 +4389,6 @@ export const useGetApiV1Delayprofile = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1DelayprofileQueryOptions(options);
 
@@ -4475,18 +4402,18 @@ export const useGetApiV1Delayprofile = <
 };
 
 export const deleteApiV1DelayprofileId = (
-  id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  id: MaybeRef<number | undefined | null>
+) => {
   id = unref(id);
-  return axios.delete(
-    `http://localhost:3001/api/v1/delayprofile/${id}`,
-    options
-  );
+
+  return customInstance<void>({
+    url: `/api/v1/delayprofile/${id}`,
+    method: "DELETE",
+  });
 };
 
 export const getDeleteApiV1DelayprofileIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -4495,14 +4422,13 @@ export const getDeleteApiV1DelayprofileIdMutationOptions = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof deleteApiV1DelayprofileId>>,
   TError,
   { id: number },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deleteApiV1DelayprofileId>>,
@@ -4510,7 +4436,7 @@ export const getDeleteApiV1DelayprofileIdMutationOptions = <
   > = (props) => {
     const { id } = props ?? {};
 
-    return deleteApiV1DelayprofileId(id, axiosOptions);
+    return deleteApiV1DelayprofileId(id);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -4520,10 +4446,10 @@ export type DeleteApiV1DelayprofileIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof deleteApiV1DelayprofileId>>
 >;
 
-export type DeleteApiV1DelayprofileIdMutationError = AxiosError<unknown>;
+export type DeleteApiV1DelayprofileIdMutationError = unknown;
 
 export const useDeleteApiV1DelayprofileId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -4532,7 +4458,6 @@ export const useDeleteApiV1DelayprofileId = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof deleteApiV1DelayprofileId>>,
   TError,
@@ -4546,20 +4471,21 @@ export const useDeleteApiV1DelayprofileId = <
 
 export const putApiV1DelayprofileId = (
   id: MaybeRef<string | undefined | null>,
-  delayProfileResource: MaybeRef<DelayProfileResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<DelayProfileResource>> => {
+  delayProfileResource: MaybeRef<DelayProfileResource>
+) => {
   id = unref(id);
   delayProfileResource = unref(delayProfileResource);
-  return axios.put(
-    `http://localhost:3001/api/v1/delayprofile/${id}`,
-    delayProfileResource,
-    options
-  );
+
+  return customInstance<DelayProfileResource>({
+    url: `/api/v1/delayprofile/${id}`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: delayProfileResource,
+  });
 };
 
 export const getPutApiV1DelayprofileIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -4568,14 +4494,13 @@ export const getPutApiV1DelayprofileIdMutationOptions = <
     { id: string; data: DelayProfileResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof putApiV1DelayprofileId>>,
   TError,
   { id: string; data: DelayProfileResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof putApiV1DelayprofileId>>,
@@ -4583,7 +4508,7 @@ export const getPutApiV1DelayprofileIdMutationOptions = <
   > = (props) => {
     const { id, data } = props ?? {};
 
-    return putApiV1DelayprofileId(id, data, axiosOptions);
+    return putApiV1DelayprofileId(id, data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -4593,10 +4518,10 @@ export type PutApiV1DelayprofileIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof putApiV1DelayprofileId>>
 >;
 export type PutApiV1DelayprofileIdMutationBody = DelayProfileResource;
-export type PutApiV1DelayprofileIdMutationError = AxiosError<unknown>;
+export type PutApiV1DelayprofileIdMutationError = unknown;
 
 export const usePutApiV1DelayprofileId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -4605,7 +4530,6 @@ export const usePutApiV1DelayprofileId = <
     { id: string; data: DelayProfileResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof putApiV1DelayprofileId>>,
   TError,
@@ -4619,21 +4543,26 @@ export const usePutApiV1DelayprofileId = <
 
 export const getApiV1DelayprofileId = (
   id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<DelayProfileResource>> => {
+  signal?: AbortSignal
+) => {
   id = unref(id);
-  return axios.get(`http://localhost:3001/api/v1/delayprofile/${id}`, options);
+
+  return customInstance<DelayProfileResource>({
+    url: `/api/v1/delayprofile/${id}`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1DelayprofileIdQueryKey = (
   id: MaybeRef<number | undefined | null>
 ) => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'delayprofile', id] as const;
+  return ["api", "v1", "delayprofile", id] as const;
 };
 
 export const getGetApiV1DelayprofileIdQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1DelayprofileId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -4644,16 +4573,15 @@ export const getGetApiV1DelayprofileIdQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1DelayprofileIdQueryKey(id);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1DelayprofileId>>
-  > = ({ signal }) => getApiV1DelayprofileId(id, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1DelayprofileId(id, signal);
 
   return {
     queryKey,
@@ -4670,11 +4598,11 @@ export const getGetApiV1DelayprofileIdQueryOptions = <
 export type GetApiV1DelayprofileIdQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1DelayprofileId>>
 >;
-export type GetApiV1DelayprofileIdQueryError = AxiosError<unknown>;
+export type GetApiV1DelayprofileIdQueryError = unknown;
 
 export const useGetApiV1DelayprofileId = <
   TData = Awaited<ReturnType<typeof getApiV1DelayprofileId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -4685,7 +4613,6 @@ export const useGetApiV1DelayprofileId = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1DelayprofileIdQueryOptions(id, options);
@@ -4701,23 +4628,20 @@ export const useGetApiV1DelayprofileId = <
 
 export const putApiV1DelayprofileReorderId = (
   id: MaybeRef<number | undefined | null>,
-  params?: MaybeRef<PutApiV1DelayprofileReorderIdParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  params?: MaybeRef<PutApiV1DelayprofileReorderIdParams>
+) => {
   id = unref(id);
   params = unref(params);
-  return axios.put(
-    `http://localhost:3001/api/v1/delayprofile/reorder/${id}`,
-    undefined,
-    {
-      ...options,
-      params: { ...unref(params), ...options?.params },
-    }
-  );
+
+  return customInstance<void>({
+    url: `/api/v1/delayprofile/reorder/${id}`,
+    method: "PUT",
+    params: unref(params),
+  });
 };
 
 export const getPutApiV1DelayprofileReorderIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -4726,14 +4650,13 @@ export const getPutApiV1DelayprofileReorderIdMutationOptions = <
     { id: number; params?: PutApiV1DelayprofileReorderIdParams },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof putApiV1DelayprofileReorderId>>,
   TError,
   { id: number; params?: PutApiV1DelayprofileReorderIdParams },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof putApiV1DelayprofileReorderId>>,
@@ -4741,7 +4664,7 @@ export const getPutApiV1DelayprofileReorderIdMutationOptions = <
   > = (props) => {
     const { id, params } = props ?? {};
 
-    return putApiV1DelayprofileReorderId(id, params, axiosOptions);
+    return putApiV1DelayprofileReorderId(id, params);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -4751,10 +4674,10 @@ export type PutApiV1DelayprofileReorderIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof putApiV1DelayprofileReorderId>>
 >;
 
-export type PutApiV1DelayprofileReorderIdMutationError = AxiosError<unknown>;
+export type PutApiV1DelayprofileReorderIdMutationError = unknown;
 
 export const usePutApiV1DelayprofileReorderId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -4763,7 +4686,6 @@ export const usePutApiV1DelayprofileReorderId = <
     { id: number; params?: PutApiV1DelayprofileReorderIdParams },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof putApiV1DelayprofileReorderId>>,
   TError,
@@ -4776,26 +4698,21 @@ export const usePutApiV1DelayprofileReorderId = <
   return useMutation(mutationOptions);
 };
 
-export const getApiV1ConfigDevelopment = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<DevelopmentConfigResource>> => {
-  return axios.get(`http://localhost:3001/api/v1/config/development`, options);
+export const getApiV1ConfigDevelopment = (signal?: AbortSignal) => {
+  return customInstance<DevelopmentConfigResource>({
+    url: `/api/v1/config/development`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1ConfigDevelopmentQueryKey = () => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'config',
-    'development',
-  ] as const;
+  return ["api", "v1", "config", "development"] as const;
 };
 
 export const getGetApiV1ConfigDevelopmentQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1ConfigDevelopment>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -4804,15 +4721,14 @@ export const getGetApiV1ConfigDevelopmentQueryOptions = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1ConfigDevelopmentQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1ConfigDevelopment>>
-  > = ({ signal }) => getApiV1ConfigDevelopment({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1ConfigDevelopment(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1ConfigDevelopment>>,
@@ -4824,11 +4740,11 @@ export const getGetApiV1ConfigDevelopmentQueryOptions = <
 export type GetApiV1ConfigDevelopmentQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1ConfigDevelopment>>
 >;
-export type GetApiV1ConfigDevelopmentQueryError = AxiosError<unknown>;
+export type GetApiV1ConfigDevelopmentQueryError = unknown;
 
 export const useGetApiV1ConfigDevelopment = <
   TData = Awaited<ReturnType<typeof getApiV1ConfigDevelopment>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -4837,7 +4753,6 @@ export const useGetApiV1ConfigDevelopment = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1ConfigDevelopmentQueryOptions(options);
 
@@ -4852,20 +4767,21 @@ export const useGetApiV1ConfigDevelopment = <
 
 export const putApiV1ConfigDevelopmentId = (
   id: MaybeRef<string | undefined | null>,
-  developmentConfigResource: MaybeRef<DevelopmentConfigResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<DevelopmentConfigResource>> => {
+  developmentConfigResource: MaybeRef<DevelopmentConfigResource>
+) => {
   id = unref(id);
   developmentConfigResource = unref(developmentConfigResource);
-  return axios.put(
-    `http://localhost:3001/api/v1/config/development/${id}`,
-    developmentConfigResource,
-    options
-  );
+
+  return customInstance<DevelopmentConfigResource>({
+    url: `/api/v1/config/development/${id}`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: developmentConfigResource,
+  });
 };
 
 export const getPutApiV1ConfigDevelopmentIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -4874,14 +4790,13 @@ export const getPutApiV1ConfigDevelopmentIdMutationOptions = <
     { id: string; data: DevelopmentConfigResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof putApiV1ConfigDevelopmentId>>,
   TError,
   { id: string; data: DevelopmentConfigResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof putApiV1ConfigDevelopmentId>>,
@@ -4889,7 +4804,7 @@ export const getPutApiV1ConfigDevelopmentIdMutationOptions = <
   > = (props) => {
     const { id, data } = props ?? {};
 
-    return putApiV1ConfigDevelopmentId(id, data, axiosOptions);
+    return putApiV1ConfigDevelopmentId(id, data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -4899,10 +4814,10 @@ export type PutApiV1ConfigDevelopmentIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof putApiV1ConfigDevelopmentId>>
 >;
 export type PutApiV1ConfigDevelopmentIdMutationBody = DevelopmentConfigResource;
-export type PutApiV1ConfigDevelopmentIdMutationError = AxiosError<unknown>;
+export type PutApiV1ConfigDevelopmentIdMutationError = unknown;
 
 export const usePutApiV1ConfigDevelopmentId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -4911,7 +4826,6 @@ export const usePutApiV1ConfigDevelopmentId = <
     { id: string; data: DevelopmentConfigResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof putApiV1ConfigDevelopmentId>>,
   TError,
@@ -4926,32 +4840,26 @@ export const usePutApiV1ConfigDevelopmentId = <
 
 export const getApiV1ConfigDevelopmentId = (
   id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<DevelopmentConfigResource>> => {
+  signal?: AbortSignal
+) => {
   id = unref(id);
-  return axios.get(
-    `http://localhost:3001/api/v1/config/development/${id}`,
-    options
-  );
+
+  return customInstance<DevelopmentConfigResource>({
+    url: `/api/v1/config/development/${id}`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1ConfigDevelopmentIdQueryKey = (
   id: MaybeRef<number | undefined | null>
 ) => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'config',
-    'development',
-    id,
-  ] as const;
+  return ["api", "v1", "config", "development", id] as const;
 };
 
 export const getGetApiV1ConfigDevelopmentIdQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1ConfigDevelopmentId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -4962,17 +4870,15 @@ export const getGetApiV1ConfigDevelopmentIdQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1ConfigDevelopmentIdQueryKey(id);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1ConfigDevelopmentId>>
-  > = ({ signal }) =>
-    getApiV1ConfigDevelopmentId(id, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1ConfigDevelopmentId(id, signal);
 
   return {
     queryKey,
@@ -4989,11 +4895,11 @@ export const getGetApiV1ConfigDevelopmentIdQueryOptions = <
 export type GetApiV1ConfigDevelopmentIdQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1ConfigDevelopmentId>>
 >;
-export type GetApiV1ConfigDevelopmentIdQueryError = AxiosError<unknown>;
+export type GetApiV1ConfigDevelopmentIdQueryError = unknown;
 
 export const useGetApiV1ConfigDevelopmentId = <
   TData = Awaited<ReturnType<typeof getApiV1ConfigDevelopmentId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -5004,7 +4910,6 @@ export const useGetApiV1ConfigDevelopmentId = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1ConfigDevelopmentIdQueryOptions(id, options);
@@ -5018,19 +4923,21 @@ export const useGetApiV1ConfigDevelopmentId = <
   return query;
 };
 
-export const getApiV1Diskspace = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<DiskSpaceResource[]>> => {
-  return axios.get(`http://localhost:3001/api/v1/diskspace`, options);
+export const getApiV1Diskspace = (signal?: AbortSignal) => {
+  return customInstance<DiskSpaceResource[]>({
+    url: `/api/v1/diskspace`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1DiskspaceQueryKey = () => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'diskspace'] as const;
+  return ["api", "v1", "diskspace"] as const;
 };
 
 export const getGetApiV1DiskspaceQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1Diskspace>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -5039,15 +4946,14 @@ export const getGetApiV1DiskspaceQueryOptions = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1DiskspaceQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1Diskspace>>
-  > = ({ signal }) => getApiV1Diskspace({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1Diskspace(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1Diskspace>>,
@@ -5059,11 +4965,11 @@ export const getGetApiV1DiskspaceQueryOptions = <
 export type GetApiV1DiskspaceQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1Diskspace>>
 >;
-export type GetApiV1DiskspaceQueryError = AxiosError<unknown>;
+export type GetApiV1DiskspaceQueryError = unknown;
 
 export const useGetApiV1Diskspace = <
   TData = Awaited<ReturnType<typeof getApiV1Diskspace>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -5072,7 +4978,6 @@ export const useGetApiV1Diskspace = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1DiskspaceQueryOptions(options);
 
@@ -5085,19 +4990,21 @@ export const useGetApiV1Diskspace = <
   return query;
 };
 
-export const getApiV1Downloadclient = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<DownloadClientResource[]>> => {
-  return axios.get(`http://localhost:3001/api/v1/downloadclient`, options);
+export const getApiV1Downloadclient = (signal?: AbortSignal) => {
+  return customInstance<DownloadClientResource[]>({
+    url: `/api/v1/downloadclient`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1DownloadclientQueryKey = () => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'downloadclient'] as const;
+  return ["api", "v1", "downloadclient"] as const;
 };
 
 export const getGetApiV1DownloadclientQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1Downloadclient>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -5106,15 +5013,14 @@ export const getGetApiV1DownloadclientQueryOptions = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1DownloadclientQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1Downloadclient>>
-  > = ({ signal }) => getApiV1Downloadclient({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1Downloadclient(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1Downloadclient>>,
@@ -5126,11 +5032,11 @@ export const getGetApiV1DownloadclientQueryOptions = <
 export type GetApiV1DownloadclientQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1Downloadclient>>
 >;
-export type GetApiV1DownloadclientQueryError = AxiosError<unknown>;
+export type GetApiV1DownloadclientQueryError = unknown;
 
 export const useGetApiV1Downloadclient = <
   TData = Awaited<ReturnType<typeof getApiV1Downloadclient>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -5139,7 +5045,6 @@ export const useGetApiV1Downloadclient = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1DownloadclientQueryOptions(options);
 
@@ -5154,23 +5059,22 @@ export const useGetApiV1Downloadclient = <
 
 export const postApiV1Downloadclient = (
   downloadClientResource: MaybeRef<DownloadClientResource>,
-  params?: MaybeRef<PostApiV1DownloadclientParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<DownloadClientResource>> => {
+  params?: MaybeRef<PostApiV1DownloadclientParams>
+) => {
   downloadClientResource = unref(downloadClientResource);
   params = unref(params);
-  return axios.post(
-    `http://localhost:3001/api/v1/downloadclient`,
-    downloadClientResource,
-    {
-      ...options,
-      params: { ...unref(params), ...options?.params },
-    }
-  );
+
+  return customInstance<DownloadClientResource>({
+    url: `/api/v1/downloadclient`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: downloadClientResource,
+    params: unref(params),
+  });
 };
 
 export const getPostApiV1DownloadclientMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -5179,14 +5083,13 @@ export const getPostApiV1DownloadclientMutationOptions = <
     { data: DownloadClientResource; params?: PostApiV1DownloadclientParams },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1Downloadclient>>,
   TError,
   { data: DownloadClientResource; params?: PostApiV1DownloadclientParams },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1Downloadclient>>,
@@ -5194,7 +5097,7 @@ export const getPostApiV1DownloadclientMutationOptions = <
   > = (props) => {
     const { data, params } = props ?? {};
 
-    return postApiV1Downloadclient(data, params, axiosOptions);
+    return postApiV1Downloadclient(data, params);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -5204,10 +5107,10 @@ export type PostApiV1DownloadclientMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1Downloadclient>>
 >;
 export type PostApiV1DownloadclientMutationBody = DownloadClientResource;
-export type PostApiV1DownloadclientMutationError = AxiosError<unknown>;
+export type PostApiV1DownloadclientMutationError = unknown;
 
 export const usePostApiV1Downloadclient = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -5216,7 +5119,6 @@ export const usePostApiV1Downloadclient = <
     { data: DownloadClientResource; params?: PostApiV1DownloadclientParams },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1Downloadclient>>,
   TError,
@@ -5231,24 +5133,23 @@ export const usePostApiV1Downloadclient = <
 export const putApiV1DownloadclientId = (
   id: MaybeRef<string | undefined | null>,
   downloadClientResource: MaybeRef<DownloadClientResource>,
-  params?: MaybeRef<PutApiV1DownloadclientIdParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<DownloadClientResource>> => {
+  params?: MaybeRef<PutApiV1DownloadclientIdParams>
+) => {
   id = unref(id);
   downloadClientResource = unref(downloadClientResource);
   params = unref(params);
-  return axios.put(
-    `http://localhost:3001/api/v1/downloadclient/${id}`,
-    downloadClientResource,
-    {
-      ...options,
-      params: { ...unref(params), ...options?.params },
-    }
-  );
+
+  return customInstance<DownloadClientResource>({
+    url: `/api/v1/downloadclient/${id}`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: downloadClientResource,
+    params: unref(params),
+  });
 };
 
 export const getPutApiV1DownloadclientIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -5261,7 +5162,6 @@ export const getPutApiV1DownloadclientIdMutationOptions = <
     },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof putApiV1DownloadclientId>>,
   TError,
@@ -5272,7 +5172,7 @@ export const getPutApiV1DownloadclientIdMutationOptions = <
   },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof putApiV1DownloadclientId>>,
@@ -5284,7 +5184,7 @@ export const getPutApiV1DownloadclientIdMutationOptions = <
   > = (props) => {
     const { id, data, params } = props ?? {};
 
-    return putApiV1DownloadclientId(id, data, params, axiosOptions);
+    return putApiV1DownloadclientId(id, data, params);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -5294,10 +5194,10 @@ export type PutApiV1DownloadclientIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof putApiV1DownloadclientId>>
 >;
 export type PutApiV1DownloadclientIdMutationBody = DownloadClientResource;
-export type PutApiV1DownloadclientIdMutationError = AxiosError<unknown>;
+export type PutApiV1DownloadclientIdMutationError = unknown;
 
 export const usePutApiV1DownloadclientId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -5310,7 +5210,6 @@ export const usePutApiV1DownloadclientId = <
     },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof putApiV1DownloadclientId>>,
   TError,
@@ -5327,18 +5226,18 @@ export const usePutApiV1DownloadclientId = <
 };
 
 export const deleteApiV1DownloadclientId = (
-  id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  id: MaybeRef<number | undefined | null>
+) => {
   id = unref(id);
-  return axios.delete(
-    `http://localhost:3001/api/v1/downloadclient/${id}`,
-    options
-  );
+
+  return customInstance<void>({
+    url: `/api/v1/downloadclient/${id}`,
+    method: "DELETE",
+  });
 };
 
 export const getDeleteApiV1DownloadclientIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -5347,14 +5246,13 @@ export const getDeleteApiV1DownloadclientIdMutationOptions = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof deleteApiV1DownloadclientId>>,
   TError,
   { id: number },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deleteApiV1DownloadclientId>>,
@@ -5362,7 +5260,7 @@ export const getDeleteApiV1DownloadclientIdMutationOptions = <
   > = (props) => {
     const { id } = props ?? {};
 
-    return deleteApiV1DownloadclientId(id, axiosOptions);
+    return deleteApiV1DownloadclientId(id);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -5372,10 +5270,10 @@ export type DeleteApiV1DownloadclientIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof deleteApiV1DownloadclientId>>
 >;
 
-export type DeleteApiV1DownloadclientIdMutationError = AxiosError<unknown>;
+export type DeleteApiV1DownloadclientIdMutationError = unknown;
 
 export const useDeleteApiV1DownloadclientId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -5384,7 +5282,6 @@ export const useDeleteApiV1DownloadclientId = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof deleteApiV1DownloadclientId>>,
   TError,
@@ -5399,31 +5296,26 @@ export const useDeleteApiV1DownloadclientId = <
 
 export const getApiV1DownloadclientId = (
   id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<DownloadClientResource>> => {
+  signal?: AbortSignal
+) => {
   id = unref(id);
-  return axios.get(
-    `http://localhost:3001/api/v1/downloadclient/${id}`,
-    options
-  );
+
+  return customInstance<DownloadClientResource>({
+    url: `/api/v1/downloadclient/${id}`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1DownloadclientIdQueryKey = (
   id: MaybeRef<number | undefined | null>
 ) => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'downloadclient',
-    id,
-  ] as const;
+  return ["api", "v1", "downloadclient", id] as const;
 };
 
 export const getGetApiV1DownloadclientIdQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1DownloadclientId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -5434,16 +5326,15 @@ export const getGetApiV1DownloadclientIdQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1DownloadclientIdQueryKey(id);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1DownloadclientId>>
-  > = ({ signal }) => getApiV1DownloadclientId(id, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1DownloadclientId(id, signal);
 
   return {
     queryKey,
@@ -5460,11 +5351,11 @@ export const getGetApiV1DownloadclientIdQueryOptions = <
 export type GetApiV1DownloadclientIdQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1DownloadclientId>>
 >;
-export type GetApiV1DownloadclientIdQueryError = AxiosError<unknown>;
+export type GetApiV1DownloadclientIdQueryError = unknown;
 
 export const useGetApiV1DownloadclientId = <
   TData = Awaited<ReturnType<typeof getApiV1DownloadclientId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -5475,7 +5366,6 @@ export const useGetApiV1DownloadclientId = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1DownloadclientIdQueryOptions(id, options);
@@ -5490,19 +5380,20 @@ export const useGetApiV1DownloadclientId = <
 };
 
 export const putApiV1DownloadclientBulk = (
-  downloadClientBulkResource: MaybeRef<DownloadClientBulkResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<DownloadClientResource>> => {
+  downloadClientBulkResource: MaybeRef<DownloadClientBulkResource>
+) => {
   downloadClientBulkResource = unref(downloadClientBulkResource);
-  return axios.put(
-    `http://localhost:3001/api/v1/downloadclient/bulk`,
-    downloadClientBulkResource,
-    options
-  );
+
+  return customInstance<DownloadClientResource>({
+    url: `/api/v1/downloadclient/bulk`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: downloadClientBulkResource,
+  });
 };
 
 export const getPutApiV1DownloadclientBulkMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -5511,14 +5402,13 @@ export const getPutApiV1DownloadclientBulkMutationOptions = <
     { data: DownloadClientBulkResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof putApiV1DownloadclientBulk>>,
   TError,
   { data: DownloadClientBulkResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof putApiV1DownloadclientBulk>>,
@@ -5526,7 +5416,7 @@ export const getPutApiV1DownloadclientBulkMutationOptions = <
   > = (props) => {
     const { data } = props ?? {};
 
-    return putApiV1DownloadclientBulk(data, axiosOptions);
+    return putApiV1DownloadclientBulk(data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -5536,10 +5426,10 @@ export type PutApiV1DownloadclientBulkMutationResult = NonNullable<
   Awaited<ReturnType<typeof putApiV1DownloadclientBulk>>
 >;
 export type PutApiV1DownloadclientBulkMutationBody = DownloadClientBulkResource;
-export type PutApiV1DownloadclientBulkMutationError = AxiosError<unknown>;
+export type PutApiV1DownloadclientBulkMutationError = unknown;
 
 export const usePutApiV1DownloadclientBulk = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -5548,7 +5438,6 @@ export const usePutApiV1DownloadclientBulk = <
     { data: DownloadClientBulkResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof putApiV1DownloadclientBulk>>,
   TError,
@@ -5561,18 +5450,20 @@ export const usePutApiV1DownloadclientBulk = <
 };
 
 export const deleteApiV1DownloadclientBulk = (
-  downloadClientBulkResource: MaybeRef<DownloadClientBulkResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  downloadClientBulkResource: MaybeRef<DownloadClientBulkResource>
+) => {
   downloadClientBulkResource = unref(downloadClientBulkResource);
-  return axios.delete(`http://localhost:3001/api/v1/downloadclient/bulk`, {
+
+  return customInstance<void>({
+    url: `/api/v1/downloadclient/bulk`,
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
     data: downloadClientBulkResource,
-    ...options,
   });
 };
 
 export const getDeleteApiV1DownloadclientBulkMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -5581,14 +5472,13 @@ export const getDeleteApiV1DownloadclientBulkMutationOptions = <
     { data: DownloadClientBulkResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof deleteApiV1DownloadclientBulk>>,
   TError,
   { data: DownloadClientBulkResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deleteApiV1DownloadclientBulk>>,
@@ -5596,7 +5486,7 @@ export const getDeleteApiV1DownloadclientBulkMutationOptions = <
   > = (props) => {
     const { data } = props ?? {};
 
-    return deleteApiV1DownloadclientBulk(data, axiosOptions);
+    return deleteApiV1DownloadclientBulk(data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -5607,10 +5497,10 @@ export type DeleteApiV1DownloadclientBulkMutationResult = NonNullable<
 >;
 export type DeleteApiV1DownloadclientBulkMutationBody =
   DownloadClientBulkResource;
-export type DeleteApiV1DownloadclientBulkMutationError = AxiosError<unknown>;
+export type DeleteApiV1DownloadclientBulkMutationError = unknown;
 
 export const useDeleteApiV1DownloadclientBulk = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -5619,7 +5509,6 @@ export const useDeleteApiV1DownloadclientBulk = <
     { data: DownloadClientBulkResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof deleteApiV1DownloadclientBulk>>,
   TError,
@@ -5632,29 +5521,21 @@ export const useDeleteApiV1DownloadclientBulk = <
   return useMutation(mutationOptions);
 };
 
-export const getApiV1DownloadclientSchema = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<DownloadClientResource[]>> => {
-  return axios.get(
-    `http://localhost:3001/api/v1/downloadclient/schema`,
-    options
-  );
+export const getApiV1DownloadclientSchema = (signal?: AbortSignal) => {
+  return customInstance<DownloadClientResource[]>({
+    url: `/api/v1/downloadclient/schema`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1DownloadclientSchemaQueryKey = () => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'downloadclient',
-    'schema',
-  ] as const;
+  return ["api", "v1", "downloadclient", "schema"] as const;
 };
 
 export const getGetApiV1DownloadclientSchemaQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1DownloadclientSchema>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -5663,15 +5544,14 @@ export const getGetApiV1DownloadclientSchemaQueryOptions = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1DownloadclientSchemaQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1DownloadclientSchema>>
-  > = ({ signal }) => getApiV1DownloadclientSchema({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1DownloadclientSchema(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1DownloadclientSchema>>,
@@ -5683,11 +5563,11 @@ export const getGetApiV1DownloadclientSchemaQueryOptions = <
 export type GetApiV1DownloadclientSchemaQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1DownloadclientSchema>>
 >;
-export type GetApiV1DownloadclientSchemaQueryError = AxiosError<unknown>;
+export type GetApiV1DownloadclientSchemaQueryError = unknown;
 
 export const useGetApiV1DownloadclientSchema = <
   TData = Awaited<ReturnType<typeof getApiV1DownloadclientSchema>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -5696,7 +5576,6 @@ export const useGetApiV1DownloadclientSchema = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1DownloadclientSchemaQueryOptions(options);
 
@@ -5711,23 +5590,22 @@ export const useGetApiV1DownloadclientSchema = <
 
 export const postApiV1DownloadclientTest = (
   downloadClientResource: MaybeRef<DownloadClientResource>,
-  params?: MaybeRef<PostApiV1DownloadclientTestParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  params?: MaybeRef<PostApiV1DownloadclientTestParams>
+) => {
   downloadClientResource = unref(downloadClientResource);
   params = unref(params);
-  return axios.post(
-    `http://localhost:3001/api/v1/downloadclient/test`,
-    downloadClientResource,
-    {
-      ...options,
-      params: { ...unref(params), ...options?.params },
-    }
-  );
+
+  return customInstance<void>({
+    url: `/api/v1/downloadclient/test`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: downloadClientResource,
+    params: unref(params),
+  });
 };
 
 export const getPostApiV1DownloadclientTestMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -5739,14 +5617,13 @@ export const getPostApiV1DownloadclientTestMutationOptions = <
     },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1DownloadclientTest>>,
   TError,
   { data: DownloadClientResource; params?: PostApiV1DownloadclientTestParams },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1DownloadclientTest>>,
@@ -5754,7 +5631,7 @@ export const getPostApiV1DownloadclientTestMutationOptions = <
   > = (props) => {
     const { data, params } = props ?? {};
 
-    return postApiV1DownloadclientTest(data, params, axiosOptions);
+    return postApiV1DownloadclientTest(data, params);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -5764,10 +5641,10 @@ export type PostApiV1DownloadclientTestMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1DownloadclientTest>>
 >;
 export type PostApiV1DownloadclientTestMutationBody = DownloadClientResource;
-export type PostApiV1DownloadclientTestMutationError = AxiosError<unknown>;
+export type PostApiV1DownloadclientTestMutationError = unknown;
 
 export const usePostApiV1DownloadclientTest = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -5779,7 +5656,6 @@ export const usePostApiV1DownloadclientTest = <
     },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1DownloadclientTest>>,
   TError,
@@ -5792,18 +5668,15 @@ export const usePostApiV1DownloadclientTest = <
   return useMutation(mutationOptions);
 };
 
-export const postApiV1DownloadclientTestall = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
-  return axios.post(
-    `http://localhost:3001/api/v1/downloadclient/testall`,
-    undefined,
-    options
-  );
+export const postApiV1DownloadclientTestall = () => {
+  return customInstance<void>({
+    url: `/api/v1/downloadclient/testall`,
+    method: "POST",
+  });
 };
 
 export const getPostApiV1DownloadclientTestallMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -5812,20 +5685,19 @@ export const getPostApiV1DownloadclientTestallMutationOptions = <
     void,
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1DownloadclientTestall>>,
   TError,
   void,
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1DownloadclientTestall>>,
     void
   > = () => {
-    return postApiV1DownloadclientTestall(axiosOptions);
+    return postApiV1DownloadclientTestall();
   };
 
   return { mutationFn, ...mutationOptions };
@@ -5835,10 +5707,10 @@ export type PostApiV1DownloadclientTestallMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1DownloadclientTestall>>
 >;
 
-export type PostApiV1DownloadclientTestallMutationError = AxiosError<unknown>;
+export type PostApiV1DownloadclientTestallMutationError = unknown;
 
 export const usePostApiV1DownloadclientTestall = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -5847,7 +5719,6 @@ export const usePostApiV1DownloadclientTestall = <
     void,
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1DownloadclientTestall>>,
   TError,
@@ -5862,20 +5733,21 @@ export const usePostApiV1DownloadclientTestall = <
 
 export const postApiV1DownloadclientActionName = (
   name: MaybeRef<string | undefined | null>,
-  downloadClientResource: MaybeRef<DownloadClientResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  downloadClientResource: MaybeRef<DownloadClientResource>
+) => {
   name = unref(name);
   downloadClientResource = unref(downloadClientResource);
-  return axios.post(
-    `http://localhost:3001/api/v1/downloadclient/action/${name}`,
-    downloadClientResource,
-    options
-  );
+
+  return customInstance<void>({
+    url: `/api/v1/downloadclient/action/${name}`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: downloadClientResource,
+  });
 };
 
 export const getPostApiV1DownloadclientActionNameMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -5884,14 +5756,13 @@ export const getPostApiV1DownloadclientActionNameMutationOptions = <
     { name: string; data: DownloadClientResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1DownloadclientActionName>>,
   TError,
   { name: string; data: DownloadClientResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1DownloadclientActionName>>,
@@ -5899,7 +5770,7 @@ export const getPostApiV1DownloadclientActionNameMutationOptions = <
   > = (props) => {
     const { name, data } = props ?? {};
 
-    return postApiV1DownloadclientActionName(name, data, axiosOptions);
+    return postApiV1DownloadclientActionName(name, data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -5910,11 +5781,10 @@ export type PostApiV1DownloadclientActionNameMutationResult = NonNullable<
 >;
 export type PostApiV1DownloadclientActionNameMutationBody =
   DownloadClientResource;
-export type PostApiV1DownloadclientActionNameMutationError =
-  AxiosError<unknown>;
+export type PostApiV1DownloadclientActionNameMutationError = unknown;
 
 export const usePostApiV1DownloadclientActionName = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -5923,7 +5793,6 @@ export const usePostApiV1DownloadclientActionName = <
     { name: string; data: DownloadClientResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1DownloadclientActionName>>,
   TError,
@@ -5936,29 +5805,21 @@ export const usePostApiV1DownloadclientActionName = <
   return useMutation(mutationOptions);
 };
 
-export const getApiV1ConfigDownloadclient = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<DownloadClientConfigResource>> => {
-  return axios.get(
-    `http://localhost:3001/api/v1/config/downloadclient`,
-    options
-  );
+export const getApiV1ConfigDownloadclient = (signal?: AbortSignal) => {
+  return customInstance<DownloadClientConfigResource>({
+    url: `/api/v1/config/downloadclient`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1ConfigDownloadclientQueryKey = () => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'config',
-    'downloadclient',
-  ] as const;
+  return ["api", "v1", "config", "downloadclient"] as const;
 };
 
 export const getGetApiV1ConfigDownloadclientQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1ConfigDownloadclient>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -5967,15 +5828,14 @@ export const getGetApiV1ConfigDownloadclientQueryOptions = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1ConfigDownloadclientQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1ConfigDownloadclient>>
-  > = ({ signal }) => getApiV1ConfigDownloadclient({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1ConfigDownloadclient(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1ConfigDownloadclient>>,
@@ -5987,11 +5847,11 @@ export const getGetApiV1ConfigDownloadclientQueryOptions = <
 export type GetApiV1ConfigDownloadclientQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1ConfigDownloadclient>>
 >;
-export type GetApiV1ConfigDownloadclientQueryError = AxiosError<unknown>;
+export type GetApiV1ConfigDownloadclientQueryError = unknown;
 
 export const useGetApiV1ConfigDownloadclient = <
   TData = Awaited<ReturnType<typeof getApiV1ConfigDownloadclient>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -6000,7 +5860,6 @@ export const useGetApiV1ConfigDownloadclient = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1ConfigDownloadclientQueryOptions(options);
 
@@ -6015,20 +5874,21 @@ export const useGetApiV1ConfigDownloadclient = <
 
 export const putApiV1ConfigDownloadclientId = (
   id: MaybeRef<string | undefined | null>,
-  downloadClientConfigResource: MaybeRef<DownloadClientConfigResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<DownloadClientConfigResource>> => {
+  downloadClientConfigResource: MaybeRef<DownloadClientConfigResource>
+) => {
   id = unref(id);
   downloadClientConfigResource = unref(downloadClientConfigResource);
-  return axios.put(
-    `http://localhost:3001/api/v1/config/downloadclient/${id}`,
-    downloadClientConfigResource,
-    options
-  );
+
+  return customInstance<DownloadClientConfigResource>({
+    url: `/api/v1/config/downloadclient/${id}`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: downloadClientConfigResource,
+  });
 };
 
 export const getPutApiV1ConfigDownloadclientIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -6037,14 +5897,13 @@ export const getPutApiV1ConfigDownloadclientIdMutationOptions = <
     { id: string; data: DownloadClientConfigResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof putApiV1ConfigDownloadclientId>>,
   TError,
   { id: string; data: DownloadClientConfigResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof putApiV1ConfigDownloadclientId>>,
@@ -6052,7 +5911,7 @@ export const getPutApiV1ConfigDownloadclientIdMutationOptions = <
   > = (props) => {
     const { id, data } = props ?? {};
 
-    return putApiV1ConfigDownloadclientId(id, data, axiosOptions);
+    return putApiV1ConfigDownloadclientId(id, data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -6063,10 +5922,10 @@ export type PutApiV1ConfigDownloadclientIdMutationResult = NonNullable<
 >;
 export type PutApiV1ConfigDownloadclientIdMutationBody =
   DownloadClientConfigResource;
-export type PutApiV1ConfigDownloadclientIdMutationError = AxiosError<unknown>;
+export type PutApiV1ConfigDownloadclientIdMutationError = unknown;
 
 export const usePutApiV1ConfigDownloadclientId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -6075,7 +5934,6 @@ export const usePutApiV1ConfigDownloadclientId = <
     { id: string; data: DownloadClientConfigResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof putApiV1ConfigDownloadclientId>>,
   TError,
@@ -6090,32 +5948,26 @@ export const usePutApiV1ConfigDownloadclientId = <
 
 export const getApiV1ConfigDownloadclientId = (
   id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<DownloadClientConfigResource>> => {
+  signal?: AbortSignal
+) => {
   id = unref(id);
-  return axios.get(
-    `http://localhost:3001/api/v1/config/downloadclient/${id}`,
-    options
-  );
+
+  return customInstance<DownloadClientConfigResource>({
+    url: `/api/v1/config/downloadclient/${id}`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1ConfigDownloadclientIdQueryKey = (
   id: MaybeRef<number | undefined | null>
 ) => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'config',
-    'downloadclient',
-    id,
-  ] as const;
+  return ["api", "v1", "config", "downloadclient", id] as const;
 };
 
 export const getGetApiV1ConfigDownloadclientIdQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1ConfigDownloadclientId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -6126,17 +5978,15 @@ export const getGetApiV1ConfigDownloadclientIdQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1ConfigDownloadclientIdQueryKey(id);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1ConfigDownloadclientId>>
-  > = ({ signal }) =>
-    getApiV1ConfigDownloadclientId(id, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1ConfigDownloadclientId(id, signal);
 
   return {
     queryKey,
@@ -6153,11 +6003,11 @@ export const getGetApiV1ConfigDownloadclientIdQueryOptions = <
 export type GetApiV1ConfigDownloadclientIdQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1ConfigDownloadclientId>>
 >;
-export type GetApiV1ConfigDownloadclientIdQueryError = AxiosError<unknown>;
+export type GetApiV1ConfigDownloadclientIdQueryError = unknown;
 
 export const useGetApiV1ConfigDownloadclientId = <
   TData = Awaited<ReturnType<typeof getApiV1ConfigDownloadclientId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -6168,7 +6018,6 @@ export const useGetApiV1ConfigDownloadclientId = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1ConfigDownloadclientIdQueryOptions(
@@ -6187,31 +6036,27 @@ export const useGetApiV1ConfigDownloadclientId = <
 
 export const getApiV1Edition = (
   params?: MaybeRef<GetApiV1EditionParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<EditionResource[]>> => {
+  signal?: AbortSignal
+) => {
   params = unref(params);
-  return axios.get(`http://localhost:3001/api/v1/edition`, {
-    ...options,
-    params: { ...unref(params), ...options?.params },
+
+  return customInstance<EditionResource[]>({
+    url: `/api/v1/edition`,
+    method: "GET",
+    params: unref(params),
+    signal,
   });
 };
 
 export const getGetApiV1EditionQueryKey = (
   params?: MaybeRef<GetApiV1EditionParams>
 ) => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'edition',
-    ...(params ? [params] : []),
-  ] as const;
+  return ["api", "v1", "edition", ...(params ? [params] : [])] as const;
 };
 
 export const getGetApiV1EditionQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1Edition>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1EditionParams>,
   options?: {
@@ -6222,16 +6067,15 @@ export const getGetApiV1EditionQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1EditionQueryKey(params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiV1Edition>>> = ({
     signal,
-  }) => getApiV1Edition(params, { signal, ...axiosOptions });
+  }) => getApiV1Edition(params, signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1Edition>>,
@@ -6243,11 +6087,11 @@ export const getGetApiV1EditionQueryOptions = <
 export type GetApiV1EditionQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1Edition>>
 >;
-export type GetApiV1EditionQueryError = AxiosError<unknown>;
+export type GetApiV1EditionQueryError = unknown;
 
 export const useGetApiV1Edition = <
   TData = Awaited<ReturnType<typeof getApiV1Edition>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1EditionParams>,
   options?: {
@@ -6258,7 +6102,6 @@ export const useGetApiV1Edition = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1EditionQueryOptions(params, options);
@@ -6274,31 +6117,27 @@ export const useGetApiV1Edition = <
 
 export const getApiV1Filesystem = (
   params?: MaybeRef<GetApiV1FilesystemParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  signal?: AbortSignal
+) => {
   params = unref(params);
-  return axios.get(`http://localhost:3001/api/v1/filesystem`, {
-    ...options,
-    params: { ...unref(params), ...options?.params },
+
+  return customInstance<void>({
+    url: `/api/v1/filesystem`,
+    method: "GET",
+    params: unref(params),
+    signal,
   });
 };
 
 export const getGetApiV1FilesystemQueryKey = (
   params?: MaybeRef<GetApiV1FilesystemParams>
 ) => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'filesystem',
-    ...(params ? [params] : []),
-  ] as const;
+  return ["api", "v1", "filesystem", ...(params ? [params] : [])] as const;
 };
 
 export const getGetApiV1FilesystemQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1Filesystem>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1FilesystemParams>,
   options?: {
@@ -6309,16 +6148,15 @@ export const getGetApiV1FilesystemQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1FilesystemQueryKey(params);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1Filesystem>>
-  > = ({ signal }) => getApiV1Filesystem(params, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1Filesystem(params, signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1Filesystem>>,
@@ -6330,11 +6168,11 @@ export const getGetApiV1FilesystemQueryOptions = <
 export type GetApiV1FilesystemQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1Filesystem>>
 >;
-export type GetApiV1FilesystemQueryError = AxiosError<unknown>;
+export type GetApiV1FilesystemQueryError = unknown;
 
 export const useGetApiV1Filesystem = <
   TData = Awaited<ReturnType<typeof getApiV1Filesystem>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1FilesystemParams>,
   options?: {
@@ -6345,7 +6183,6 @@ export const useGetApiV1Filesystem = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1FilesystemQueryOptions(params, options);
@@ -6361,12 +6198,15 @@ export const useGetApiV1Filesystem = <
 
 export const getApiV1FilesystemType = (
   params?: MaybeRef<GetApiV1FilesystemTypeParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  signal?: AbortSignal
+) => {
   params = unref(params);
-  return axios.get(`http://localhost:3001/api/v1/filesystem/type`, {
-    ...options,
-    params: { ...unref(params), ...options?.params },
+
+  return customInstance<void>({
+    url: `/api/v1/filesystem/type`,
+    method: "GET",
+    params: unref(params),
+    signal,
   });
 };
 
@@ -6374,19 +6214,17 @@ export const getGetApiV1FilesystemTypeQueryKey = (
   params?: MaybeRef<GetApiV1FilesystemTypeParams>
 ) => {
   return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'filesystem',
-    'type',
+    "api",
+    "v1",
+    "filesystem",
+    "type",
     ...(params ? [params] : []),
   ] as const;
 };
 
 export const getGetApiV1FilesystemTypeQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1FilesystemType>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1FilesystemTypeParams>,
   options?: {
@@ -6397,17 +6235,15 @@ export const getGetApiV1FilesystemTypeQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1FilesystemTypeQueryKey(params);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1FilesystemType>>
-  > = ({ signal }) =>
-    getApiV1FilesystemType(params, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1FilesystemType(params, signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1FilesystemType>>,
@@ -6419,11 +6255,11 @@ export const getGetApiV1FilesystemTypeQueryOptions = <
 export type GetApiV1FilesystemTypeQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1FilesystemType>>
 >;
-export type GetApiV1FilesystemTypeQueryError = AxiosError<unknown>;
+export type GetApiV1FilesystemTypeQueryError = unknown;
 
 export const useGetApiV1FilesystemType = <
   TData = Awaited<ReturnType<typeof getApiV1FilesystemType>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1FilesystemTypeParams>,
   options?: {
@@ -6434,7 +6270,6 @@ export const useGetApiV1FilesystemType = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1FilesystemTypeQueryOptions(params, options);
@@ -6450,12 +6285,15 @@ export const useGetApiV1FilesystemType = <
 
 export const getApiV1FilesystemMediafiles = (
   params?: MaybeRef<GetApiV1FilesystemMediafilesParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  signal?: AbortSignal
+) => {
   params = unref(params);
-  return axios.get(`http://localhost:3001/api/v1/filesystem/mediafiles`, {
-    ...options,
-    params: { ...unref(params), ...options?.params },
+
+  return customInstance<void>({
+    url: `/api/v1/filesystem/mediafiles`,
+    method: "GET",
+    params: unref(params),
+    signal,
   });
 };
 
@@ -6463,19 +6301,17 @@ export const getGetApiV1FilesystemMediafilesQueryKey = (
   params?: MaybeRef<GetApiV1FilesystemMediafilesParams>
 ) => {
   return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'filesystem',
-    'mediafiles',
+    "api",
+    "v1",
+    "filesystem",
+    "mediafiles",
     ...(params ? [params] : []),
   ] as const;
 };
 
 export const getGetApiV1FilesystemMediafilesQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1FilesystemMediafiles>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1FilesystemMediafilesParams>,
   options?: {
@@ -6486,17 +6322,15 @@ export const getGetApiV1FilesystemMediafilesQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1FilesystemMediafilesQueryKey(params);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1FilesystemMediafiles>>
-  > = ({ signal }) =>
-    getApiV1FilesystemMediafiles(params, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1FilesystemMediafiles(params, signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1FilesystemMediafiles>>,
@@ -6508,11 +6342,11 @@ export const getGetApiV1FilesystemMediafilesQueryOptions = <
 export type GetApiV1FilesystemMediafilesQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1FilesystemMediafiles>>
 >;
-export type GetApiV1FilesystemMediafilesQueryError = AxiosError<unknown>;
+export type GetApiV1FilesystemMediafilesQueryError = unknown;
 
 export const useGetApiV1FilesystemMediafiles = <
   TData = Awaited<ReturnType<typeof getApiV1FilesystemMediafiles>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1FilesystemMediafilesParams>,
   options?: {
@@ -6523,7 +6357,6 @@ export const useGetApiV1FilesystemMediafiles = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1FilesystemMediafilesQueryOptions(
@@ -6540,32 +6373,33 @@ export const useGetApiV1FilesystemMediafiles = <
   return query;
 };
 
-export const getApiV1Health = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<HealthResource[]>> => {
-  return axios.get(`http://localhost:3001/api/v1/health`, options);
+export const getApiV1Health = (signal?: AbortSignal) => {
+  return customInstance<HealthResource[]>({
+    url: `/api/v1/health`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1HealthQueryKey = () => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'health'] as const;
+  return ["api", "v1", "health"] as const;
 };
 
 export const getGetApiV1HealthQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1Health>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<Awaited<ReturnType<typeof getApiV1Health>>, TError, TData>
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1HealthQueryKey();
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiV1Health>>> = ({
     signal,
-  }) => getApiV1Health({ signal, ...axiosOptions });
+  }) => getApiV1Health(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1Health>>,
@@ -6577,16 +6411,15 @@ export const getGetApiV1HealthQueryOptions = <
 export type GetApiV1HealthQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1Health>>
 >;
-export type GetApiV1HealthQueryError = AxiosError<unknown>;
+export type GetApiV1HealthQueryError = unknown;
 
 export const useGetApiV1Health = <
   TData = Awaited<ReturnType<typeof getApiV1Health>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<Awaited<ReturnType<typeof getApiV1Health>>, TError, TData>
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1HealthQueryOptions(options);
 
@@ -6601,31 +6434,27 @@ export const useGetApiV1Health = <
 
 export const getApiV1History = (
   params?: MaybeRef<GetApiV1HistoryParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<HistoryResourcePagingResource>> => {
+  signal?: AbortSignal
+) => {
   params = unref(params);
-  return axios.get(`http://localhost:3001/api/v1/history`, {
-    ...options,
-    params: { ...unref(params), ...options?.params },
+
+  return customInstance<HistoryResourcePagingResource>({
+    url: `/api/v1/history`,
+    method: "GET",
+    params: unref(params),
+    signal,
   });
 };
 
 export const getGetApiV1HistoryQueryKey = (
   params?: MaybeRef<GetApiV1HistoryParams>
 ) => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'history',
-    ...(params ? [params] : []),
-  ] as const;
+  return ["api", "v1", "history", ...(params ? [params] : [])] as const;
 };
 
 export const getGetApiV1HistoryQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1History>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1HistoryParams>,
   options?: {
@@ -6636,16 +6465,15 @@ export const getGetApiV1HistoryQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1HistoryQueryKey(params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiV1History>>> = ({
     signal,
-  }) => getApiV1History(params, { signal, ...axiosOptions });
+  }) => getApiV1History(params, signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1History>>,
@@ -6657,11 +6485,11 @@ export const getGetApiV1HistoryQueryOptions = <
 export type GetApiV1HistoryQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1History>>
 >;
-export type GetApiV1HistoryQueryError = AxiosError<unknown>;
+export type GetApiV1HistoryQueryError = unknown;
 
 export const useGetApiV1History = <
   TData = Awaited<ReturnType<typeof getApiV1History>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1HistoryParams>,
   options?: {
@@ -6672,7 +6500,6 @@ export const useGetApiV1History = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1HistoryQueryOptions(params, options);
@@ -6688,12 +6515,15 @@ export const useGetApiV1History = <
 
 export const getApiV1HistorySince = (
   params?: MaybeRef<GetApiV1HistorySinceParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<HistoryResource[]>> => {
+  signal?: AbortSignal
+) => {
   params = unref(params);
-  return axios.get(`http://localhost:3001/api/v1/history/since`, {
-    ...options,
-    params: { ...unref(params), ...options?.params },
+
+  return customInstance<HistoryResource[]>({
+    url: `/api/v1/history/since`,
+    method: "GET",
+    params: unref(params),
+    signal,
   });
 };
 
@@ -6701,19 +6531,17 @@ export const getGetApiV1HistorySinceQueryKey = (
   params?: MaybeRef<GetApiV1HistorySinceParams>
 ) => {
   return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'history',
-    'since',
+    "api",
+    "v1",
+    "history",
+    "since",
     ...(params ? [params] : []),
   ] as const;
 };
 
 export const getGetApiV1HistorySinceQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1HistorySince>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1HistorySinceParams>,
   options?: {
@@ -6724,16 +6552,15 @@ export const getGetApiV1HistorySinceQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1HistorySinceQueryKey(params);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1HistorySince>>
-  > = ({ signal }) => getApiV1HistorySince(params, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1HistorySince(params, signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1HistorySince>>,
@@ -6745,11 +6572,11 @@ export const getGetApiV1HistorySinceQueryOptions = <
 export type GetApiV1HistorySinceQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1HistorySince>>
 >;
-export type GetApiV1HistorySinceQueryError = AxiosError<unknown>;
+export type GetApiV1HistorySinceQueryError = unknown;
 
 export const useGetApiV1HistorySince = <
   TData = Awaited<ReturnType<typeof getApiV1HistorySince>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1HistorySinceParams>,
   options?: {
@@ -6760,7 +6587,6 @@ export const useGetApiV1HistorySince = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1HistorySinceQueryOptions(params, options);
@@ -6776,12 +6602,15 @@ export const useGetApiV1HistorySince = <
 
 export const getApiV1HistoryAuthor = (
   params?: MaybeRef<GetApiV1HistoryAuthorParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<HistoryResource[]>> => {
+  signal?: AbortSignal
+) => {
   params = unref(params);
-  return axios.get(`http://localhost:3001/api/v1/history/author`, {
-    ...options,
-    params: { ...unref(params), ...options?.params },
+
+  return customInstance<HistoryResource[]>({
+    url: `/api/v1/history/author`,
+    method: "GET",
+    params: unref(params),
+    signal,
   });
 };
 
@@ -6789,19 +6618,17 @@ export const getGetApiV1HistoryAuthorQueryKey = (
   params?: MaybeRef<GetApiV1HistoryAuthorParams>
 ) => {
   return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'history',
-    'author',
+    "api",
+    "v1",
+    "history",
+    "author",
     ...(params ? [params] : []),
   ] as const;
 };
 
 export const getGetApiV1HistoryAuthorQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1HistoryAuthor>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1HistoryAuthorParams>,
   options?: {
@@ -6812,17 +6639,15 @@ export const getGetApiV1HistoryAuthorQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1HistoryAuthorQueryKey(params);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1HistoryAuthor>>
-  > = ({ signal }) =>
-    getApiV1HistoryAuthor(params, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1HistoryAuthor(params, signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1HistoryAuthor>>,
@@ -6834,11 +6659,11 @@ export const getGetApiV1HistoryAuthorQueryOptions = <
 export type GetApiV1HistoryAuthorQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1HistoryAuthor>>
 >;
-export type GetApiV1HistoryAuthorQueryError = AxiosError<unknown>;
+export type GetApiV1HistoryAuthorQueryError = unknown;
 
 export const useGetApiV1HistoryAuthor = <
   TData = Awaited<ReturnType<typeof getApiV1HistoryAuthor>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1HistoryAuthorParams>,
   options?: {
@@ -6849,7 +6674,6 @@ export const useGetApiV1HistoryAuthor = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1HistoryAuthorQueryOptions(params, options);
@@ -6864,19 +6688,18 @@ export const useGetApiV1HistoryAuthor = <
 };
 
 export const postApiV1HistoryFailedId = (
-  id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  id: MaybeRef<number | undefined | null>
+) => {
   id = unref(id);
-  return axios.post(
-    `http://localhost:3001/api/v1/history/failed/${id}`,
-    undefined,
-    options
-  );
+
+  return customInstance<void>({
+    url: `/api/v1/history/failed/${id}`,
+    method: "POST",
+  });
 };
 
 export const getPostApiV1HistoryFailedIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -6885,14 +6708,13 @@ export const getPostApiV1HistoryFailedIdMutationOptions = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1HistoryFailedId>>,
   TError,
   { id: number },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1HistoryFailedId>>,
@@ -6900,7 +6722,7 @@ export const getPostApiV1HistoryFailedIdMutationOptions = <
   > = (props) => {
     const { id } = props ?? {};
 
-    return postApiV1HistoryFailedId(id, axiosOptions);
+    return postApiV1HistoryFailedId(id);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -6910,10 +6732,10 @@ export type PostApiV1HistoryFailedIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1HistoryFailedId>>
 >;
 
-export type PostApiV1HistoryFailedIdMutationError = AxiosError<unknown>;
+export type PostApiV1HistoryFailedIdMutationError = unknown;
 
 export const usePostApiV1HistoryFailedId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -6922,7 +6744,6 @@ export const usePostApiV1HistoryFailedId = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1HistoryFailedId>>,
   TError,
@@ -6934,19 +6755,21 @@ export const usePostApiV1HistoryFailedId = <
   return useMutation(mutationOptions);
 };
 
-export const getApiV1ConfigHost = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<HostConfigResource>> => {
-  return axios.get(`http://localhost:3001/api/v1/config/host`, options);
+export const getApiV1ConfigHost = (signal?: AbortSignal) => {
+  return customInstance<HostConfigResource>({
+    url: `/api/v1/config/host`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1ConfigHostQueryKey = () => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'config', 'host'] as const;
+  return ["api", "v1", "config", "host"] as const;
 };
 
 export const getGetApiV1ConfigHostQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1ConfigHost>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -6955,15 +6778,14 @@ export const getGetApiV1ConfigHostQueryOptions = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1ConfigHostQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1ConfigHost>>
-  > = ({ signal }) => getApiV1ConfigHost({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1ConfigHost(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1ConfigHost>>,
@@ -6975,11 +6797,11 @@ export const getGetApiV1ConfigHostQueryOptions = <
 export type GetApiV1ConfigHostQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1ConfigHost>>
 >;
-export type GetApiV1ConfigHostQueryError = AxiosError<unknown>;
+export type GetApiV1ConfigHostQueryError = unknown;
 
 export const useGetApiV1ConfigHost = <
   TData = Awaited<ReturnType<typeof getApiV1ConfigHost>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -6988,7 +6810,6 @@ export const useGetApiV1ConfigHost = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1ConfigHostQueryOptions(options);
 
@@ -7003,20 +6824,21 @@ export const useGetApiV1ConfigHost = <
 
 export const putApiV1ConfigHostId = (
   id: MaybeRef<string | undefined | null>,
-  hostConfigResource: MaybeRef<HostConfigResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<HostConfigResource>> => {
+  hostConfigResource: MaybeRef<HostConfigResource>
+) => {
   id = unref(id);
   hostConfigResource = unref(hostConfigResource);
-  return axios.put(
-    `http://localhost:3001/api/v1/config/host/${id}`,
-    hostConfigResource,
-    options
-  );
+
+  return customInstance<HostConfigResource>({
+    url: `/api/v1/config/host/${id}`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: hostConfigResource,
+  });
 };
 
 export const getPutApiV1ConfigHostIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -7025,14 +6847,13 @@ export const getPutApiV1ConfigHostIdMutationOptions = <
     { id: string; data: HostConfigResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof putApiV1ConfigHostId>>,
   TError,
   { id: string; data: HostConfigResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof putApiV1ConfigHostId>>,
@@ -7040,7 +6861,7 @@ export const getPutApiV1ConfigHostIdMutationOptions = <
   > = (props) => {
     const { id, data } = props ?? {};
 
-    return putApiV1ConfigHostId(id, data, axiosOptions);
+    return putApiV1ConfigHostId(id, data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -7050,10 +6871,10 @@ export type PutApiV1ConfigHostIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof putApiV1ConfigHostId>>
 >;
 export type PutApiV1ConfigHostIdMutationBody = HostConfigResource;
-export type PutApiV1ConfigHostIdMutationError = AxiosError<unknown>;
+export type PutApiV1ConfigHostIdMutationError = unknown;
 
 export const usePutApiV1ConfigHostId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -7062,7 +6883,6 @@ export const usePutApiV1ConfigHostId = <
     { id: string; data: HostConfigResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof putApiV1ConfigHostId>>,
   TError,
@@ -7076,29 +6896,26 @@ export const usePutApiV1ConfigHostId = <
 
 export const getApiV1ConfigHostId = (
   id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<HostConfigResource>> => {
+  signal?: AbortSignal
+) => {
   id = unref(id);
-  return axios.get(`http://localhost:3001/api/v1/config/host/${id}`, options);
+
+  return customInstance<HostConfigResource>({
+    url: `/api/v1/config/host/${id}`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1ConfigHostIdQueryKey = (
   id: MaybeRef<number | undefined | null>
 ) => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'config',
-    'host',
-    id,
-  ] as const;
+  return ["api", "v1", "config", "host", id] as const;
 };
 
 export const getGetApiV1ConfigHostIdQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1ConfigHostId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -7109,16 +6926,15 @@ export const getGetApiV1ConfigHostIdQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1ConfigHostIdQueryKey(id);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1ConfigHostId>>
-  > = ({ signal }) => getApiV1ConfigHostId(id, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1ConfigHostId(id, signal);
 
   return {
     queryKey,
@@ -7135,11 +6951,11 @@ export const getGetApiV1ConfigHostIdQueryOptions = <
 export type GetApiV1ConfigHostIdQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1ConfigHostId>>
 >;
-export type GetApiV1ConfigHostIdQueryError = AxiosError<unknown>;
+export type GetApiV1ConfigHostIdQueryError = unknown;
 
 export const useGetApiV1ConfigHostId = <
   TData = Awaited<ReturnType<typeof getApiV1ConfigHostId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -7150,7 +6966,6 @@ export const useGetApiV1ConfigHostId = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1ConfigHostIdQueryOptions(id, options);
@@ -7164,19 +6979,21 @@ export const useGetApiV1ConfigHostId = <
   return query;
 };
 
-export const getApiV1Importlist = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<ImportListResource[]>> => {
-  return axios.get(`http://localhost:3001/api/v1/importlist`, options);
+export const getApiV1Importlist = (signal?: AbortSignal) => {
+  return customInstance<ImportListResource[]>({
+    url: `/api/v1/importlist`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1ImportlistQueryKey = () => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'importlist'] as const;
+  return ["api", "v1", "importlist"] as const;
 };
 
 export const getGetApiV1ImportlistQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1Importlist>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -7185,15 +7002,14 @@ export const getGetApiV1ImportlistQueryOptions = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1ImportlistQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1Importlist>>
-  > = ({ signal }) => getApiV1Importlist({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1Importlist(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1Importlist>>,
@@ -7205,11 +7021,11 @@ export const getGetApiV1ImportlistQueryOptions = <
 export type GetApiV1ImportlistQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1Importlist>>
 >;
-export type GetApiV1ImportlistQueryError = AxiosError<unknown>;
+export type GetApiV1ImportlistQueryError = unknown;
 
 export const useGetApiV1Importlist = <
   TData = Awaited<ReturnType<typeof getApiV1Importlist>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -7218,7 +7034,6 @@ export const useGetApiV1Importlist = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1ImportlistQueryOptions(options);
 
@@ -7233,23 +7048,22 @@ export const useGetApiV1Importlist = <
 
 export const postApiV1Importlist = (
   importListResource: MaybeRef<ImportListResource>,
-  params?: MaybeRef<PostApiV1ImportlistParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<ImportListResource>> => {
+  params?: MaybeRef<PostApiV1ImportlistParams>
+) => {
   importListResource = unref(importListResource);
   params = unref(params);
-  return axios.post(
-    `http://localhost:3001/api/v1/importlist`,
-    importListResource,
-    {
-      ...options,
-      params: { ...unref(params), ...options?.params },
-    }
-  );
+
+  return customInstance<ImportListResource>({
+    url: `/api/v1/importlist`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: importListResource,
+    params: unref(params),
+  });
 };
 
 export const getPostApiV1ImportlistMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -7258,14 +7072,13 @@ export const getPostApiV1ImportlistMutationOptions = <
     { data: ImportListResource; params?: PostApiV1ImportlistParams },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1Importlist>>,
   TError,
   { data: ImportListResource; params?: PostApiV1ImportlistParams },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1Importlist>>,
@@ -7273,7 +7086,7 @@ export const getPostApiV1ImportlistMutationOptions = <
   > = (props) => {
     const { data, params } = props ?? {};
 
-    return postApiV1Importlist(data, params, axiosOptions);
+    return postApiV1Importlist(data, params);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -7283,10 +7096,10 @@ export type PostApiV1ImportlistMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1Importlist>>
 >;
 export type PostApiV1ImportlistMutationBody = ImportListResource;
-export type PostApiV1ImportlistMutationError = AxiosError<unknown>;
+export type PostApiV1ImportlistMutationError = unknown;
 
 export const usePostApiV1Importlist = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -7295,7 +7108,6 @@ export const usePostApiV1Importlist = <
     { data: ImportListResource; params?: PostApiV1ImportlistParams },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1Importlist>>,
   TError,
@@ -7310,24 +7122,23 @@ export const usePostApiV1Importlist = <
 export const putApiV1ImportlistId = (
   id: MaybeRef<string | undefined | null>,
   importListResource: MaybeRef<ImportListResource>,
-  params?: MaybeRef<PutApiV1ImportlistIdParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<ImportListResource>> => {
+  params?: MaybeRef<PutApiV1ImportlistIdParams>
+) => {
   id = unref(id);
   importListResource = unref(importListResource);
   params = unref(params);
-  return axios.put(
-    `http://localhost:3001/api/v1/importlist/${id}`,
-    importListResource,
-    {
-      ...options,
-      params: { ...unref(params), ...options?.params },
-    }
-  );
+
+  return customInstance<ImportListResource>({
+    url: `/api/v1/importlist/${id}`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: importListResource,
+    params: unref(params),
+  });
 };
 
 export const getPutApiV1ImportlistIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -7340,14 +7151,13 @@ export const getPutApiV1ImportlistIdMutationOptions = <
     },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof putApiV1ImportlistId>>,
   TError,
   { id: string; data: ImportListResource; params?: PutApiV1ImportlistIdParams },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof putApiV1ImportlistId>>,
@@ -7359,7 +7169,7 @@ export const getPutApiV1ImportlistIdMutationOptions = <
   > = (props) => {
     const { id, data, params } = props ?? {};
 
-    return putApiV1ImportlistId(id, data, params, axiosOptions);
+    return putApiV1ImportlistId(id, data, params);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -7369,10 +7179,10 @@ export type PutApiV1ImportlistIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof putApiV1ImportlistId>>
 >;
 export type PutApiV1ImportlistIdMutationBody = ImportListResource;
-export type PutApiV1ImportlistIdMutationError = AxiosError<unknown>;
+export type PutApiV1ImportlistIdMutationError = unknown;
 
 export const usePutApiV1ImportlistId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -7385,7 +7195,6 @@ export const usePutApiV1ImportlistId = <
     },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof putApiV1ImportlistId>>,
   TError,
@@ -7398,15 +7207,18 @@ export const usePutApiV1ImportlistId = <
 };
 
 export const deleteApiV1ImportlistId = (
-  id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  id: MaybeRef<number | undefined | null>
+) => {
   id = unref(id);
-  return axios.delete(`http://localhost:3001/api/v1/importlist/${id}`, options);
+
+  return customInstance<void>({
+    url: `/api/v1/importlist/${id}`,
+    method: "DELETE",
+  });
 };
 
 export const getDeleteApiV1ImportlistIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -7415,14 +7227,13 @@ export const getDeleteApiV1ImportlistIdMutationOptions = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof deleteApiV1ImportlistId>>,
   TError,
   { id: number },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deleteApiV1ImportlistId>>,
@@ -7430,7 +7241,7 @@ export const getDeleteApiV1ImportlistIdMutationOptions = <
   > = (props) => {
     const { id } = props ?? {};
 
-    return deleteApiV1ImportlistId(id, axiosOptions);
+    return deleteApiV1ImportlistId(id);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -7440,10 +7251,10 @@ export type DeleteApiV1ImportlistIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof deleteApiV1ImportlistId>>
 >;
 
-export type DeleteApiV1ImportlistIdMutationError = AxiosError<unknown>;
+export type DeleteApiV1ImportlistIdMutationError = unknown;
 
 export const useDeleteApiV1ImportlistId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -7452,7 +7263,6 @@ export const useDeleteApiV1ImportlistId = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof deleteApiV1ImportlistId>>,
   TError,
@@ -7466,21 +7276,26 @@ export const useDeleteApiV1ImportlistId = <
 
 export const getApiV1ImportlistId = (
   id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<ImportListResource>> => {
+  signal?: AbortSignal
+) => {
   id = unref(id);
-  return axios.get(`http://localhost:3001/api/v1/importlist/${id}`, options);
+
+  return customInstance<ImportListResource>({
+    url: `/api/v1/importlist/${id}`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1ImportlistIdQueryKey = (
   id: MaybeRef<number | undefined | null>
 ) => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'importlist', id] as const;
+  return ["api", "v1", "importlist", id] as const;
 };
 
 export const getGetApiV1ImportlistIdQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1ImportlistId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -7491,16 +7306,15 @@ export const getGetApiV1ImportlistIdQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1ImportlistIdQueryKey(id);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1ImportlistId>>
-  > = ({ signal }) => getApiV1ImportlistId(id, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1ImportlistId(id, signal);
 
   return {
     queryKey,
@@ -7517,11 +7331,11 @@ export const getGetApiV1ImportlistIdQueryOptions = <
 export type GetApiV1ImportlistIdQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1ImportlistId>>
 >;
-export type GetApiV1ImportlistIdQueryError = AxiosError<unknown>;
+export type GetApiV1ImportlistIdQueryError = unknown;
 
 export const useGetApiV1ImportlistId = <
   TData = Awaited<ReturnType<typeof getApiV1ImportlistId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -7532,7 +7346,6 @@ export const useGetApiV1ImportlistId = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1ImportlistIdQueryOptions(id, options);
@@ -7547,19 +7360,20 @@ export const useGetApiV1ImportlistId = <
 };
 
 export const putApiV1ImportlistBulk = (
-  importListBulkResource: MaybeRef<ImportListBulkResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<ImportListResource>> => {
+  importListBulkResource: MaybeRef<ImportListBulkResource>
+) => {
   importListBulkResource = unref(importListBulkResource);
-  return axios.put(
-    `http://localhost:3001/api/v1/importlist/bulk`,
-    importListBulkResource,
-    options
-  );
+
+  return customInstance<ImportListResource>({
+    url: `/api/v1/importlist/bulk`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: importListBulkResource,
+  });
 };
 
 export const getPutApiV1ImportlistBulkMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -7568,14 +7382,13 @@ export const getPutApiV1ImportlistBulkMutationOptions = <
     { data: ImportListBulkResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof putApiV1ImportlistBulk>>,
   TError,
   { data: ImportListBulkResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof putApiV1ImportlistBulk>>,
@@ -7583,7 +7396,7 @@ export const getPutApiV1ImportlistBulkMutationOptions = <
   > = (props) => {
     const { data } = props ?? {};
 
-    return putApiV1ImportlistBulk(data, axiosOptions);
+    return putApiV1ImportlistBulk(data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -7593,10 +7406,10 @@ export type PutApiV1ImportlistBulkMutationResult = NonNullable<
   Awaited<ReturnType<typeof putApiV1ImportlistBulk>>
 >;
 export type PutApiV1ImportlistBulkMutationBody = ImportListBulkResource;
-export type PutApiV1ImportlistBulkMutationError = AxiosError<unknown>;
+export type PutApiV1ImportlistBulkMutationError = unknown;
 
 export const usePutApiV1ImportlistBulk = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -7605,7 +7418,6 @@ export const usePutApiV1ImportlistBulk = <
     { data: ImportListBulkResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof putApiV1ImportlistBulk>>,
   TError,
@@ -7618,18 +7430,20 @@ export const usePutApiV1ImportlistBulk = <
 };
 
 export const deleteApiV1ImportlistBulk = (
-  importListBulkResource: MaybeRef<ImportListBulkResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  importListBulkResource: MaybeRef<ImportListBulkResource>
+) => {
   importListBulkResource = unref(importListBulkResource);
-  return axios.delete(`http://localhost:3001/api/v1/importlist/bulk`, {
+
+  return customInstance<void>({
+    url: `/api/v1/importlist/bulk`,
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
     data: importListBulkResource,
-    ...options,
   });
 };
 
 export const getDeleteApiV1ImportlistBulkMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -7638,14 +7452,13 @@ export const getDeleteApiV1ImportlistBulkMutationOptions = <
     { data: ImportListBulkResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof deleteApiV1ImportlistBulk>>,
   TError,
   { data: ImportListBulkResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deleteApiV1ImportlistBulk>>,
@@ -7653,7 +7466,7 @@ export const getDeleteApiV1ImportlistBulkMutationOptions = <
   > = (props) => {
     const { data } = props ?? {};
 
-    return deleteApiV1ImportlistBulk(data, axiosOptions);
+    return deleteApiV1ImportlistBulk(data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -7663,10 +7476,10 @@ export type DeleteApiV1ImportlistBulkMutationResult = NonNullable<
   Awaited<ReturnType<typeof deleteApiV1ImportlistBulk>>
 >;
 export type DeleteApiV1ImportlistBulkMutationBody = ImportListBulkResource;
-export type DeleteApiV1ImportlistBulkMutationError = AxiosError<unknown>;
+export type DeleteApiV1ImportlistBulkMutationError = unknown;
 
 export const useDeleteApiV1ImportlistBulk = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -7675,7 +7488,6 @@ export const useDeleteApiV1ImportlistBulk = <
     { data: ImportListBulkResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof deleteApiV1ImportlistBulk>>,
   TError,
@@ -7687,26 +7499,21 @@ export const useDeleteApiV1ImportlistBulk = <
   return useMutation(mutationOptions);
 };
 
-export const getApiV1ImportlistSchema = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<ImportListResource[]>> => {
-  return axios.get(`http://localhost:3001/api/v1/importlist/schema`, options);
+export const getApiV1ImportlistSchema = (signal?: AbortSignal) => {
+  return customInstance<ImportListResource[]>({
+    url: `/api/v1/importlist/schema`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1ImportlistSchemaQueryKey = () => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'importlist',
-    'schema',
-  ] as const;
+  return ["api", "v1", "importlist", "schema"] as const;
 };
 
 export const getGetApiV1ImportlistSchemaQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1ImportlistSchema>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -7715,15 +7522,14 @@ export const getGetApiV1ImportlistSchemaQueryOptions = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1ImportlistSchemaQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1ImportlistSchema>>
-  > = ({ signal }) => getApiV1ImportlistSchema({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1ImportlistSchema(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1ImportlistSchema>>,
@@ -7735,11 +7541,11 @@ export const getGetApiV1ImportlistSchemaQueryOptions = <
 export type GetApiV1ImportlistSchemaQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1ImportlistSchema>>
 >;
-export type GetApiV1ImportlistSchemaQueryError = AxiosError<unknown>;
+export type GetApiV1ImportlistSchemaQueryError = unknown;
 
 export const useGetApiV1ImportlistSchema = <
   TData = Awaited<ReturnType<typeof getApiV1ImportlistSchema>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -7748,7 +7554,6 @@ export const useGetApiV1ImportlistSchema = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1ImportlistSchemaQueryOptions(options);
 
@@ -7763,23 +7568,22 @@ export const useGetApiV1ImportlistSchema = <
 
 export const postApiV1ImportlistTest = (
   importListResource: MaybeRef<ImportListResource>,
-  params?: MaybeRef<PostApiV1ImportlistTestParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  params?: MaybeRef<PostApiV1ImportlistTestParams>
+) => {
   importListResource = unref(importListResource);
   params = unref(params);
-  return axios.post(
-    `http://localhost:3001/api/v1/importlist/test`,
-    importListResource,
-    {
-      ...options,
-      params: { ...unref(params), ...options?.params },
-    }
-  );
+
+  return customInstance<void>({
+    url: `/api/v1/importlist/test`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: importListResource,
+    params: unref(params),
+  });
 };
 
 export const getPostApiV1ImportlistTestMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -7788,14 +7592,13 @@ export const getPostApiV1ImportlistTestMutationOptions = <
     { data: ImportListResource; params?: PostApiV1ImportlistTestParams },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1ImportlistTest>>,
   TError,
   { data: ImportListResource; params?: PostApiV1ImportlistTestParams },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1ImportlistTest>>,
@@ -7803,7 +7606,7 @@ export const getPostApiV1ImportlistTestMutationOptions = <
   > = (props) => {
     const { data, params } = props ?? {};
 
-    return postApiV1ImportlistTest(data, params, axiosOptions);
+    return postApiV1ImportlistTest(data, params);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -7813,10 +7616,10 @@ export type PostApiV1ImportlistTestMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1ImportlistTest>>
 >;
 export type PostApiV1ImportlistTestMutationBody = ImportListResource;
-export type PostApiV1ImportlistTestMutationError = AxiosError<unknown>;
+export type PostApiV1ImportlistTestMutationError = unknown;
 
 export const usePostApiV1ImportlistTest = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -7825,7 +7628,6 @@ export const usePostApiV1ImportlistTest = <
     { data: ImportListResource; params?: PostApiV1ImportlistTestParams },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1ImportlistTest>>,
   TError,
@@ -7837,18 +7639,15 @@ export const usePostApiV1ImportlistTest = <
   return useMutation(mutationOptions);
 };
 
-export const postApiV1ImportlistTestall = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
-  return axios.post(
-    `http://localhost:3001/api/v1/importlist/testall`,
-    undefined,
-    options
-  );
+export const postApiV1ImportlistTestall = () => {
+  return customInstance<void>({
+    url: `/api/v1/importlist/testall`,
+    method: "POST",
+  });
 };
 
 export const getPostApiV1ImportlistTestallMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -7857,20 +7656,19 @@ export const getPostApiV1ImportlistTestallMutationOptions = <
     void,
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1ImportlistTestall>>,
   TError,
   void,
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1ImportlistTestall>>,
     void
   > = () => {
-    return postApiV1ImportlistTestall(axiosOptions);
+    return postApiV1ImportlistTestall();
   };
 
   return { mutationFn, ...mutationOptions };
@@ -7880,10 +7678,10 @@ export type PostApiV1ImportlistTestallMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1ImportlistTestall>>
 >;
 
-export type PostApiV1ImportlistTestallMutationError = AxiosError<unknown>;
+export type PostApiV1ImportlistTestallMutationError = unknown;
 
 export const usePostApiV1ImportlistTestall = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -7892,7 +7690,6 @@ export const usePostApiV1ImportlistTestall = <
     void,
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1ImportlistTestall>>,
   TError,
@@ -7906,20 +7703,21 @@ export const usePostApiV1ImportlistTestall = <
 
 export const postApiV1ImportlistActionName = (
   name: MaybeRef<string | undefined | null>,
-  importListResource: MaybeRef<ImportListResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  importListResource: MaybeRef<ImportListResource>
+) => {
   name = unref(name);
   importListResource = unref(importListResource);
-  return axios.post(
-    `http://localhost:3001/api/v1/importlist/action/${name}`,
-    importListResource,
-    options
-  );
+
+  return customInstance<void>({
+    url: `/api/v1/importlist/action/${name}`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: importListResource,
+  });
 };
 
 export const getPostApiV1ImportlistActionNameMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -7928,14 +7726,13 @@ export const getPostApiV1ImportlistActionNameMutationOptions = <
     { name: string; data: ImportListResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1ImportlistActionName>>,
   TError,
   { name: string; data: ImportListResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1ImportlistActionName>>,
@@ -7943,7 +7740,7 @@ export const getPostApiV1ImportlistActionNameMutationOptions = <
   > = (props) => {
     const { name, data } = props ?? {};
 
-    return postApiV1ImportlistActionName(name, data, axiosOptions);
+    return postApiV1ImportlistActionName(name, data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -7953,10 +7750,10 @@ export type PostApiV1ImportlistActionNameMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1ImportlistActionName>>
 >;
 export type PostApiV1ImportlistActionNameMutationBody = ImportListResource;
-export type PostApiV1ImportlistActionNameMutationError = AxiosError<unknown>;
+export type PostApiV1ImportlistActionNameMutationError = unknown;
 
 export const usePostApiV1ImportlistActionName = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -7965,7 +7762,6 @@ export const usePostApiV1ImportlistActionName = <
     { name: string; data: ImportListResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1ImportlistActionName>>,
   TError,
@@ -7978,25 +7774,21 @@ export const usePostApiV1ImportlistActionName = <
   return useMutation(mutationOptions);
 };
 
-export const getApiV1Importlistexclusion = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<ImportListExclusionResource[]>> => {
-  return axios.get(`http://localhost:3001/api/v1/importlistexclusion`, options);
+export const getApiV1Importlistexclusion = (signal?: AbortSignal) => {
+  return customInstance<ImportListExclusionResource[]>({
+    url: `/api/v1/importlistexclusion`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1ImportlistexclusionQueryKey = () => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'importlistexclusion',
-  ] as const;
+  return ["api", "v1", "importlistexclusion"] as const;
 };
 
 export const getGetApiV1ImportlistexclusionQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1Importlistexclusion>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -8005,15 +7797,14 @@ export const getGetApiV1ImportlistexclusionQueryOptions = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1ImportlistexclusionQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1Importlistexclusion>>
-  > = ({ signal }) => getApiV1Importlistexclusion({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1Importlistexclusion(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1Importlistexclusion>>,
@@ -8025,11 +7816,11 @@ export const getGetApiV1ImportlistexclusionQueryOptions = <
 export type GetApiV1ImportlistexclusionQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1Importlistexclusion>>
 >;
-export type GetApiV1ImportlistexclusionQueryError = AxiosError<unknown>;
+export type GetApiV1ImportlistexclusionQueryError = unknown;
 
 export const useGetApiV1Importlistexclusion = <
   TData = Awaited<ReturnType<typeof getApiV1Importlistexclusion>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -8038,7 +7829,6 @@ export const useGetApiV1Importlistexclusion = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1ImportlistexclusionQueryOptions(options);
 
@@ -8052,19 +7842,20 @@ export const useGetApiV1Importlistexclusion = <
 };
 
 export const postApiV1Importlistexclusion = (
-  importListExclusionResource: MaybeRef<ImportListExclusionResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<ImportListExclusionResource>> => {
+  importListExclusionResource: MaybeRef<ImportListExclusionResource>
+) => {
   importListExclusionResource = unref(importListExclusionResource);
-  return axios.post(
-    `http://localhost:3001/api/v1/importlistexclusion`,
-    importListExclusionResource,
-    options
-  );
+
+  return customInstance<ImportListExclusionResource>({
+    url: `/api/v1/importlistexclusion`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: importListExclusionResource,
+  });
 };
 
 export const getPostApiV1ImportlistexclusionMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -8073,14 +7864,13 @@ export const getPostApiV1ImportlistexclusionMutationOptions = <
     { data: ImportListExclusionResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1Importlistexclusion>>,
   TError,
   { data: ImportListExclusionResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1Importlistexclusion>>,
@@ -8088,7 +7878,7 @@ export const getPostApiV1ImportlistexclusionMutationOptions = <
   > = (props) => {
     const { data } = props ?? {};
 
-    return postApiV1Importlistexclusion(data, axiosOptions);
+    return postApiV1Importlistexclusion(data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -8099,10 +7889,10 @@ export type PostApiV1ImportlistexclusionMutationResult = NonNullable<
 >;
 export type PostApiV1ImportlistexclusionMutationBody =
   ImportListExclusionResource;
-export type PostApiV1ImportlistexclusionMutationError = AxiosError<unknown>;
+export type PostApiV1ImportlistexclusionMutationError = unknown;
 
 export const usePostApiV1Importlistexclusion = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -8111,7 +7901,6 @@ export const usePostApiV1Importlistexclusion = <
     { data: ImportListExclusionResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1Importlistexclusion>>,
   TError,
@@ -8126,20 +7915,21 @@ export const usePostApiV1Importlistexclusion = <
 
 export const putApiV1ImportlistexclusionId = (
   id: MaybeRef<string | undefined | null>,
-  importListExclusionResource: MaybeRef<ImportListExclusionResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<ImportListExclusionResource>> => {
+  importListExclusionResource: MaybeRef<ImportListExclusionResource>
+) => {
   id = unref(id);
   importListExclusionResource = unref(importListExclusionResource);
-  return axios.put(
-    `http://localhost:3001/api/v1/importlistexclusion/${id}`,
-    importListExclusionResource,
-    options
-  );
+
+  return customInstance<ImportListExclusionResource>({
+    url: `/api/v1/importlistexclusion/${id}`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: importListExclusionResource,
+  });
 };
 
 export const getPutApiV1ImportlistexclusionIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -8148,14 +7938,13 @@ export const getPutApiV1ImportlistexclusionIdMutationOptions = <
     { id: string; data: ImportListExclusionResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof putApiV1ImportlistexclusionId>>,
   TError,
   { id: string; data: ImportListExclusionResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof putApiV1ImportlistexclusionId>>,
@@ -8163,7 +7952,7 @@ export const getPutApiV1ImportlistexclusionIdMutationOptions = <
   > = (props) => {
     const { id, data } = props ?? {};
 
-    return putApiV1ImportlistexclusionId(id, data, axiosOptions);
+    return putApiV1ImportlistexclusionId(id, data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -8174,10 +7963,10 @@ export type PutApiV1ImportlistexclusionIdMutationResult = NonNullable<
 >;
 export type PutApiV1ImportlistexclusionIdMutationBody =
   ImportListExclusionResource;
-export type PutApiV1ImportlistexclusionIdMutationError = AxiosError<unknown>;
+export type PutApiV1ImportlistexclusionIdMutationError = unknown;
 
 export const usePutApiV1ImportlistexclusionId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -8186,7 +7975,6 @@ export const usePutApiV1ImportlistexclusionId = <
     { id: string; data: ImportListExclusionResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof putApiV1ImportlistexclusionId>>,
   TError,
@@ -8200,18 +7988,18 @@ export const usePutApiV1ImportlistexclusionId = <
 };
 
 export const deleteApiV1ImportlistexclusionId = (
-  id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  id: MaybeRef<number | undefined | null>
+) => {
   id = unref(id);
-  return axios.delete(
-    `http://localhost:3001/api/v1/importlistexclusion/${id}`,
-    options
-  );
+
+  return customInstance<void>({
+    url: `/api/v1/importlistexclusion/${id}`,
+    method: "DELETE",
+  });
 };
 
 export const getDeleteApiV1ImportlistexclusionIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -8220,14 +8008,13 @@ export const getDeleteApiV1ImportlistexclusionIdMutationOptions = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof deleteApiV1ImportlistexclusionId>>,
   TError,
   { id: number },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deleteApiV1ImportlistexclusionId>>,
@@ -8235,7 +8022,7 @@ export const getDeleteApiV1ImportlistexclusionIdMutationOptions = <
   > = (props) => {
     const { id } = props ?? {};
 
-    return deleteApiV1ImportlistexclusionId(id, axiosOptions);
+    return deleteApiV1ImportlistexclusionId(id);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -8245,10 +8032,10 @@ export type DeleteApiV1ImportlistexclusionIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof deleteApiV1ImportlistexclusionId>>
 >;
 
-export type DeleteApiV1ImportlistexclusionIdMutationError = AxiosError<unknown>;
+export type DeleteApiV1ImportlistexclusionIdMutationError = unknown;
 
 export const useDeleteApiV1ImportlistexclusionId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -8257,7 +8044,6 @@ export const useDeleteApiV1ImportlistexclusionId = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof deleteApiV1ImportlistexclusionId>>,
   TError,
@@ -8272,31 +8058,26 @@ export const useDeleteApiV1ImportlistexclusionId = <
 
 export const getApiV1ImportlistexclusionId = (
   id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<ImportListExclusionResource>> => {
+  signal?: AbortSignal
+) => {
   id = unref(id);
-  return axios.get(
-    `http://localhost:3001/api/v1/importlistexclusion/${id}`,
-    options
-  );
+
+  return customInstance<ImportListExclusionResource>({
+    url: `/api/v1/importlistexclusion/${id}`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1ImportlistexclusionIdQueryKey = (
   id: MaybeRef<number | undefined | null>
 ) => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'importlistexclusion',
-    id,
-  ] as const;
+  return ["api", "v1", "importlistexclusion", id] as const;
 };
 
 export const getGetApiV1ImportlistexclusionIdQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1ImportlistexclusionId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -8307,17 +8088,15 @@ export const getGetApiV1ImportlistexclusionIdQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1ImportlistexclusionIdQueryKey(id);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1ImportlistexclusionId>>
-  > = ({ signal }) =>
-    getApiV1ImportlistexclusionId(id, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1ImportlistexclusionId(id, signal);
 
   return {
     queryKey,
@@ -8334,11 +8113,11 @@ export const getGetApiV1ImportlistexclusionIdQueryOptions = <
 export type GetApiV1ImportlistexclusionIdQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1ImportlistexclusionId>>
 >;
-export type GetApiV1ImportlistexclusionIdQueryError = AxiosError<unknown>;
+export type GetApiV1ImportlistexclusionIdQueryError = unknown;
 
 export const useGetApiV1ImportlistexclusionId = <
   TData = Awaited<ReturnType<typeof getApiV1ImportlistexclusionId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -8349,7 +8128,6 @@ export const useGetApiV1ImportlistexclusionId = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1ImportlistexclusionIdQueryOptions(
@@ -8366,32 +8144,33 @@ export const useGetApiV1ImportlistexclusionId = <
   return query;
 };
 
-export const getApiV1Indexer = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<IndexerResource[]>> => {
-  return axios.get(`http://localhost:3001/api/v1/indexer`, options);
+export const getApiV1Indexer = (signal?: AbortSignal) => {
+  return customInstance<IndexerResource[]>({
+    url: `/api/v1/indexer`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1IndexerQueryKey = () => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'indexer'] as const;
+  return ["api", "v1", "indexer"] as const;
 };
 
 export const getGetApiV1IndexerQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1Indexer>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<Awaited<ReturnType<typeof getApiV1Indexer>>, TError, TData>
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1IndexerQueryKey();
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiV1Indexer>>> = ({
     signal,
-  }) => getApiV1Indexer({ signal, ...axiosOptions });
+  }) => getApiV1Indexer(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1Indexer>>,
@@ -8403,16 +8182,15 @@ export const getGetApiV1IndexerQueryOptions = <
 export type GetApiV1IndexerQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1Indexer>>
 >;
-export type GetApiV1IndexerQueryError = AxiosError<unknown>;
+export type GetApiV1IndexerQueryError = unknown;
 
 export const useGetApiV1Indexer = <
   TData = Awaited<ReturnType<typeof getApiV1Indexer>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<Awaited<ReturnType<typeof getApiV1Indexer>>, TError, TData>
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1IndexerQueryOptions(options);
 
@@ -8427,19 +8205,22 @@ export const useGetApiV1Indexer = <
 
 export const postApiV1Indexer = (
   indexerResource: MaybeRef<IndexerResource>,
-  params?: MaybeRef<PostApiV1IndexerParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<IndexerResource>> => {
+  params?: MaybeRef<PostApiV1IndexerParams>
+) => {
   indexerResource = unref(indexerResource);
   params = unref(params);
-  return axios.post(`http://localhost:3001/api/v1/indexer`, indexerResource, {
-    ...options,
-    params: { ...unref(params), ...options?.params },
+
+  return customInstance<IndexerResource>({
+    url: `/api/v1/indexer`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: indexerResource,
+    params: unref(params),
   });
 };
 
 export const getPostApiV1IndexerMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -8448,14 +8229,13 @@ export const getPostApiV1IndexerMutationOptions = <
     { data: IndexerResource; params?: PostApiV1IndexerParams },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1Indexer>>,
   TError,
   { data: IndexerResource; params?: PostApiV1IndexerParams },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1Indexer>>,
@@ -8463,7 +8243,7 @@ export const getPostApiV1IndexerMutationOptions = <
   > = (props) => {
     const { data, params } = props ?? {};
 
-    return postApiV1Indexer(data, params, axiosOptions);
+    return postApiV1Indexer(data, params);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -8473,10 +8253,10 @@ export type PostApiV1IndexerMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1Indexer>>
 >;
 export type PostApiV1IndexerMutationBody = IndexerResource;
-export type PostApiV1IndexerMutationError = AxiosError<unknown>;
+export type PostApiV1IndexerMutationError = unknown;
 
 export const usePostApiV1Indexer = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -8485,7 +8265,6 @@ export const usePostApiV1Indexer = <
     { data: IndexerResource; params?: PostApiV1IndexerParams },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1Indexer>>,
   TError,
@@ -8500,24 +8279,23 @@ export const usePostApiV1Indexer = <
 export const putApiV1IndexerId = (
   id: MaybeRef<string | undefined | null>,
   indexerResource: MaybeRef<IndexerResource>,
-  params?: MaybeRef<PutApiV1IndexerIdParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<IndexerResource>> => {
+  params?: MaybeRef<PutApiV1IndexerIdParams>
+) => {
   id = unref(id);
   indexerResource = unref(indexerResource);
   params = unref(params);
-  return axios.put(
-    `http://localhost:3001/api/v1/indexer/${id}`,
-    indexerResource,
-    {
-      ...options,
-      params: { ...unref(params), ...options?.params },
-    }
-  );
+
+  return customInstance<IndexerResource>({
+    url: `/api/v1/indexer/${id}`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: indexerResource,
+    params: unref(params),
+  });
 };
 
 export const getPutApiV1IndexerIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -8526,14 +8304,13 @@ export const getPutApiV1IndexerIdMutationOptions = <
     { id: string; data: IndexerResource; params?: PutApiV1IndexerIdParams },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof putApiV1IndexerId>>,
   TError,
   { id: string; data: IndexerResource; params?: PutApiV1IndexerIdParams },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof putApiV1IndexerId>>,
@@ -8541,7 +8318,7 @@ export const getPutApiV1IndexerIdMutationOptions = <
   > = (props) => {
     const { id, data, params } = props ?? {};
 
-    return putApiV1IndexerId(id, data, params, axiosOptions);
+    return putApiV1IndexerId(id, data, params);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -8551,10 +8328,10 @@ export type PutApiV1IndexerIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof putApiV1IndexerId>>
 >;
 export type PutApiV1IndexerIdMutationBody = IndexerResource;
-export type PutApiV1IndexerIdMutationError = AxiosError<unknown>;
+export type PutApiV1IndexerIdMutationError = unknown;
 
 export const usePutApiV1IndexerId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -8563,7 +8340,6 @@ export const usePutApiV1IndexerId = <
     { id: string; data: IndexerResource; params?: PutApiV1IndexerIdParams },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof putApiV1IndexerId>>,
   TError,
@@ -8576,15 +8352,18 @@ export const usePutApiV1IndexerId = <
 };
 
 export const deleteApiV1IndexerId = (
-  id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  id: MaybeRef<number | undefined | null>
+) => {
   id = unref(id);
-  return axios.delete(`http://localhost:3001/api/v1/indexer/${id}`, options);
+
+  return customInstance<void>({
+    url: `/api/v1/indexer/${id}`,
+    method: "DELETE",
+  });
 };
 
 export const getDeleteApiV1IndexerIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -8593,14 +8372,13 @@ export const getDeleteApiV1IndexerIdMutationOptions = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof deleteApiV1IndexerId>>,
   TError,
   { id: number },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deleteApiV1IndexerId>>,
@@ -8608,7 +8386,7 @@ export const getDeleteApiV1IndexerIdMutationOptions = <
   > = (props) => {
     const { id } = props ?? {};
 
-    return deleteApiV1IndexerId(id, axiosOptions);
+    return deleteApiV1IndexerId(id);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -8618,10 +8396,10 @@ export type DeleteApiV1IndexerIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof deleteApiV1IndexerId>>
 >;
 
-export type DeleteApiV1IndexerIdMutationError = AxiosError<unknown>;
+export type DeleteApiV1IndexerIdMutationError = unknown;
 
 export const useDeleteApiV1IndexerId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -8630,7 +8408,6 @@ export const useDeleteApiV1IndexerId = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof deleteApiV1IndexerId>>,
   TError,
@@ -8644,21 +8421,26 @@ export const useDeleteApiV1IndexerId = <
 
 export const getApiV1IndexerId = (
   id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<IndexerResource>> => {
+  signal?: AbortSignal
+) => {
   id = unref(id);
-  return axios.get(`http://localhost:3001/api/v1/indexer/${id}`, options);
+
+  return customInstance<IndexerResource>({
+    url: `/api/v1/indexer/${id}`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1IndexerIdQueryKey = (
   id: MaybeRef<number | undefined | null>
 ) => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'indexer', id] as const;
+  return ["api", "v1", "indexer", id] as const;
 };
 
 export const getGetApiV1IndexerIdQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1IndexerId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -8669,16 +8451,15 @@ export const getGetApiV1IndexerIdQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1IndexerIdQueryKey(id);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1IndexerId>>
-  > = ({ signal }) => getApiV1IndexerId(id, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1IndexerId(id, signal);
 
   return {
     queryKey,
@@ -8695,11 +8476,11 @@ export const getGetApiV1IndexerIdQueryOptions = <
 export type GetApiV1IndexerIdQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1IndexerId>>
 >;
-export type GetApiV1IndexerIdQueryError = AxiosError<unknown>;
+export type GetApiV1IndexerIdQueryError = unknown;
 
 export const useGetApiV1IndexerId = <
   TData = Awaited<ReturnType<typeof getApiV1IndexerId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -8710,7 +8491,6 @@ export const useGetApiV1IndexerId = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1IndexerIdQueryOptions(id, options);
@@ -8725,19 +8505,20 @@ export const useGetApiV1IndexerId = <
 };
 
 export const putApiV1IndexerBulk = (
-  indexerBulkResource: MaybeRef<IndexerBulkResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<IndexerResource>> => {
+  indexerBulkResource: MaybeRef<IndexerBulkResource>
+) => {
   indexerBulkResource = unref(indexerBulkResource);
-  return axios.put(
-    `http://localhost:3001/api/v1/indexer/bulk`,
-    indexerBulkResource,
-    options
-  );
+
+  return customInstance<IndexerResource>({
+    url: `/api/v1/indexer/bulk`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: indexerBulkResource,
+  });
 };
 
 export const getPutApiV1IndexerBulkMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -8746,14 +8527,13 @@ export const getPutApiV1IndexerBulkMutationOptions = <
     { data: IndexerBulkResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof putApiV1IndexerBulk>>,
   TError,
   { data: IndexerBulkResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof putApiV1IndexerBulk>>,
@@ -8761,7 +8541,7 @@ export const getPutApiV1IndexerBulkMutationOptions = <
   > = (props) => {
     const { data } = props ?? {};
 
-    return putApiV1IndexerBulk(data, axiosOptions);
+    return putApiV1IndexerBulk(data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -8771,10 +8551,10 @@ export type PutApiV1IndexerBulkMutationResult = NonNullable<
   Awaited<ReturnType<typeof putApiV1IndexerBulk>>
 >;
 export type PutApiV1IndexerBulkMutationBody = IndexerBulkResource;
-export type PutApiV1IndexerBulkMutationError = AxiosError<unknown>;
+export type PutApiV1IndexerBulkMutationError = unknown;
 
 export const usePutApiV1IndexerBulk = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -8783,7 +8563,6 @@ export const usePutApiV1IndexerBulk = <
     { data: IndexerBulkResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof putApiV1IndexerBulk>>,
   TError,
@@ -8796,18 +8575,20 @@ export const usePutApiV1IndexerBulk = <
 };
 
 export const deleteApiV1IndexerBulk = (
-  indexerBulkResource: MaybeRef<IndexerBulkResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  indexerBulkResource: MaybeRef<IndexerBulkResource>
+) => {
   indexerBulkResource = unref(indexerBulkResource);
-  return axios.delete(`http://localhost:3001/api/v1/indexer/bulk`, {
+
+  return customInstance<void>({
+    url: `/api/v1/indexer/bulk`,
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
     data: indexerBulkResource,
-    ...options,
   });
 };
 
 export const getDeleteApiV1IndexerBulkMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -8816,14 +8597,13 @@ export const getDeleteApiV1IndexerBulkMutationOptions = <
     { data: IndexerBulkResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof deleteApiV1IndexerBulk>>,
   TError,
   { data: IndexerBulkResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deleteApiV1IndexerBulk>>,
@@ -8831,7 +8611,7 @@ export const getDeleteApiV1IndexerBulkMutationOptions = <
   > = (props) => {
     const { data } = props ?? {};
 
-    return deleteApiV1IndexerBulk(data, axiosOptions);
+    return deleteApiV1IndexerBulk(data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -8841,10 +8621,10 @@ export type DeleteApiV1IndexerBulkMutationResult = NonNullable<
   Awaited<ReturnType<typeof deleteApiV1IndexerBulk>>
 >;
 export type DeleteApiV1IndexerBulkMutationBody = IndexerBulkResource;
-export type DeleteApiV1IndexerBulkMutationError = AxiosError<unknown>;
+export type DeleteApiV1IndexerBulkMutationError = unknown;
 
 export const useDeleteApiV1IndexerBulk = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -8853,7 +8633,6 @@ export const useDeleteApiV1IndexerBulk = <
     { data: IndexerBulkResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof deleteApiV1IndexerBulk>>,
   TError,
@@ -8865,19 +8644,21 @@ export const useDeleteApiV1IndexerBulk = <
   return useMutation(mutationOptions);
 };
 
-export const getApiV1IndexerSchema = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<IndexerResource[]>> => {
-  return axios.get(`http://localhost:3001/api/v1/indexer/schema`, options);
+export const getApiV1IndexerSchema = (signal?: AbortSignal) => {
+  return customInstance<IndexerResource[]>({
+    url: `/api/v1/indexer/schema`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1IndexerSchemaQueryKey = () => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'indexer', 'schema'] as const;
+  return ["api", "v1", "indexer", "schema"] as const;
 };
 
 export const getGetApiV1IndexerSchemaQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1IndexerSchema>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -8886,15 +8667,14 @@ export const getGetApiV1IndexerSchemaQueryOptions = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1IndexerSchemaQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1IndexerSchema>>
-  > = ({ signal }) => getApiV1IndexerSchema({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1IndexerSchema(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1IndexerSchema>>,
@@ -8906,11 +8686,11 @@ export const getGetApiV1IndexerSchemaQueryOptions = <
 export type GetApiV1IndexerSchemaQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1IndexerSchema>>
 >;
-export type GetApiV1IndexerSchemaQueryError = AxiosError<unknown>;
+export type GetApiV1IndexerSchemaQueryError = unknown;
 
 export const useGetApiV1IndexerSchema = <
   TData = Awaited<ReturnType<typeof getApiV1IndexerSchema>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -8919,7 +8699,6 @@ export const useGetApiV1IndexerSchema = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1IndexerSchemaQueryOptions(options);
 
@@ -8934,23 +8713,22 @@ export const useGetApiV1IndexerSchema = <
 
 export const postApiV1IndexerTest = (
   indexerResource: MaybeRef<IndexerResource>,
-  params?: MaybeRef<PostApiV1IndexerTestParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  params?: MaybeRef<PostApiV1IndexerTestParams>
+) => {
   indexerResource = unref(indexerResource);
   params = unref(params);
-  return axios.post(
-    `http://localhost:3001/api/v1/indexer/test`,
-    indexerResource,
-    {
-      ...options,
-      params: { ...unref(params), ...options?.params },
-    }
-  );
+
+  return customInstance<void>({
+    url: `/api/v1/indexer/test`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: indexerResource,
+    params: unref(params),
+  });
 };
 
 export const getPostApiV1IndexerTestMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -8959,14 +8737,13 @@ export const getPostApiV1IndexerTestMutationOptions = <
     { data: IndexerResource; params?: PostApiV1IndexerTestParams },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1IndexerTest>>,
   TError,
   { data: IndexerResource; params?: PostApiV1IndexerTestParams },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1IndexerTest>>,
@@ -8974,7 +8751,7 @@ export const getPostApiV1IndexerTestMutationOptions = <
   > = (props) => {
     const { data, params } = props ?? {};
 
-    return postApiV1IndexerTest(data, params, axiosOptions);
+    return postApiV1IndexerTest(data, params);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -8984,10 +8761,10 @@ export type PostApiV1IndexerTestMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1IndexerTest>>
 >;
 export type PostApiV1IndexerTestMutationBody = IndexerResource;
-export type PostApiV1IndexerTestMutationError = AxiosError<unknown>;
+export type PostApiV1IndexerTestMutationError = unknown;
 
 export const usePostApiV1IndexerTest = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -8996,7 +8773,6 @@ export const usePostApiV1IndexerTest = <
     { data: IndexerResource; params?: PostApiV1IndexerTestParams },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1IndexerTest>>,
   TError,
@@ -9008,18 +8784,15 @@ export const usePostApiV1IndexerTest = <
   return useMutation(mutationOptions);
 };
 
-export const postApiV1IndexerTestall = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
-  return axios.post(
-    `http://localhost:3001/api/v1/indexer/testall`,
-    undefined,
-    options
-  );
+export const postApiV1IndexerTestall = () => {
+  return customInstance<void>({
+    url: `/api/v1/indexer/testall`,
+    method: "POST",
+  });
 };
 
 export const getPostApiV1IndexerTestallMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -9028,20 +8801,19 @@ export const getPostApiV1IndexerTestallMutationOptions = <
     void,
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1IndexerTestall>>,
   TError,
   void,
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1IndexerTestall>>,
     void
   > = () => {
-    return postApiV1IndexerTestall(axiosOptions);
+    return postApiV1IndexerTestall();
   };
 
   return { mutationFn, ...mutationOptions };
@@ -9051,10 +8823,10 @@ export type PostApiV1IndexerTestallMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1IndexerTestall>>
 >;
 
-export type PostApiV1IndexerTestallMutationError = AxiosError<unknown>;
+export type PostApiV1IndexerTestallMutationError = unknown;
 
 export const usePostApiV1IndexerTestall = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -9063,7 +8835,6 @@ export const usePostApiV1IndexerTestall = <
     void,
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1IndexerTestall>>,
   TError,
@@ -9077,20 +8848,21 @@ export const usePostApiV1IndexerTestall = <
 
 export const postApiV1IndexerActionName = (
   name: MaybeRef<string | undefined | null>,
-  indexerResource: MaybeRef<IndexerResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  indexerResource: MaybeRef<IndexerResource>
+) => {
   name = unref(name);
   indexerResource = unref(indexerResource);
-  return axios.post(
-    `http://localhost:3001/api/v1/indexer/action/${name}`,
-    indexerResource,
-    options
-  );
+
+  return customInstance<void>({
+    url: `/api/v1/indexer/action/${name}`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: indexerResource,
+  });
 };
 
 export const getPostApiV1IndexerActionNameMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -9099,14 +8871,13 @@ export const getPostApiV1IndexerActionNameMutationOptions = <
     { name: string; data: IndexerResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1IndexerActionName>>,
   TError,
   { name: string; data: IndexerResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1IndexerActionName>>,
@@ -9114,7 +8885,7 @@ export const getPostApiV1IndexerActionNameMutationOptions = <
   > = (props) => {
     const { name, data } = props ?? {};
 
-    return postApiV1IndexerActionName(name, data, axiosOptions);
+    return postApiV1IndexerActionName(name, data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -9124,10 +8895,10 @@ export type PostApiV1IndexerActionNameMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1IndexerActionName>>
 >;
 export type PostApiV1IndexerActionNameMutationBody = IndexerResource;
-export type PostApiV1IndexerActionNameMutationError = AxiosError<unknown>;
+export type PostApiV1IndexerActionNameMutationError = unknown;
 
 export const usePostApiV1IndexerActionName = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -9136,7 +8907,6 @@ export const usePostApiV1IndexerActionName = <
     { name: string; data: IndexerResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1IndexerActionName>>,
   TError,
@@ -9148,19 +8918,21 @@ export const usePostApiV1IndexerActionName = <
   return useMutation(mutationOptions);
 };
 
-export const getApiV1ConfigIndexer = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<IndexerConfigResource>> => {
-  return axios.get(`http://localhost:3001/api/v1/config/indexer`, options);
+export const getApiV1ConfigIndexer = (signal?: AbortSignal) => {
+  return customInstance<IndexerConfigResource>({
+    url: `/api/v1/config/indexer`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1ConfigIndexerQueryKey = () => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'config', 'indexer'] as const;
+  return ["api", "v1", "config", "indexer"] as const;
 };
 
 export const getGetApiV1ConfigIndexerQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1ConfigIndexer>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -9169,15 +8941,14 @@ export const getGetApiV1ConfigIndexerQueryOptions = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1ConfigIndexerQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1ConfigIndexer>>
-  > = ({ signal }) => getApiV1ConfigIndexer({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1ConfigIndexer(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1ConfigIndexer>>,
@@ -9189,11 +8960,11 @@ export const getGetApiV1ConfigIndexerQueryOptions = <
 export type GetApiV1ConfigIndexerQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1ConfigIndexer>>
 >;
-export type GetApiV1ConfigIndexerQueryError = AxiosError<unknown>;
+export type GetApiV1ConfigIndexerQueryError = unknown;
 
 export const useGetApiV1ConfigIndexer = <
   TData = Awaited<ReturnType<typeof getApiV1ConfigIndexer>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -9202,7 +8973,6 @@ export const useGetApiV1ConfigIndexer = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1ConfigIndexerQueryOptions(options);
 
@@ -9217,20 +8987,21 @@ export const useGetApiV1ConfigIndexer = <
 
 export const putApiV1ConfigIndexerId = (
   id: MaybeRef<string | undefined | null>,
-  indexerConfigResource: MaybeRef<IndexerConfigResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<IndexerConfigResource>> => {
+  indexerConfigResource: MaybeRef<IndexerConfigResource>
+) => {
   id = unref(id);
   indexerConfigResource = unref(indexerConfigResource);
-  return axios.put(
-    `http://localhost:3001/api/v1/config/indexer/${id}`,
-    indexerConfigResource,
-    options
-  );
+
+  return customInstance<IndexerConfigResource>({
+    url: `/api/v1/config/indexer/${id}`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: indexerConfigResource,
+  });
 };
 
 export const getPutApiV1ConfigIndexerIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -9239,14 +9010,13 @@ export const getPutApiV1ConfigIndexerIdMutationOptions = <
     { id: string; data: IndexerConfigResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof putApiV1ConfigIndexerId>>,
   TError,
   { id: string; data: IndexerConfigResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof putApiV1ConfigIndexerId>>,
@@ -9254,7 +9024,7 @@ export const getPutApiV1ConfigIndexerIdMutationOptions = <
   > = (props) => {
     const { id, data } = props ?? {};
 
-    return putApiV1ConfigIndexerId(id, data, axiosOptions);
+    return putApiV1ConfigIndexerId(id, data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -9264,10 +9034,10 @@ export type PutApiV1ConfigIndexerIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof putApiV1ConfigIndexerId>>
 >;
 export type PutApiV1ConfigIndexerIdMutationBody = IndexerConfigResource;
-export type PutApiV1ConfigIndexerIdMutationError = AxiosError<unknown>;
+export type PutApiV1ConfigIndexerIdMutationError = unknown;
 
 export const usePutApiV1ConfigIndexerId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -9276,7 +9046,6 @@ export const usePutApiV1ConfigIndexerId = <
     { id: string; data: IndexerConfigResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof putApiV1ConfigIndexerId>>,
   TError,
@@ -9290,32 +9059,26 @@ export const usePutApiV1ConfigIndexerId = <
 
 export const getApiV1ConfigIndexerId = (
   id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<IndexerConfigResource>> => {
+  signal?: AbortSignal
+) => {
   id = unref(id);
-  return axios.get(
-    `http://localhost:3001/api/v1/config/indexer/${id}`,
-    options
-  );
+
+  return customInstance<IndexerConfigResource>({
+    url: `/api/v1/config/indexer/${id}`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1ConfigIndexerIdQueryKey = (
   id: MaybeRef<number | undefined | null>
 ) => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'config',
-    'indexer',
-    id,
-  ] as const;
+  return ["api", "v1", "config", "indexer", id] as const;
 };
 
 export const getGetApiV1ConfigIndexerIdQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1ConfigIndexerId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -9326,16 +9089,15 @@ export const getGetApiV1ConfigIndexerIdQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1ConfigIndexerIdQueryKey(id);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1ConfigIndexerId>>
-  > = ({ signal }) => getApiV1ConfigIndexerId(id, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1ConfigIndexerId(id, signal);
 
   return {
     queryKey,
@@ -9352,11 +9114,11 @@ export const getGetApiV1ConfigIndexerIdQueryOptions = <
 export type GetApiV1ConfigIndexerIdQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1ConfigIndexerId>>
 >;
-export type GetApiV1ConfigIndexerIdQueryError = AxiosError<unknown>;
+export type GetApiV1ConfigIndexerIdQueryError = unknown;
 
 export const useGetApiV1ConfigIndexerId = <
   TData = Awaited<ReturnType<typeof getApiV1ConfigIndexerId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -9367,7 +9129,6 @@ export const useGetApiV1ConfigIndexerId = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1ConfigIndexerIdQueryOptions(id, options);
@@ -9381,19 +9142,21 @@ export const useGetApiV1ConfigIndexerId = <
   return query;
 };
 
-export const getApiV1Indexerflag = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<IndexerFlagResource[]>> => {
-  return axios.get(`http://localhost:3001/api/v1/indexerflag`, options);
+export const getApiV1Indexerflag = (signal?: AbortSignal) => {
+  return customInstance<IndexerFlagResource[]>({
+    url: `/api/v1/indexerflag`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1IndexerflagQueryKey = () => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'indexerflag'] as const;
+  return ["api", "v1", "indexerflag"] as const;
 };
 
 export const getGetApiV1IndexerflagQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1Indexerflag>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -9402,15 +9165,14 @@ export const getGetApiV1IndexerflagQueryOptions = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1IndexerflagQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1Indexerflag>>
-  > = ({ signal }) => getApiV1Indexerflag({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1Indexerflag(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1Indexerflag>>,
@@ -9422,11 +9184,11 @@ export const getGetApiV1IndexerflagQueryOptions = <
 export type GetApiV1IndexerflagQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1Indexerflag>>
 >;
-export type GetApiV1IndexerflagQueryError = AxiosError<unknown>;
+export type GetApiV1IndexerflagQueryError = unknown;
 
 export const useGetApiV1Indexerflag = <
   TData = Awaited<ReturnType<typeof getApiV1Indexerflag>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -9435,7 +9197,6 @@ export const useGetApiV1Indexerflag = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1IndexerflagQueryOptions(options);
 
@@ -9448,32 +9209,33 @@ export const useGetApiV1Indexerflag = <
   return query;
 };
 
-export const getApiV1Language = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<LanguageResource[]>> => {
-  return axios.get(`http://localhost:3001/api/v1/language`, options);
+export const getApiV1Language = (signal?: AbortSignal) => {
+  return customInstance<LanguageResource[]>({
+    url: `/api/v1/language`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1LanguageQueryKey = () => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'language'] as const;
+  return ["api", "v1", "language"] as const;
 };
 
 export const getGetApiV1LanguageQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1Language>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<Awaited<ReturnType<typeof getApiV1Language>>, TError, TData>
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1LanguageQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1Language>>
-  > = ({ signal }) => getApiV1Language({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1Language(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1Language>>,
@@ -9485,16 +9247,15 @@ export const getGetApiV1LanguageQueryOptions = <
 export type GetApiV1LanguageQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1Language>>
 >;
-export type GetApiV1LanguageQueryError = AxiosError<unknown>;
+export type GetApiV1LanguageQueryError = unknown;
 
 export const useGetApiV1Language = <
   TData = Awaited<ReturnType<typeof getApiV1Language>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<Awaited<ReturnType<typeof getApiV1Language>>, TError, TData>
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1LanguageQueryOptions(options);
 
@@ -9509,21 +9270,26 @@ export const useGetApiV1Language = <
 
 export const getApiV1LanguageId = (
   id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<LanguageResource>> => {
+  signal?: AbortSignal
+) => {
   id = unref(id);
-  return axios.get(`http://localhost:3001/api/v1/language/${id}`, options);
+
+  return customInstance<LanguageResource>({
+    url: `/api/v1/language/${id}`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1LanguageIdQueryKey = (
   id: MaybeRef<number | undefined | null>
 ) => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'language', id] as const;
+  return ["api", "v1", "language", id] as const;
 };
 
 export const getGetApiV1LanguageIdQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1LanguageId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -9534,16 +9300,15 @@ export const getGetApiV1LanguageIdQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1LanguageIdQueryKey(id);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1LanguageId>>
-  > = ({ signal }) => getApiV1LanguageId(id, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1LanguageId(id, signal);
 
   return {
     queryKey,
@@ -9560,11 +9325,11 @@ export const getGetApiV1LanguageIdQueryOptions = <
 export type GetApiV1LanguageIdQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1LanguageId>>
 >;
-export type GetApiV1LanguageIdQueryError = AxiosError<unknown>;
+export type GetApiV1LanguageIdQueryError = unknown;
 
 export const useGetApiV1LanguageId = <
   TData = Awaited<ReturnType<typeof getApiV1LanguageId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -9575,7 +9340,6 @@ export const useGetApiV1LanguageId = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1LanguageIdQueryOptions(id, options);
@@ -9589,19 +9353,21 @@ export const useGetApiV1LanguageId = <
   return query;
 };
 
-export const getApiV1Localization = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<string>> => {
-  return axios.get(`http://localhost:3001/api/v1/localization`, options);
+export const getApiV1Localization = (signal?: AbortSignal) => {
+  return customInstance<string>({
+    url: `/api/v1/localization`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1LocalizationQueryKey = () => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'localization'] as const;
+  return ["api", "v1", "localization"] as const;
 };
 
 export const getGetApiV1LocalizationQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1Localization>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -9610,15 +9376,14 @@ export const getGetApiV1LocalizationQueryOptions = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1LocalizationQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1Localization>>
-  > = ({ signal }) => getApiV1Localization({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1Localization(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1Localization>>,
@@ -9630,11 +9395,11 @@ export const getGetApiV1LocalizationQueryOptions = <
 export type GetApiV1LocalizationQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1Localization>>
 >;
-export type GetApiV1LocalizationQueryError = AxiosError<unknown>;
+export type GetApiV1LocalizationQueryError = unknown;
 
 export const useGetApiV1Localization = <
   TData = Awaited<ReturnType<typeof getApiV1Localization>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -9643,7 +9408,6 @@ export const useGetApiV1Localization = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1LocalizationQueryOptions(options);
 
@@ -9658,47 +9422,42 @@ export const useGetApiV1Localization = <
 
 export const getApiV1Log = (
   params?: MaybeRef<GetApiV1LogParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<LogResourcePagingResource>> => {
+  signal?: AbortSignal
+) => {
   params = unref(params);
-  return axios.get(`http://localhost:3001/api/v1/log`, {
-    ...options,
-    params: { ...unref(params), ...options?.params },
+
+  return customInstance<LogResourcePagingResource>({
+    url: `/api/v1/log`,
+    method: "GET",
+    params: unref(params),
+    signal,
   });
 };
 
 export const getGetApiV1LogQueryKey = (
   params?: MaybeRef<GetApiV1LogParams>
 ) => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'log',
-    ...(params ? [params] : []),
-  ] as const;
+  return ["api", "v1", "log", ...(params ? [params] : [])] as const;
 };
 
 export const getGetApiV1LogQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1Log>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1LogParams>,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getApiV1Log>>, TError, TData>
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1LogQueryKey(params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiV1Log>>> = ({
     signal,
-  }) => getApiV1Log(params, { signal, ...axiosOptions });
+  }) => getApiV1Log(params, signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1Log>>,
@@ -9710,18 +9469,17 @@ export const getGetApiV1LogQueryOptions = <
 export type GetApiV1LogQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1Log>>
 >;
-export type GetApiV1LogQueryError = AxiosError<unknown>;
+export type GetApiV1LogQueryError = unknown;
 
 export const useGetApiV1Log = <
   TData = Awaited<ReturnType<typeof getApiV1Log>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1LogParams>,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getApiV1Log>>, TError, TData>
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1LogQueryOptions(params, options);
@@ -9735,32 +9493,33 @@ export const useGetApiV1Log = <
   return query;
 };
 
-export const getApiV1LogFile = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<LogFileResource[]>> => {
-  return axios.get(`http://localhost:3001/api/v1/log/file`, options);
+export const getApiV1LogFile = (signal?: AbortSignal) => {
+  return customInstance<LogFileResource[]>({
+    url: `/api/v1/log/file`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1LogFileQueryKey = () => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'log', 'file'] as const;
+  return ["api", "v1", "log", "file"] as const;
 };
 
 export const getGetApiV1LogFileQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1LogFile>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<Awaited<ReturnType<typeof getApiV1LogFile>>, TError, TData>
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1LogFileQueryKey();
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiV1LogFile>>> = ({
     signal,
-  }) => getApiV1LogFile({ signal, ...axiosOptions });
+  }) => getApiV1LogFile(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1LogFile>>,
@@ -9772,16 +9531,15 @@ export const getGetApiV1LogFileQueryOptions = <
 export type GetApiV1LogFileQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1LogFile>>
 >;
-export type GetApiV1LogFileQueryError = AxiosError<unknown>;
+export type GetApiV1LogFileQueryError = unknown;
 
 export const useGetApiV1LogFile = <
   TData = Awaited<ReturnType<typeof getApiV1LogFile>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<Awaited<ReturnType<typeof getApiV1LogFile>>, TError, TData>
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1LogFileQueryOptions(options);
 
@@ -9796,32 +9554,26 @@ export const useGetApiV1LogFile = <
 
 export const getApiV1LogFileFilename = (
   filename: MaybeRef<string | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  signal?: AbortSignal
+) => {
   filename = unref(filename);
-  return axios.get(
-    `http://localhost:3001/api/v1/log/file/${filename}`,
-    options
-  );
+
+  return customInstance<void>({
+    url: `/api/v1/log/file/${filename}`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1LogFileFilenameQueryKey = (
   filename: MaybeRef<string | undefined | null>
 ) => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'log',
-    'file',
-    filename,
-  ] as const;
+  return ["api", "v1", "log", "file", filename] as const;
 };
 
 export const getGetApiV1LogFileFilenameQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1LogFileFilename>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   filename: MaybeRef<string | undefined | null>,
   options?: {
@@ -9832,17 +9584,15 @@ export const getGetApiV1LogFileFilenameQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1LogFileFilenameQueryKey(filename);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1LogFileFilename>>
-  > = ({ signal }) =>
-    getApiV1LogFileFilename(filename, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1LogFileFilename(filename, signal);
 
   return {
     queryKey,
@@ -9859,11 +9609,11 @@ export const getGetApiV1LogFileFilenameQueryOptions = <
 export type GetApiV1LogFileFilenameQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1LogFileFilename>>
 >;
-export type GetApiV1LogFileFilenameQueryError = AxiosError<unknown>;
+export type GetApiV1LogFileFilenameQueryError = unknown;
 
 export const useGetApiV1LogFileFilename = <
   TData = Awaited<ReturnType<typeof getApiV1LogFileFilename>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   filename: MaybeRef<string | undefined | null>,
   options?: {
@@ -9874,7 +9624,6 @@ export const useGetApiV1LogFileFilename = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1LogFileFilenameQueryOptions(
@@ -9892,19 +9641,20 @@ export const useGetApiV1LogFileFilename = <
 };
 
 export const postApiV1Manualimport = (
-  manualImportUpdateResource: MaybeRef<ManualImportUpdateResource[]>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  manualImportUpdateResource: MaybeRef<ManualImportUpdateResource[]>
+) => {
   manualImportUpdateResource = unref(manualImportUpdateResource);
-  return axios.post(
-    `http://localhost:3001/api/v1/manualimport`,
-    manualImportUpdateResource,
-    options
-  );
+
+  return customInstance<void>({
+    url: `/api/v1/manualimport`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: manualImportUpdateResource,
+  });
 };
 
 export const getPostApiV1ManualimportMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -9913,14 +9663,13 @@ export const getPostApiV1ManualimportMutationOptions = <
     { data: ManualImportUpdateResource[] },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1Manualimport>>,
   TError,
   { data: ManualImportUpdateResource[] },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1Manualimport>>,
@@ -9928,7 +9677,7 @@ export const getPostApiV1ManualimportMutationOptions = <
   > = (props) => {
     const { data } = props ?? {};
 
-    return postApiV1Manualimport(data, axiosOptions);
+    return postApiV1Manualimport(data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -9938,10 +9687,10 @@ export type PostApiV1ManualimportMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1Manualimport>>
 >;
 export type PostApiV1ManualimportMutationBody = ManualImportUpdateResource[];
-export type PostApiV1ManualimportMutationError = AxiosError<unknown>;
+export type PostApiV1ManualimportMutationError = unknown;
 
 export const usePostApiV1Manualimport = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -9950,7 +9699,6 @@ export const usePostApiV1Manualimport = <
     { data: ManualImportUpdateResource[] },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1Manualimport>>,
   TError,
@@ -9964,31 +9712,27 @@ export const usePostApiV1Manualimport = <
 
 export const getApiV1Manualimport = (
   params?: MaybeRef<GetApiV1ManualimportParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<ManualImportResource[]>> => {
+  signal?: AbortSignal
+) => {
   params = unref(params);
-  return axios.get(`http://localhost:3001/api/v1/manualimport`, {
-    ...options,
-    params: { ...unref(params), ...options?.params },
+
+  return customInstance<ManualImportResource[]>({
+    url: `/api/v1/manualimport`,
+    method: "GET",
+    params: unref(params),
+    signal,
   });
 };
 
 export const getGetApiV1ManualimportQueryKey = (
   params?: MaybeRef<GetApiV1ManualimportParams>
 ) => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'manualimport',
-    ...(params ? [params] : []),
-  ] as const;
+  return ["api", "v1", "manualimport", ...(params ? [params] : [])] as const;
 };
 
 export const getGetApiV1ManualimportQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1Manualimport>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1ManualimportParams>,
   options?: {
@@ -9999,16 +9743,15 @@ export const getGetApiV1ManualimportQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1ManualimportQueryKey(params);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1Manualimport>>
-  > = ({ signal }) => getApiV1Manualimport(params, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1Manualimport(params, signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1Manualimport>>,
@@ -10020,11 +9763,11 @@ export const getGetApiV1ManualimportQueryOptions = <
 export type GetApiV1ManualimportQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1Manualimport>>
 >;
-export type GetApiV1ManualimportQueryError = AxiosError<unknown>;
+export type GetApiV1ManualimportQueryError = unknown;
 
 export const useGetApiV1Manualimport = <
   TData = Awaited<ReturnType<typeof getApiV1Manualimport>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1ManualimportParams>,
   options?: {
@@ -10035,7 +9778,6 @@ export const useGetApiV1Manualimport = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1ManualimportQueryOptions(params, options);
@@ -10052,35 +9794,28 @@ export const useGetApiV1Manualimport = <
 export const getApiV1MediacoverAuthorAuthorIdFilename = (
   authorId: MaybeRef<number | undefined | null>,
   filename: MaybeRef<string | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  signal?: AbortSignal
+) => {
   authorId = unref(authorId);
   filename = unref(filename);
-  return axios.get(
-    `http://localhost:3001/api/v1/mediacover/author/${authorId}/${filename}`,
-    options
-  );
+
+  return customInstance<void>({
+    url: `/api/v1/mediacover/author/${authorId}/${filename}`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1MediacoverAuthorAuthorIdFilenameQueryKey = (
   authorId: MaybeRef<number | undefined | null>,
   filename: MaybeRef<string | undefined | null>
 ) => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'mediacover',
-    'author',
-    authorId,
-    filename,
-  ] as const;
+  return ["api", "v1", "mediacover", "author", authorId, filename] as const;
 };
 
 export const getGetApiV1MediacoverAuthorAuthorIdFilenameQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1MediacoverAuthorAuthorIdFilename>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   authorId: MaybeRef<number | undefined | null>,
   filename: MaybeRef<string | undefined | null>,
@@ -10092,10 +9827,9 @@ export const getGetApiV1MediacoverAuthorAuthorIdFilenameQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1MediacoverAuthorAuthorIdFilenameQueryKey(
     authorId,
@@ -10105,10 +9839,7 @@ export const getGetApiV1MediacoverAuthorAuthorIdFilenameQueryOptions = <
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1MediacoverAuthorAuthorIdFilename>>
   > = ({ signal }) =>
-    getApiV1MediacoverAuthorAuthorIdFilename(authorId, filename, {
-      signal,
-      ...axiosOptions,
-    });
+    getApiV1MediacoverAuthorAuthorIdFilename(authorId, filename, signal);
 
   return {
     queryKey,
@@ -10125,12 +9856,11 @@ export const getGetApiV1MediacoverAuthorAuthorIdFilenameQueryOptions = <
 export type GetApiV1MediacoverAuthorAuthorIdFilenameQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1MediacoverAuthorAuthorIdFilename>>
 >;
-export type GetApiV1MediacoverAuthorAuthorIdFilenameQueryError =
-  AxiosError<unknown>;
+export type GetApiV1MediacoverAuthorAuthorIdFilenameQueryError = unknown;
 
 export const useGetApiV1MediacoverAuthorAuthorIdFilename = <
   TData = Awaited<ReturnType<typeof getApiV1MediacoverAuthorAuthorIdFilename>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   authorId: MaybeRef<number | undefined | null>,
   filename: MaybeRef<string | undefined | null>,
@@ -10142,7 +9872,6 @@ export const useGetApiV1MediacoverAuthorAuthorIdFilename = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1MediacoverAuthorAuthorIdFilenameQueryOptions(
@@ -10163,35 +9892,28 @@ export const useGetApiV1MediacoverAuthorAuthorIdFilename = <
 export const getApiV1MediacoverBookBookIdFilename = (
   bookId: MaybeRef<number | undefined | null>,
   filename: MaybeRef<string | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  signal?: AbortSignal
+) => {
   bookId = unref(bookId);
   filename = unref(filename);
-  return axios.get(
-    `http://localhost:3001/api/v1/mediacover/book/${bookId}/${filename}`,
-    options
-  );
+
+  return customInstance<void>({
+    url: `/api/v1/mediacover/book/${bookId}/${filename}`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1MediacoverBookBookIdFilenameQueryKey = (
   bookId: MaybeRef<number | undefined | null>,
   filename: MaybeRef<string | undefined | null>
 ) => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'mediacover',
-    'book',
-    bookId,
-    filename,
-  ] as const;
+  return ["api", "v1", "mediacover", "book", bookId, filename] as const;
 };
 
 export const getGetApiV1MediacoverBookBookIdFilenameQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1MediacoverBookBookIdFilename>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   bookId: MaybeRef<number | undefined | null>,
   filename: MaybeRef<string | undefined | null>,
@@ -10203,10 +9925,9 @@ export const getGetApiV1MediacoverBookBookIdFilenameQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1MediacoverBookBookIdFilenameQueryKey(
     bookId,
@@ -10216,10 +9937,7 @@ export const getGetApiV1MediacoverBookBookIdFilenameQueryOptions = <
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1MediacoverBookBookIdFilename>>
   > = ({ signal }) =>
-    getApiV1MediacoverBookBookIdFilename(bookId, filename, {
-      signal,
-      ...axiosOptions,
-    });
+    getApiV1MediacoverBookBookIdFilename(bookId, filename, signal);
 
   return {
     queryKey,
@@ -10236,12 +9954,11 @@ export const getGetApiV1MediacoverBookBookIdFilenameQueryOptions = <
 export type GetApiV1MediacoverBookBookIdFilenameQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1MediacoverBookBookIdFilename>>
 >;
-export type GetApiV1MediacoverBookBookIdFilenameQueryError =
-  AxiosError<unknown>;
+export type GetApiV1MediacoverBookBookIdFilenameQueryError = unknown;
 
 export const useGetApiV1MediacoverBookBookIdFilename = <
   TData = Awaited<ReturnType<typeof getApiV1MediacoverBookBookIdFilename>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   bookId: MaybeRef<number | undefined | null>,
   filename: MaybeRef<string | undefined | null>,
@@ -10253,7 +9970,6 @@ export const useGetApiV1MediacoverBookBookIdFilename = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1MediacoverBookBookIdFilenameQueryOptions(
@@ -10271,29 +9987,21 @@ export const useGetApiV1MediacoverBookBookIdFilename = <
   return query;
 };
 
-export const getApiV1ConfigMediamanagement = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<MediaManagementConfigResource>> => {
-  return axios.get(
-    `http://localhost:3001/api/v1/config/mediamanagement`,
-    options
-  );
+export const getApiV1ConfigMediamanagement = (signal?: AbortSignal) => {
+  return customInstance<MediaManagementConfigResource>({
+    url: `/api/v1/config/mediamanagement`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1ConfigMediamanagementQueryKey = () => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'config',
-    'mediamanagement',
-  ] as const;
+  return ["api", "v1", "config", "mediamanagement"] as const;
 };
 
 export const getGetApiV1ConfigMediamanagementQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1ConfigMediamanagement>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -10302,16 +10010,14 @@ export const getGetApiV1ConfigMediamanagementQueryOptions = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1ConfigMediamanagementQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1ConfigMediamanagement>>
-  > = ({ signal }) =>
-    getApiV1ConfigMediamanagement({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1ConfigMediamanagement(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1ConfigMediamanagement>>,
@@ -10323,11 +10029,11 @@ export const getGetApiV1ConfigMediamanagementQueryOptions = <
 export type GetApiV1ConfigMediamanagementQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1ConfigMediamanagement>>
 >;
-export type GetApiV1ConfigMediamanagementQueryError = AxiosError<unknown>;
+export type GetApiV1ConfigMediamanagementQueryError = unknown;
 
 export const useGetApiV1ConfigMediamanagement = <
   TData = Awaited<ReturnType<typeof getApiV1ConfigMediamanagement>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -10336,7 +10042,6 @@ export const useGetApiV1ConfigMediamanagement = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1ConfigMediamanagementQueryOptions(options);
 
@@ -10351,20 +10056,21 @@ export const useGetApiV1ConfigMediamanagement = <
 
 export const putApiV1ConfigMediamanagementId = (
   id: MaybeRef<string | undefined | null>,
-  mediaManagementConfigResource: MaybeRef<MediaManagementConfigResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<MediaManagementConfigResource>> => {
+  mediaManagementConfigResource: MaybeRef<MediaManagementConfigResource>
+) => {
   id = unref(id);
   mediaManagementConfigResource = unref(mediaManagementConfigResource);
-  return axios.put(
-    `http://localhost:3001/api/v1/config/mediamanagement/${id}`,
-    mediaManagementConfigResource,
-    options
-  );
+
+  return customInstance<MediaManagementConfigResource>({
+    url: `/api/v1/config/mediamanagement/${id}`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: mediaManagementConfigResource,
+  });
 };
 
 export const getPutApiV1ConfigMediamanagementIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -10373,14 +10079,13 @@ export const getPutApiV1ConfigMediamanagementIdMutationOptions = <
     { id: string; data: MediaManagementConfigResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof putApiV1ConfigMediamanagementId>>,
   TError,
   { id: string; data: MediaManagementConfigResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof putApiV1ConfigMediamanagementId>>,
@@ -10388,7 +10093,7 @@ export const getPutApiV1ConfigMediamanagementIdMutationOptions = <
   > = (props) => {
     const { id, data } = props ?? {};
 
-    return putApiV1ConfigMediamanagementId(id, data, axiosOptions);
+    return putApiV1ConfigMediamanagementId(id, data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -10399,10 +10104,10 @@ export type PutApiV1ConfigMediamanagementIdMutationResult = NonNullable<
 >;
 export type PutApiV1ConfigMediamanagementIdMutationBody =
   MediaManagementConfigResource;
-export type PutApiV1ConfigMediamanagementIdMutationError = AxiosError<unknown>;
+export type PutApiV1ConfigMediamanagementIdMutationError = unknown;
 
 export const usePutApiV1ConfigMediamanagementId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -10411,7 +10116,6 @@ export const usePutApiV1ConfigMediamanagementId = <
     { id: string; data: MediaManagementConfigResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof putApiV1ConfigMediamanagementId>>,
   TError,
@@ -10426,32 +10130,26 @@ export const usePutApiV1ConfigMediamanagementId = <
 
 export const getApiV1ConfigMediamanagementId = (
   id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<MediaManagementConfigResource>> => {
+  signal?: AbortSignal
+) => {
   id = unref(id);
-  return axios.get(
-    `http://localhost:3001/api/v1/config/mediamanagement/${id}`,
-    options
-  );
+
+  return customInstance<MediaManagementConfigResource>({
+    url: `/api/v1/config/mediamanagement/${id}`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1ConfigMediamanagementIdQueryKey = (
   id: MaybeRef<number | undefined | null>
 ) => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'config',
-    'mediamanagement',
-    id,
-  ] as const;
+  return ["api", "v1", "config", "mediamanagement", id] as const;
 };
 
 export const getGetApiV1ConfigMediamanagementIdQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1ConfigMediamanagementId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -10462,17 +10160,15 @@ export const getGetApiV1ConfigMediamanagementIdQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1ConfigMediamanagementIdQueryKey(id);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1ConfigMediamanagementId>>
-  > = ({ signal }) =>
-    getApiV1ConfigMediamanagementId(id, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1ConfigMediamanagementId(id, signal);
 
   return {
     queryKey,
@@ -10489,11 +10185,11 @@ export const getGetApiV1ConfigMediamanagementIdQueryOptions = <
 export type GetApiV1ConfigMediamanagementIdQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1ConfigMediamanagementId>>
 >;
-export type GetApiV1ConfigMediamanagementIdQueryError = AxiosError<unknown>;
+export type GetApiV1ConfigMediamanagementIdQueryError = unknown;
 
 export const useGetApiV1ConfigMediamanagementId = <
   TData = Awaited<ReturnType<typeof getApiV1ConfigMediamanagementId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -10504,7 +10200,6 @@ export const useGetApiV1ConfigMediamanagementId = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1ConfigMediamanagementIdQueryOptions(
@@ -10521,32 +10216,33 @@ export const useGetApiV1ConfigMediamanagementId = <
   return query;
 };
 
-export const getApiV1Metadata = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<MetadataResource[]>> => {
-  return axios.get(`http://localhost:3001/api/v1/metadata`, options);
+export const getApiV1Metadata = (signal?: AbortSignal) => {
+  return customInstance<MetadataResource[]>({
+    url: `/api/v1/metadata`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1MetadataQueryKey = () => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'metadata'] as const;
+  return ["api", "v1", "metadata"] as const;
 };
 
 export const getGetApiV1MetadataQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1Metadata>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<Awaited<ReturnType<typeof getApiV1Metadata>>, TError, TData>
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1MetadataQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1Metadata>>
-  > = ({ signal }) => getApiV1Metadata({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1Metadata(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1Metadata>>,
@@ -10558,16 +10254,15 @@ export const getGetApiV1MetadataQueryOptions = <
 export type GetApiV1MetadataQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1Metadata>>
 >;
-export type GetApiV1MetadataQueryError = AxiosError<unknown>;
+export type GetApiV1MetadataQueryError = unknown;
 
 export const useGetApiV1Metadata = <
   TData = Awaited<ReturnType<typeof getApiV1Metadata>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<Awaited<ReturnType<typeof getApiV1Metadata>>, TError, TData>
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1MetadataQueryOptions(options);
 
@@ -10582,19 +10277,22 @@ export const useGetApiV1Metadata = <
 
 export const postApiV1Metadata = (
   metadataResource: MaybeRef<MetadataResource>,
-  params?: MaybeRef<PostApiV1MetadataParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<MetadataResource>> => {
+  params?: MaybeRef<PostApiV1MetadataParams>
+) => {
   metadataResource = unref(metadataResource);
   params = unref(params);
-  return axios.post(`http://localhost:3001/api/v1/metadata`, metadataResource, {
-    ...options,
-    params: { ...unref(params), ...options?.params },
+
+  return customInstance<MetadataResource>({
+    url: `/api/v1/metadata`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: metadataResource,
+    params: unref(params),
   });
 };
 
 export const getPostApiV1MetadataMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -10603,14 +10301,13 @@ export const getPostApiV1MetadataMutationOptions = <
     { data: MetadataResource; params?: PostApiV1MetadataParams },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1Metadata>>,
   TError,
   { data: MetadataResource; params?: PostApiV1MetadataParams },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1Metadata>>,
@@ -10618,7 +10315,7 @@ export const getPostApiV1MetadataMutationOptions = <
   > = (props) => {
     const { data, params } = props ?? {};
 
-    return postApiV1Metadata(data, params, axiosOptions);
+    return postApiV1Metadata(data, params);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -10628,10 +10325,10 @@ export type PostApiV1MetadataMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1Metadata>>
 >;
 export type PostApiV1MetadataMutationBody = MetadataResource;
-export type PostApiV1MetadataMutationError = AxiosError<unknown>;
+export type PostApiV1MetadataMutationError = unknown;
 
 export const usePostApiV1Metadata = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -10640,7 +10337,6 @@ export const usePostApiV1Metadata = <
     { data: MetadataResource; params?: PostApiV1MetadataParams },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1Metadata>>,
   TError,
@@ -10655,24 +10351,23 @@ export const usePostApiV1Metadata = <
 export const putApiV1MetadataId = (
   id: MaybeRef<string | undefined | null>,
   metadataResource: MaybeRef<MetadataResource>,
-  params?: MaybeRef<PutApiV1MetadataIdParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<MetadataResource>> => {
+  params?: MaybeRef<PutApiV1MetadataIdParams>
+) => {
   id = unref(id);
   metadataResource = unref(metadataResource);
   params = unref(params);
-  return axios.put(
-    `http://localhost:3001/api/v1/metadata/${id}`,
-    metadataResource,
-    {
-      ...options,
-      params: { ...unref(params), ...options?.params },
-    }
-  );
+
+  return customInstance<MetadataResource>({
+    url: `/api/v1/metadata/${id}`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: metadataResource,
+    params: unref(params),
+  });
 };
 
 export const getPutApiV1MetadataIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -10681,14 +10376,13 @@ export const getPutApiV1MetadataIdMutationOptions = <
     { id: string; data: MetadataResource; params?: PutApiV1MetadataIdParams },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof putApiV1MetadataId>>,
   TError,
   { id: string; data: MetadataResource; params?: PutApiV1MetadataIdParams },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof putApiV1MetadataId>>,
@@ -10696,7 +10390,7 @@ export const getPutApiV1MetadataIdMutationOptions = <
   > = (props) => {
     const { id, data, params } = props ?? {};
 
-    return putApiV1MetadataId(id, data, params, axiosOptions);
+    return putApiV1MetadataId(id, data, params);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -10706,10 +10400,10 @@ export type PutApiV1MetadataIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof putApiV1MetadataId>>
 >;
 export type PutApiV1MetadataIdMutationBody = MetadataResource;
-export type PutApiV1MetadataIdMutationError = AxiosError<unknown>;
+export type PutApiV1MetadataIdMutationError = unknown;
 
 export const usePutApiV1MetadataId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -10718,7 +10412,6 @@ export const usePutApiV1MetadataId = <
     { id: string; data: MetadataResource; params?: PutApiV1MetadataIdParams },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof putApiV1MetadataId>>,
   TError,
@@ -10731,15 +10424,18 @@ export const usePutApiV1MetadataId = <
 };
 
 export const deleteApiV1MetadataId = (
-  id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  id: MaybeRef<number | undefined | null>
+) => {
   id = unref(id);
-  return axios.delete(`http://localhost:3001/api/v1/metadata/${id}`, options);
+
+  return customInstance<void>({
+    url: `/api/v1/metadata/${id}`,
+    method: "DELETE",
+  });
 };
 
 export const getDeleteApiV1MetadataIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -10748,14 +10444,13 @@ export const getDeleteApiV1MetadataIdMutationOptions = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof deleteApiV1MetadataId>>,
   TError,
   { id: number },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deleteApiV1MetadataId>>,
@@ -10763,7 +10458,7 @@ export const getDeleteApiV1MetadataIdMutationOptions = <
   > = (props) => {
     const { id } = props ?? {};
 
-    return deleteApiV1MetadataId(id, axiosOptions);
+    return deleteApiV1MetadataId(id);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -10773,10 +10468,10 @@ export type DeleteApiV1MetadataIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof deleteApiV1MetadataId>>
 >;
 
-export type DeleteApiV1MetadataIdMutationError = AxiosError<unknown>;
+export type DeleteApiV1MetadataIdMutationError = unknown;
 
 export const useDeleteApiV1MetadataId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -10785,7 +10480,6 @@ export const useDeleteApiV1MetadataId = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof deleteApiV1MetadataId>>,
   TError,
@@ -10799,21 +10493,26 @@ export const useDeleteApiV1MetadataId = <
 
 export const getApiV1MetadataId = (
   id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<MetadataResource>> => {
+  signal?: AbortSignal
+) => {
   id = unref(id);
-  return axios.get(`http://localhost:3001/api/v1/metadata/${id}`, options);
+
+  return customInstance<MetadataResource>({
+    url: `/api/v1/metadata/${id}`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1MetadataIdQueryKey = (
   id: MaybeRef<number | undefined | null>
 ) => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'metadata', id] as const;
+  return ["api", "v1", "metadata", id] as const;
 };
 
 export const getGetApiV1MetadataIdQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1MetadataId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -10824,16 +10523,15 @@ export const getGetApiV1MetadataIdQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1MetadataIdQueryKey(id);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1MetadataId>>
-  > = ({ signal }) => getApiV1MetadataId(id, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1MetadataId(id, signal);
 
   return {
     queryKey,
@@ -10850,11 +10548,11 @@ export const getGetApiV1MetadataIdQueryOptions = <
 export type GetApiV1MetadataIdQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1MetadataId>>
 >;
-export type GetApiV1MetadataIdQueryError = AxiosError<unknown>;
+export type GetApiV1MetadataIdQueryError = unknown;
 
 export const useGetApiV1MetadataId = <
   TData = Awaited<ReturnType<typeof getApiV1MetadataId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -10865,7 +10563,6 @@ export const useGetApiV1MetadataId = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1MetadataIdQueryOptions(id, options);
@@ -10879,26 +10576,21 @@ export const useGetApiV1MetadataId = <
   return query;
 };
 
-export const getApiV1MetadataSchema = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<MetadataResource[]>> => {
-  return axios.get(`http://localhost:3001/api/v1/metadata/schema`, options);
+export const getApiV1MetadataSchema = (signal?: AbortSignal) => {
+  return customInstance<MetadataResource[]>({
+    url: `/api/v1/metadata/schema`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1MetadataSchemaQueryKey = () => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'metadata',
-    'schema',
-  ] as const;
+  return ["api", "v1", "metadata", "schema"] as const;
 };
 
 export const getGetApiV1MetadataSchemaQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1MetadataSchema>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -10907,15 +10599,14 @@ export const getGetApiV1MetadataSchemaQueryOptions = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1MetadataSchemaQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1MetadataSchema>>
-  > = ({ signal }) => getApiV1MetadataSchema({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1MetadataSchema(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1MetadataSchema>>,
@@ -10927,11 +10618,11 @@ export const getGetApiV1MetadataSchemaQueryOptions = <
 export type GetApiV1MetadataSchemaQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1MetadataSchema>>
 >;
-export type GetApiV1MetadataSchemaQueryError = AxiosError<unknown>;
+export type GetApiV1MetadataSchemaQueryError = unknown;
 
 export const useGetApiV1MetadataSchema = <
   TData = Awaited<ReturnType<typeof getApiV1MetadataSchema>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -10940,7 +10631,6 @@ export const useGetApiV1MetadataSchema = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1MetadataSchemaQueryOptions(options);
 
@@ -10955,23 +10645,22 @@ export const useGetApiV1MetadataSchema = <
 
 export const postApiV1MetadataTest = (
   metadataResource: MaybeRef<MetadataResource>,
-  params?: MaybeRef<PostApiV1MetadataTestParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  params?: MaybeRef<PostApiV1MetadataTestParams>
+) => {
   metadataResource = unref(metadataResource);
   params = unref(params);
-  return axios.post(
-    `http://localhost:3001/api/v1/metadata/test`,
-    metadataResource,
-    {
-      ...options,
-      params: { ...unref(params), ...options?.params },
-    }
-  );
+
+  return customInstance<void>({
+    url: `/api/v1/metadata/test`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: metadataResource,
+    params: unref(params),
+  });
 };
 
 export const getPostApiV1MetadataTestMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -10980,14 +10669,13 @@ export const getPostApiV1MetadataTestMutationOptions = <
     { data: MetadataResource; params?: PostApiV1MetadataTestParams },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1MetadataTest>>,
   TError,
   { data: MetadataResource; params?: PostApiV1MetadataTestParams },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1MetadataTest>>,
@@ -10995,7 +10683,7 @@ export const getPostApiV1MetadataTestMutationOptions = <
   > = (props) => {
     const { data, params } = props ?? {};
 
-    return postApiV1MetadataTest(data, params, axiosOptions);
+    return postApiV1MetadataTest(data, params);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -11005,10 +10693,10 @@ export type PostApiV1MetadataTestMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1MetadataTest>>
 >;
 export type PostApiV1MetadataTestMutationBody = MetadataResource;
-export type PostApiV1MetadataTestMutationError = AxiosError<unknown>;
+export type PostApiV1MetadataTestMutationError = unknown;
 
 export const usePostApiV1MetadataTest = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -11017,7 +10705,6 @@ export const usePostApiV1MetadataTest = <
     { data: MetadataResource; params?: PostApiV1MetadataTestParams },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1MetadataTest>>,
   TError,
@@ -11029,18 +10716,15 @@ export const usePostApiV1MetadataTest = <
   return useMutation(mutationOptions);
 };
 
-export const postApiV1MetadataTestall = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
-  return axios.post(
-    `http://localhost:3001/api/v1/metadata/testall`,
-    undefined,
-    options
-  );
+export const postApiV1MetadataTestall = () => {
+  return customInstance<void>({
+    url: `/api/v1/metadata/testall`,
+    method: "POST",
+  });
 };
 
 export const getPostApiV1MetadataTestallMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -11049,20 +10733,19 @@ export const getPostApiV1MetadataTestallMutationOptions = <
     void,
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1MetadataTestall>>,
   TError,
   void,
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1MetadataTestall>>,
     void
   > = () => {
-    return postApiV1MetadataTestall(axiosOptions);
+    return postApiV1MetadataTestall();
   };
 
   return { mutationFn, ...mutationOptions };
@@ -11072,10 +10755,10 @@ export type PostApiV1MetadataTestallMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1MetadataTestall>>
 >;
 
-export type PostApiV1MetadataTestallMutationError = AxiosError<unknown>;
+export type PostApiV1MetadataTestallMutationError = unknown;
 
 export const usePostApiV1MetadataTestall = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -11084,7 +10767,6 @@ export const usePostApiV1MetadataTestall = <
     void,
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1MetadataTestall>>,
   TError,
@@ -11098,20 +10780,21 @@ export const usePostApiV1MetadataTestall = <
 
 export const postApiV1MetadataActionName = (
   name: MaybeRef<string | undefined | null>,
-  metadataResource: MaybeRef<MetadataResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  metadataResource: MaybeRef<MetadataResource>
+) => {
   name = unref(name);
   metadataResource = unref(metadataResource);
-  return axios.post(
-    `http://localhost:3001/api/v1/metadata/action/${name}`,
-    metadataResource,
-    options
-  );
+
+  return customInstance<void>({
+    url: `/api/v1/metadata/action/${name}`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: metadataResource,
+  });
 };
 
 export const getPostApiV1MetadataActionNameMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -11120,14 +10803,13 @@ export const getPostApiV1MetadataActionNameMutationOptions = <
     { name: string; data: MetadataResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1MetadataActionName>>,
   TError,
   { name: string; data: MetadataResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1MetadataActionName>>,
@@ -11135,7 +10817,7 @@ export const getPostApiV1MetadataActionNameMutationOptions = <
   > = (props) => {
     const { name, data } = props ?? {};
 
-    return postApiV1MetadataActionName(name, data, axiosOptions);
+    return postApiV1MetadataActionName(name, data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -11145,10 +10827,10 @@ export type PostApiV1MetadataActionNameMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1MetadataActionName>>
 >;
 export type PostApiV1MetadataActionNameMutationBody = MetadataResource;
-export type PostApiV1MetadataActionNameMutationError = AxiosError<unknown>;
+export type PostApiV1MetadataActionNameMutationError = unknown;
 
 export const usePostApiV1MetadataActionName = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -11157,7 +10839,6 @@ export const usePostApiV1MetadataActionName = <
     { name: string; data: MetadataResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1MetadataActionName>>,
   TError,
@@ -11171,19 +10852,20 @@ export const usePostApiV1MetadataActionName = <
 };
 
 export const postApiV1Metadataprofile = (
-  metadataProfileResource: MaybeRef<MetadataProfileResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<MetadataProfileResource>> => {
+  metadataProfileResource: MaybeRef<MetadataProfileResource>
+) => {
   metadataProfileResource = unref(metadataProfileResource);
-  return axios.post(
-    `http://localhost:3001/api/v1/metadataprofile`,
-    metadataProfileResource,
-    options
-  );
+
+  return customInstance<MetadataProfileResource>({
+    url: `/api/v1/metadataprofile`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: metadataProfileResource,
+  });
 };
 
 export const getPostApiV1MetadataprofileMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -11192,14 +10874,13 @@ export const getPostApiV1MetadataprofileMutationOptions = <
     { data: MetadataProfileResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1Metadataprofile>>,
   TError,
   { data: MetadataProfileResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1Metadataprofile>>,
@@ -11207,7 +10888,7 @@ export const getPostApiV1MetadataprofileMutationOptions = <
   > = (props) => {
     const { data } = props ?? {};
 
-    return postApiV1Metadataprofile(data, axiosOptions);
+    return postApiV1Metadataprofile(data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -11217,10 +10898,10 @@ export type PostApiV1MetadataprofileMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1Metadataprofile>>
 >;
 export type PostApiV1MetadataprofileMutationBody = MetadataProfileResource;
-export type PostApiV1MetadataprofileMutationError = AxiosError<unknown>;
+export type PostApiV1MetadataprofileMutationError = unknown;
 
 export const usePostApiV1Metadataprofile = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -11229,7 +10910,6 @@ export const usePostApiV1Metadataprofile = <
     { data: MetadataProfileResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1Metadataprofile>>,
   TError,
@@ -11241,19 +10921,21 @@ export const usePostApiV1Metadataprofile = <
   return useMutation(mutationOptions);
 };
 
-export const getApiV1Metadataprofile = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<MetadataProfileResource[]>> => {
-  return axios.get(`http://localhost:3001/api/v1/metadataprofile`, options);
+export const getApiV1Metadataprofile = (signal?: AbortSignal) => {
+  return customInstance<MetadataProfileResource[]>({
+    url: `/api/v1/metadataprofile`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1MetadataprofileQueryKey = () => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'metadataprofile'] as const;
+  return ["api", "v1", "metadataprofile"] as const;
 };
 
 export const getGetApiV1MetadataprofileQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1Metadataprofile>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -11262,15 +10944,14 @@ export const getGetApiV1MetadataprofileQueryOptions = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1MetadataprofileQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1Metadataprofile>>
-  > = ({ signal }) => getApiV1Metadataprofile({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1Metadataprofile(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1Metadataprofile>>,
@@ -11282,11 +10963,11 @@ export const getGetApiV1MetadataprofileQueryOptions = <
 export type GetApiV1MetadataprofileQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1Metadataprofile>>
 >;
-export type GetApiV1MetadataprofileQueryError = AxiosError<unknown>;
+export type GetApiV1MetadataprofileQueryError = unknown;
 
 export const useGetApiV1Metadataprofile = <
   TData = Awaited<ReturnType<typeof getApiV1Metadataprofile>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -11295,7 +10976,6 @@ export const useGetApiV1Metadataprofile = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1MetadataprofileQueryOptions(options);
 
@@ -11309,18 +10989,18 @@ export const useGetApiV1Metadataprofile = <
 };
 
 export const deleteApiV1MetadataprofileId = (
-  id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  id: MaybeRef<number | undefined | null>
+) => {
   id = unref(id);
-  return axios.delete(
-    `http://localhost:3001/api/v1/metadataprofile/${id}`,
-    options
-  );
+
+  return customInstance<void>({
+    url: `/api/v1/metadataprofile/${id}`,
+    method: "DELETE",
+  });
 };
 
 export const getDeleteApiV1MetadataprofileIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -11329,14 +11009,13 @@ export const getDeleteApiV1MetadataprofileIdMutationOptions = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof deleteApiV1MetadataprofileId>>,
   TError,
   { id: number },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deleteApiV1MetadataprofileId>>,
@@ -11344,7 +11023,7 @@ export const getDeleteApiV1MetadataprofileIdMutationOptions = <
   > = (props) => {
     const { id } = props ?? {};
 
-    return deleteApiV1MetadataprofileId(id, axiosOptions);
+    return deleteApiV1MetadataprofileId(id);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -11354,10 +11033,10 @@ export type DeleteApiV1MetadataprofileIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof deleteApiV1MetadataprofileId>>
 >;
 
-export type DeleteApiV1MetadataprofileIdMutationError = AxiosError<unknown>;
+export type DeleteApiV1MetadataprofileIdMutationError = unknown;
 
 export const useDeleteApiV1MetadataprofileId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -11366,7 +11045,6 @@ export const useDeleteApiV1MetadataprofileId = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof deleteApiV1MetadataprofileId>>,
   TError,
@@ -11381,20 +11059,21 @@ export const useDeleteApiV1MetadataprofileId = <
 
 export const putApiV1MetadataprofileId = (
   id: MaybeRef<string | undefined | null>,
-  metadataProfileResource: MaybeRef<MetadataProfileResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<MetadataProfileResource>> => {
+  metadataProfileResource: MaybeRef<MetadataProfileResource>
+) => {
   id = unref(id);
   metadataProfileResource = unref(metadataProfileResource);
-  return axios.put(
-    `http://localhost:3001/api/v1/metadataprofile/${id}`,
-    metadataProfileResource,
-    options
-  );
+
+  return customInstance<MetadataProfileResource>({
+    url: `/api/v1/metadataprofile/${id}`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: metadataProfileResource,
+  });
 };
 
 export const getPutApiV1MetadataprofileIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -11403,14 +11082,13 @@ export const getPutApiV1MetadataprofileIdMutationOptions = <
     { id: string; data: MetadataProfileResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof putApiV1MetadataprofileId>>,
   TError,
   { id: string; data: MetadataProfileResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof putApiV1MetadataprofileId>>,
@@ -11418,7 +11096,7 @@ export const getPutApiV1MetadataprofileIdMutationOptions = <
   > = (props) => {
     const { id, data } = props ?? {};
 
-    return putApiV1MetadataprofileId(id, data, axiosOptions);
+    return putApiV1MetadataprofileId(id, data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -11428,10 +11106,10 @@ export type PutApiV1MetadataprofileIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof putApiV1MetadataprofileId>>
 >;
 export type PutApiV1MetadataprofileIdMutationBody = MetadataProfileResource;
-export type PutApiV1MetadataprofileIdMutationError = AxiosError<unknown>;
+export type PutApiV1MetadataprofileIdMutationError = unknown;
 
 export const usePutApiV1MetadataprofileId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -11440,7 +11118,6 @@ export const usePutApiV1MetadataprofileId = <
     { id: string; data: MetadataProfileResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof putApiV1MetadataprofileId>>,
   TError,
@@ -11454,31 +11131,26 @@ export const usePutApiV1MetadataprofileId = <
 
 export const getApiV1MetadataprofileId = (
   id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<MetadataProfileResource>> => {
+  signal?: AbortSignal
+) => {
   id = unref(id);
-  return axios.get(
-    `http://localhost:3001/api/v1/metadataprofile/${id}`,
-    options
-  );
+
+  return customInstance<MetadataProfileResource>({
+    url: `/api/v1/metadataprofile/${id}`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1MetadataprofileIdQueryKey = (
   id: MaybeRef<number | undefined | null>
 ) => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'metadataprofile',
-    id,
-  ] as const;
+  return ["api", "v1", "metadataprofile", id] as const;
 };
 
 export const getGetApiV1MetadataprofileIdQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1MetadataprofileId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -11489,17 +11161,15 @@ export const getGetApiV1MetadataprofileIdQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1MetadataprofileIdQueryKey(id);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1MetadataprofileId>>
-  > = ({ signal }) =>
-    getApiV1MetadataprofileId(id, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1MetadataprofileId(id, signal);
 
   return {
     queryKey,
@@ -11516,11 +11186,11 @@ export const getGetApiV1MetadataprofileIdQueryOptions = <
 export type GetApiV1MetadataprofileIdQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1MetadataprofileId>>
 >;
-export type GetApiV1MetadataprofileIdQueryError = AxiosError<unknown>;
+export type GetApiV1MetadataprofileIdQueryError = unknown;
 
 export const useGetApiV1MetadataprofileId = <
   TData = Awaited<ReturnType<typeof getApiV1MetadataprofileId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -11531,7 +11201,6 @@ export const useGetApiV1MetadataprofileId = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1MetadataprofileIdQueryOptions(id, options);
@@ -11545,29 +11214,21 @@ export const useGetApiV1MetadataprofileId = <
   return query;
 };
 
-export const getApiV1MetadataprofileSchema = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<MetadataProfileResource>> => {
-  return axios.get(
-    `http://localhost:3001/api/v1/metadataprofile/schema`,
-    options
-  );
+export const getApiV1MetadataprofileSchema = (signal?: AbortSignal) => {
+  return customInstance<MetadataProfileResource>({
+    url: `/api/v1/metadataprofile/schema`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1MetadataprofileSchemaQueryKey = () => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'metadataprofile',
-    'schema',
-  ] as const;
+  return ["api", "v1", "metadataprofile", "schema"] as const;
 };
 
 export const getGetApiV1MetadataprofileSchemaQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1MetadataprofileSchema>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -11576,16 +11237,14 @@ export const getGetApiV1MetadataprofileSchemaQueryOptions = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1MetadataprofileSchemaQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1MetadataprofileSchema>>
-  > = ({ signal }) =>
-    getApiV1MetadataprofileSchema({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1MetadataprofileSchema(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1MetadataprofileSchema>>,
@@ -11597,11 +11256,11 @@ export const getGetApiV1MetadataprofileSchemaQueryOptions = <
 export type GetApiV1MetadataprofileSchemaQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1MetadataprofileSchema>>
 >;
-export type GetApiV1MetadataprofileSchemaQueryError = AxiosError<unknown>;
+export type GetApiV1MetadataprofileSchemaQueryError = unknown;
 
 export const useGetApiV1MetadataprofileSchema = <
   TData = Awaited<ReturnType<typeof getApiV1MetadataprofileSchema>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -11610,7 +11269,6 @@ export const useGetApiV1MetadataprofileSchema = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1MetadataprofileSchemaQueryOptions(options);
 
@@ -11623,29 +11281,21 @@ export const useGetApiV1MetadataprofileSchema = <
   return query;
 };
 
-export const getApiV1ConfigMetadataprovider = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<MetadataProviderConfigResource>> => {
-  return axios.get(
-    `http://localhost:3001/api/v1/config/metadataprovider`,
-    options
-  );
+export const getApiV1ConfigMetadataprovider = (signal?: AbortSignal) => {
+  return customInstance<MetadataProviderConfigResource>({
+    url: `/api/v1/config/metadataprovider`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1ConfigMetadataproviderQueryKey = () => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'config',
-    'metadataprovider',
-  ] as const;
+  return ["api", "v1", "config", "metadataprovider"] as const;
 };
 
 export const getGetApiV1ConfigMetadataproviderQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1ConfigMetadataprovider>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -11654,16 +11304,14 @@ export const getGetApiV1ConfigMetadataproviderQueryOptions = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1ConfigMetadataproviderQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1ConfigMetadataprovider>>
-  > = ({ signal }) =>
-    getApiV1ConfigMetadataprovider({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1ConfigMetadataprovider(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1ConfigMetadataprovider>>,
@@ -11675,11 +11323,11 @@ export const getGetApiV1ConfigMetadataproviderQueryOptions = <
 export type GetApiV1ConfigMetadataproviderQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1ConfigMetadataprovider>>
 >;
-export type GetApiV1ConfigMetadataproviderQueryError = AxiosError<unknown>;
+export type GetApiV1ConfigMetadataproviderQueryError = unknown;
 
 export const useGetApiV1ConfigMetadataprovider = <
   TData = Awaited<ReturnType<typeof getApiV1ConfigMetadataprovider>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -11688,7 +11336,6 @@ export const useGetApiV1ConfigMetadataprovider = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1ConfigMetadataproviderQueryOptions(options);
 
@@ -11703,20 +11350,21 @@ export const useGetApiV1ConfigMetadataprovider = <
 
 export const putApiV1ConfigMetadataproviderId = (
   id: MaybeRef<string | undefined | null>,
-  metadataProviderConfigResource: MaybeRef<MetadataProviderConfigResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<MetadataProviderConfigResource>> => {
+  metadataProviderConfigResource: MaybeRef<MetadataProviderConfigResource>
+) => {
   id = unref(id);
   metadataProviderConfigResource = unref(metadataProviderConfigResource);
-  return axios.put(
-    `http://localhost:3001/api/v1/config/metadataprovider/${id}`,
-    metadataProviderConfigResource,
-    options
-  );
+
+  return customInstance<MetadataProviderConfigResource>({
+    url: `/api/v1/config/metadataprovider/${id}`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: metadataProviderConfigResource,
+  });
 };
 
 export const getPutApiV1ConfigMetadataproviderIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -11725,14 +11373,13 @@ export const getPutApiV1ConfigMetadataproviderIdMutationOptions = <
     { id: string; data: MetadataProviderConfigResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof putApiV1ConfigMetadataproviderId>>,
   TError,
   { id: string; data: MetadataProviderConfigResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof putApiV1ConfigMetadataproviderId>>,
@@ -11740,7 +11387,7 @@ export const getPutApiV1ConfigMetadataproviderIdMutationOptions = <
   > = (props) => {
     const { id, data } = props ?? {};
 
-    return putApiV1ConfigMetadataproviderId(id, data, axiosOptions);
+    return putApiV1ConfigMetadataproviderId(id, data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -11751,10 +11398,10 @@ export type PutApiV1ConfigMetadataproviderIdMutationResult = NonNullable<
 >;
 export type PutApiV1ConfigMetadataproviderIdMutationBody =
   MetadataProviderConfigResource;
-export type PutApiV1ConfigMetadataproviderIdMutationError = AxiosError<unknown>;
+export type PutApiV1ConfigMetadataproviderIdMutationError = unknown;
 
 export const usePutApiV1ConfigMetadataproviderId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -11763,7 +11410,6 @@ export const usePutApiV1ConfigMetadataproviderId = <
     { id: string; data: MetadataProviderConfigResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof putApiV1ConfigMetadataproviderId>>,
   TError,
@@ -11778,32 +11424,26 @@ export const usePutApiV1ConfigMetadataproviderId = <
 
 export const getApiV1ConfigMetadataproviderId = (
   id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<MetadataProviderConfigResource>> => {
+  signal?: AbortSignal
+) => {
   id = unref(id);
-  return axios.get(
-    `http://localhost:3001/api/v1/config/metadataprovider/${id}`,
-    options
-  );
+
+  return customInstance<MetadataProviderConfigResource>({
+    url: `/api/v1/config/metadataprovider/${id}`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1ConfigMetadataproviderIdQueryKey = (
   id: MaybeRef<number | undefined | null>
 ) => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'config',
-    'metadataprovider',
-    id,
-  ] as const;
+  return ["api", "v1", "config", "metadataprovider", id] as const;
 };
 
 export const getGetApiV1ConfigMetadataproviderIdQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1ConfigMetadataproviderId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -11814,17 +11454,15 @@ export const getGetApiV1ConfigMetadataproviderIdQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1ConfigMetadataproviderIdQueryKey(id);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1ConfigMetadataproviderId>>
-  > = ({ signal }) =>
-    getApiV1ConfigMetadataproviderId(id, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1ConfigMetadataproviderId(id, signal);
 
   return {
     queryKey,
@@ -11841,11 +11479,11 @@ export const getGetApiV1ConfigMetadataproviderIdQueryOptions = <
 export type GetApiV1ConfigMetadataproviderIdQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1ConfigMetadataproviderId>>
 >;
-export type GetApiV1ConfigMetadataproviderIdQueryError = AxiosError<unknown>;
+export type GetApiV1ConfigMetadataproviderIdQueryError = unknown;
 
 export const useGetApiV1ConfigMetadataproviderId = <
   TData = Awaited<ReturnType<typeof getApiV1ConfigMetadataproviderId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -11856,7 +11494,6 @@ export const useGetApiV1ConfigMetadataproviderId = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1ConfigMetadataproviderIdQueryOptions(
@@ -11875,12 +11512,15 @@ export const useGetApiV1ConfigMetadataproviderId = <
 
 export const getApiV1WantedMissing = (
   params?: MaybeRef<GetApiV1WantedMissingParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<BookResourcePagingResource>> => {
+  signal?: AbortSignal
+) => {
   params = unref(params);
-  return axios.get(`http://localhost:3001/api/v1/wanted/missing`, {
-    ...options,
-    params: { ...unref(params), ...options?.params },
+
+  return customInstance<BookResourcePagingResource>({
+    url: `/api/v1/wanted/missing`,
+    method: "GET",
+    params: unref(params),
+    signal,
   });
 };
 
@@ -11888,19 +11528,17 @@ export const getGetApiV1WantedMissingQueryKey = (
   params?: MaybeRef<GetApiV1WantedMissingParams>
 ) => {
   return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'wanted',
-    'missing',
+    "api",
+    "v1",
+    "wanted",
+    "missing",
     ...(params ? [params] : []),
   ] as const;
 };
 
 export const getGetApiV1WantedMissingQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1WantedMissing>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1WantedMissingParams>,
   options?: {
@@ -11911,17 +11549,15 @@ export const getGetApiV1WantedMissingQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1WantedMissingQueryKey(params);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1WantedMissing>>
-  > = ({ signal }) =>
-    getApiV1WantedMissing(params, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1WantedMissing(params, signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1WantedMissing>>,
@@ -11933,11 +11569,11 @@ export const getGetApiV1WantedMissingQueryOptions = <
 export type GetApiV1WantedMissingQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1WantedMissing>>
 >;
-export type GetApiV1WantedMissingQueryError = AxiosError<unknown>;
+export type GetApiV1WantedMissingQueryError = unknown;
 
 export const useGetApiV1WantedMissing = <
   TData = Awaited<ReturnType<typeof getApiV1WantedMissing>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1WantedMissingParams>,
   options?: {
@@ -11948,7 +11584,6 @@ export const useGetApiV1WantedMissing = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1WantedMissingQueryOptions(params, options);
@@ -11964,32 +11599,26 @@ export const useGetApiV1WantedMissing = <
 
 export const getApiV1WantedMissingId = (
   id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<BookResource>> => {
+  signal?: AbortSignal
+) => {
   id = unref(id);
-  return axios.get(
-    `http://localhost:3001/api/v1/wanted/missing/${id}`,
-    options
-  );
+
+  return customInstance<BookResource>({
+    url: `/api/v1/wanted/missing/${id}`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1WantedMissingIdQueryKey = (
   id: MaybeRef<number | undefined | null>
 ) => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'wanted',
-    'missing',
-    id,
-  ] as const;
+  return ["api", "v1", "wanted", "missing", id] as const;
 };
 
 export const getGetApiV1WantedMissingIdQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1WantedMissingId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -12000,16 +11629,15 @@ export const getGetApiV1WantedMissingIdQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1WantedMissingIdQueryKey(id);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1WantedMissingId>>
-  > = ({ signal }) => getApiV1WantedMissingId(id, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1WantedMissingId(id, signal);
 
   return {
     queryKey,
@@ -12026,11 +11654,11 @@ export const getGetApiV1WantedMissingIdQueryOptions = <
 export type GetApiV1WantedMissingIdQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1WantedMissingId>>
 >;
-export type GetApiV1WantedMissingIdQueryError = AxiosError<unknown>;
+export type GetApiV1WantedMissingIdQueryError = unknown;
 
 export const useGetApiV1WantedMissingId = <
   TData = Awaited<ReturnType<typeof getApiV1WantedMissingId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -12041,7 +11669,6 @@ export const useGetApiV1WantedMissingId = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1WantedMissingIdQueryOptions(id, options);
@@ -12055,19 +11682,21 @@ export const useGetApiV1WantedMissingId = <
   return query;
 };
 
-export const getApiV1ConfigNaming = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<NamingConfigResource>> => {
-  return axios.get(`http://localhost:3001/api/v1/config/naming`, options);
+export const getApiV1ConfigNaming = (signal?: AbortSignal) => {
+  return customInstance<NamingConfigResource>({
+    url: `/api/v1/config/naming`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1ConfigNamingQueryKey = () => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'config', 'naming'] as const;
+  return ["api", "v1", "config", "naming"] as const;
 };
 
 export const getGetApiV1ConfigNamingQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1ConfigNaming>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -12076,15 +11705,14 @@ export const getGetApiV1ConfigNamingQueryOptions = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1ConfigNamingQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1ConfigNaming>>
-  > = ({ signal }) => getApiV1ConfigNaming({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1ConfigNaming(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1ConfigNaming>>,
@@ -12096,11 +11724,11 @@ export const getGetApiV1ConfigNamingQueryOptions = <
 export type GetApiV1ConfigNamingQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1ConfigNaming>>
 >;
-export type GetApiV1ConfigNamingQueryError = AxiosError<unknown>;
+export type GetApiV1ConfigNamingQueryError = unknown;
 
 export const useGetApiV1ConfigNaming = <
   TData = Awaited<ReturnType<typeof getApiV1ConfigNaming>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -12109,7 +11737,6 @@ export const useGetApiV1ConfigNaming = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1ConfigNamingQueryOptions(options);
 
@@ -12124,20 +11751,21 @@ export const useGetApiV1ConfigNaming = <
 
 export const putApiV1ConfigNamingId = (
   id: MaybeRef<string | undefined | null>,
-  namingConfigResource: MaybeRef<NamingConfigResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<NamingConfigResource>> => {
+  namingConfigResource: MaybeRef<NamingConfigResource>
+) => {
   id = unref(id);
   namingConfigResource = unref(namingConfigResource);
-  return axios.put(
-    `http://localhost:3001/api/v1/config/naming/${id}`,
-    namingConfigResource,
-    options
-  );
+
+  return customInstance<NamingConfigResource>({
+    url: `/api/v1/config/naming/${id}`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: namingConfigResource,
+  });
 };
 
 export const getPutApiV1ConfigNamingIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -12146,14 +11774,13 @@ export const getPutApiV1ConfigNamingIdMutationOptions = <
     { id: string; data: NamingConfigResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof putApiV1ConfigNamingId>>,
   TError,
   { id: string; data: NamingConfigResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof putApiV1ConfigNamingId>>,
@@ -12161,7 +11788,7 @@ export const getPutApiV1ConfigNamingIdMutationOptions = <
   > = (props) => {
     const { id, data } = props ?? {};
 
-    return putApiV1ConfigNamingId(id, data, axiosOptions);
+    return putApiV1ConfigNamingId(id, data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -12171,10 +11798,10 @@ export type PutApiV1ConfigNamingIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof putApiV1ConfigNamingId>>
 >;
 export type PutApiV1ConfigNamingIdMutationBody = NamingConfigResource;
-export type PutApiV1ConfigNamingIdMutationError = AxiosError<unknown>;
+export type PutApiV1ConfigNamingIdMutationError = unknown;
 
 export const usePutApiV1ConfigNamingId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -12183,7 +11810,6 @@ export const usePutApiV1ConfigNamingId = <
     { id: string; data: NamingConfigResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof putApiV1ConfigNamingId>>,
   TError,
@@ -12197,29 +11823,26 @@ export const usePutApiV1ConfigNamingId = <
 
 export const getApiV1ConfigNamingId = (
   id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<NamingConfigResource>> => {
+  signal?: AbortSignal
+) => {
   id = unref(id);
-  return axios.get(`http://localhost:3001/api/v1/config/naming/${id}`, options);
+
+  return customInstance<NamingConfigResource>({
+    url: `/api/v1/config/naming/${id}`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1ConfigNamingIdQueryKey = (
   id: MaybeRef<number | undefined | null>
 ) => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'config',
-    'naming',
-    id,
-  ] as const;
+  return ["api", "v1", "config", "naming", id] as const;
 };
 
 export const getGetApiV1ConfigNamingIdQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1ConfigNamingId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -12230,16 +11853,15 @@ export const getGetApiV1ConfigNamingIdQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1ConfigNamingIdQueryKey(id);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1ConfigNamingId>>
-  > = ({ signal }) => getApiV1ConfigNamingId(id, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1ConfigNamingId(id, signal);
 
   return {
     queryKey,
@@ -12256,11 +11878,11 @@ export const getGetApiV1ConfigNamingIdQueryOptions = <
 export type GetApiV1ConfigNamingIdQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1ConfigNamingId>>
 >;
-export type GetApiV1ConfigNamingIdQueryError = AxiosError<unknown>;
+export type GetApiV1ConfigNamingIdQueryError = unknown;
 
 export const useGetApiV1ConfigNamingId = <
   TData = Awaited<ReturnType<typeof getApiV1ConfigNamingId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -12271,7 +11893,6 @@ export const useGetApiV1ConfigNamingId = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1ConfigNamingIdQueryOptions(id, options);
@@ -12287,12 +11908,15 @@ export const useGetApiV1ConfigNamingId = <
 
 export const getApiV1ConfigNamingExamples = (
   params?: MaybeRef<GetApiV1ConfigNamingExamplesParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  signal?: AbortSignal
+) => {
   params = unref(params);
-  return axios.get(`http://localhost:3001/api/v1/config/naming/examples`, {
-    ...options,
-    params: { ...unref(params), ...options?.params },
+
+  return customInstance<void>({
+    url: `/api/v1/config/naming/examples`,
+    method: "GET",
+    params: unref(params),
+    signal,
   });
 };
 
@@ -12300,20 +11924,18 @@ export const getGetApiV1ConfigNamingExamplesQueryKey = (
   params?: MaybeRef<GetApiV1ConfigNamingExamplesParams>
 ) => {
   return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'config',
-    'naming',
-    'examples',
+    "api",
+    "v1",
+    "config",
+    "naming",
+    "examples",
     ...(params ? [params] : []),
   ] as const;
 };
 
 export const getGetApiV1ConfigNamingExamplesQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1ConfigNamingExamples>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1ConfigNamingExamplesParams>,
   options?: {
@@ -12324,17 +11946,15 @@ export const getGetApiV1ConfigNamingExamplesQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1ConfigNamingExamplesQueryKey(params);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1ConfigNamingExamples>>
-  > = ({ signal }) =>
-    getApiV1ConfigNamingExamples(params, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1ConfigNamingExamples(params, signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1ConfigNamingExamples>>,
@@ -12346,11 +11966,11 @@ export const getGetApiV1ConfigNamingExamplesQueryOptions = <
 export type GetApiV1ConfigNamingExamplesQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1ConfigNamingExamples>>
 >;
-export type GetApiV1ConfigNamingExamplesQueryError = AxiosError<unknown>;
+export type GetApiV1ConfigNamingExamplesQueryError = unknown;
 
 export const useGetApiV1ConfigNamingExamples = <
   TData = Awaited<ReturnType<typeof getApiV1ConfigNamingExamples>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1ConfigNamingExamplesParams>,
   options?: {
@@ -12361,7 +11981,6 @@ export const useGetApiV1ConfigNamingExamples = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1ConfigNamingExamplesQueryOptions(
@@ -12378,19 +11997,21 @@ export const useGetApiV1ConfigNamingExamples = <
   return query;
 };
 
-export const getApiV1Notification = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<NotificationResource[]>> => {
-  return axios.get(`http://localhost:3001/api/v1/notification`, options);
+export const getApiV1Notification = (signal?: AbortSignal) => {
+  return customInstance<NotificationResource[]>({
+    url: `/api/v1/notification`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1NotificationQueryKey = () => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'notification'] as const;
+  return ["api", "v1", "notification"] as const;
 };
 
 export const getGetApiV1NotificationQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1Notification>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -12399,15 +12020,14 @@ export const getGetApiV1NotificationQueryOptions = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1NotificationQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1Notification>>
-  > = ({ signal }) => getApiV1Notification({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1Notification(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1Notification>>,
@@ -12419,11 +12039,11 @@ export const getGetApiV1NotificationQueryOptions = <
 export type GetApiV1NotificationQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1Notification>>
 >;
-export type GetApiV1NotificationQueryError = AxiosError<unknown>;
+export type GetApiV1NotificationQueryError = unknown;
 
 export const useGetApiV1Notification = <
   TData = Awaited<ReturnType<typeof getApiV1Notification>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -12432,7 +12052,6 @@ export const useGetApiV1Notification = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1NotificationQueryOptions(options);
 
@@ -12447,23 +12066,22 @@ export const useGetApiV1Notification = <
 
 export const postApiV1Notification = (
   notificationResource: MaybeRef<NotificationResource>,
-  params?: MaybeRef<PostApiV1NotificationParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<NotificationResource>> => {
+  params?: MaybeRef<PostApiV1NotificationParams>
+) => {
   notificationResource = unref(notificationResource);
   params = unref(params);
-  return axios.post(
-    `http://localhost:3001/api/v1/notification`,
-    notificationResource,
-    {
-      ...options,
-      params: { ...unref(params), ...options?.params },
-    }
-  );
+
+  return customInstance<NotificationResource>({
+    url: `/api/v1/notification`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: notificationResource,
+    params: unref(params),
+  });
 };
 
 export const getPostApiV1NotificationMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -12472,14 +12090,13 @@ export const getPostApiV1NotificationMutationOptions = <
     { data: NotificationResource; params?: PostApiV1NotificationParams },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1Notification>>,
   TError,
   { data: NotificationResource; params?: PostApiV1NotificationParams },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1Notification>>,
@@ -12487,7 +12104,7 @@ export const getPostApiV1NotificationMutationOptions = <
   > = (props) => {
     const { data, params } = props ?? {};
 
-    return postApiV1Notification(data, params, axiosOptions);
+    return postApiV1Notification(data, params);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -12497,10 +12114,10 @@ export type PostApiV1NotificationMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1Notification>>
 >;
 export type PostApiV1NotificationMutationBody = NotificationResource;
-export type PostApiV1NotificationMutationError = AxiosError<unknown>;
+export type PostApiV1NotificationMutationError = unknown;
 
 export const usePostApiV1Notification = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -12509,7 +12126,6 @@ export const usePostApiV1Notification = <
     { data: NotificationResource; params?: PostApiV1NotificationParams },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1Notification>>,
   TError,
@@ -12524,24 +12140,23 @@ export const usePostApiV1Notification = <
 export const putApiV1NotificationId = (
   id: MaybeRef<string | undefined | null>,
   notificationResource: MaybeRef<NotificationResource>,
-  params?: MaybeRef<PutApiV1NotificationIdParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<NotificationResource>> => {
+  params?: MaybeRef<PutApiV1NotificationIdParams>
+) => {
   id = unref(id);
   notificationResource = unref(notificationResource);
   params = unref(params);
-  return axios.put(
-    `http://localhost:3001/api/v1/notification/${id}`,
-    notificationResource,
-    {
-      ...options,
-      params: { ...unref(params), ...options?.params },
-    }
-  );
+
+  return customInstance<NotificationResource>({
+    url: `/api/v1/notification/${id}`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: notificationResource,
+    params: unref(params),
+  });
 };
 
 export const getPutApiV1NotificationIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -12554,7 +12169,6 @@ export const getPutApiV1NotificationIdMutationOptions = <
     },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof putApiV1NotificationId>>,
   TError,
@@ -12565,7 +12179,7 @@ export const getPutApiV1NotificationIdMutationOptions = <
   },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof putApiV1NotificationId>>,
@@ -12577,7 +12191,7 @@ export const getPutApiV1NotificationIdMutationOptions = <
   > = (props) => {
     const { id, data, params } = props ?? {};
 
-    return putApiV1NotificationId(id, data, params, axiosOptions);
+    return putApiV1NotificationId(id, data, params);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -12587,10 +12201,10 @@ export type PutApiV1NotificationIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof putApiV1NotificationId>>
 >;
 export type PutApiV1NotificationIdMutationBody = NotificationResource;
-export type PutApiV1NotificationIdMutationError = AxiosError<unknown>;
+export type PutApiV1NotificationIdMutationError = unknown;
 
 export const usePutApiV1NotificationId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -12603,7 +12217,6 @@ export const usePutApiV1NotificationId = <
     },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof putApiV1NotificationId>>,
   TError,
@@ -12620,18 +12233,18 @@ export const usePutApiV1NotificationId = <
 };
 
 export const deleteApiV1NotificationId = (
-  id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  id: MaybeRef<number | undefined | null>
+) => {
   id = unref(id);
-  return axios.delete(
-    `http://localhost:3001/api/v1/notification/${id}`,
-    options
-  );
+
+  return customInstance<void>({
+    url: `/api/v1/notification/${id}`,
+    method: "DELETE",
+  });
 };
 
 export const getDeleteApiV1NotificationIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -12640,14 +12253,13 @@ export const getDeleteApiV1NotificationIdMutationOptions = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof deleteApiV1NotificationId>>,
   TError,
   { id: number },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deleteApiV1NotificationId>>,
@@ -12655,7 +12267,7 @@ export const getDeleteApiV1NotificationIdMutationOptions = <
   > = (props) => {
     const { id } = props ?? {};
 
-    return deleteApiV1NotificationId(id, axiosOptions);
+    return deleteApiV1NotificationId(id);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -12665,10 +12277,10 @@ export type DeleteApiV1NotificationIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof deleteApiV1NotificationId>>
 >;
 
-export type DeleteApiV1NotificationIdMutationError = AxiosError<unknown>;
+export type DeleteApiV1NotificationIdMutationError = unknown;
 
 export const useDeleteApiV1NotificationId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -12677,7 +12289,6 @@ export const useDeleteApiV1NotificationId = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof deleteApiV1NotificationId>>,
   TError,
@@ -12691,21 +12302,26 @@ export const useDeleteApiV1NotificationId = <
 
 export const getApiV1NotificationId = (
   id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<NotificationResource>> => {
+  signal?: AbortSignal
+) => {
   id = unref(id);
-  return axios.get(`http://localhost:3001/api/v1/notification/${id}`, options);
+
+  return customInstance<NotificationResource>({
+    url: `/api/v1/notification/${id}`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1NotificationIdQueryKey = (
   id: MaybeRef<number | undefined | null>
 ) => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'notification', id] as const;
+  return ["api", "v1", "notification", id] as const;
 };
 
 export const getGetApiV1NotificationIdQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1NotificationId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -12716,16 +12332,15 @@ export const getGetApiV1NotificationIdQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1NotificationIdQueryKey(id);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1NotificationId>>
-  > = ({ signal }) => getApiV1NotificationId(id, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1NotificationId(id, signal);
 
   return {
     queryKey,
@@ -12742,11 +12357,11 @@ export const getGetApiV1NotificationIdQueryOptions = <
 export type GetApiV1NotificationIdQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1NotificationId>>
 >;
-export type GetApiV1NotificationIdQueryError = AxiosError<unknown>;
+export type GetApiV1NotificationIdQueryError = unknown;
 
 export const useGetApiV1NotificationId = <
   TData = Awaited<ReturnType<typeof getApiV1NotificationId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -12757,7 +12372,6 @@ export const useGetApiV1NotificationId = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1NotificationIdQueryOptions(id, options);
@@ -12771,26 +12385,21 @@ export const useGetApiV1NotificationId = <
   return query;
 };
 
-export const getApiV1NotificationSchema = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<NotificationResource[]>> => {
-  return axios.get(`http://localhost:3001/api/v1/notification/schema`, options);
+export const getApiV1NotificationSchema = (signal?: AbortSignal) => {
+  return customInstance<NotificationResource[]>({
+    url: `/api/v1/notification/schema`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1NotificationSchemaQueryKey = () => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'notification',
-    'schema',
-  ] as const;
+  return ["api", "v1", "notification", "schema"] as const;
 };
 
 export const getGetApiV1NotificationSchemaQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1NotificationSchema>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -12799,15 +12408,14 @@ export const getGetApiV1NotificationSchemaQueryOptions = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1NotificationSchemaQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1NotificationSchema>>
-  > = ({ signal }) => getApiV1NotificationSchema({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1NotificationSchema(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1NotificationSchema>>,
@@ -12819,11 +12427,11 @@ export const getGetApiV1NotificationSchemaQueryOptions = <
 export type GetApiV1NotificationSchemaQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1NotificationSchema>>
 >;
-export type GetApiV1NotificationSchemaQueryError = AxiosError<unknown>;
+export type GetApiV1NotificationSchemaQueryError = unknown;
 
 export const useGetApiV1NotificationSchema = <
   TData = Awaited<ReturnType<typeof getApiV1NotificationSchema>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -12832,7 +12440,6 @@ export const useGetApiV1NotificationSchema = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1NotificationSchemaQueryOptions(options);
 
@@ -12847,23 +12454,22 @@ export const useGetApiV1NotificationSchema = <
 
 export const postApiV1NotificationTest = (
   notificationResource: MaybeRef<NotificationResource>,
-  params?: MaybeRef<PostApiV1NotificationTestParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  params?: MaybeRef<PostApiV1NotificationTestParams>
+) => {
   notificationResource = unref(notificationResource);
   params = unref(params);
-  return axios.post(
-    `http://localhost:3001/api/v1/notification/test`,
-    notificationResource,
-    {
-      ...options,
-      params: { ...unref(params), ...options?.params },
-    }
-  );
+
+  return customInstance<void>({
+    url: `/api/v1/notification/test`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: notificationResource,
+    params: unref(params),
+  });
 };
 
 export const getPostApiV1NotificationTestMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -12872,14 +12478,13 @@ export const getPostApiV1NotificationTestMutationOptions = <
     { data: NotificationResource; params?: PostApiV1NotificationTestParams },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1NotificationTest>>,
   TError,
   { data: NotificationResource; params?: PostApiV1NotificationTestParams },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1NotificationTest>>,
@@ -12887,7 +12492,7 @@ export const getPostApiV1NotificationTestMutationOptions = <
   > = (props) => {
     const { data, params } = props ?? {};
 
-    return postApiV1NotificationTest(data, params, axiosOptions);
+    return postApiV1NotificationTest(data, params);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -12897,10 +12502,10 @@ export type PostApiV1NotificationTestMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1NotificationTest>>
 >;
 export type PostApiV1NotificationTestMutationBody = NotificationResource;
-export type PostApiV1NotificationTestMutationError = AxiosError<unknown>;
+export type PostApiV1NotificationTestMutationError = unknown;
 
 export const usePostApiV1NotificationTest = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -12909,7 +12514,6 @@ export const usePostApiV1NotificationTest = <
     { data: NotificationResource; params?: PostApiV1NotificationTestParams },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1NotificationTest>>,
   TError,
@@ -12921,18 +12525,15 @@ export const usePostApiV1NotificationTest = <
   return useMutation(mutationOptions);
 };
 
-export const postApiV1NotificationTestall = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
-  return axios.post(
-    `http://localhost:3001/api/v1/notification/testall`,
-    undefined,
-    options
-  );
+export const postApiV1NotificationTestall = () => {
+  return customInstance<void>({
+    url: `/api/v1/notification/testall`,
+    method: "POST",
+  });
 };
 
 export const getPostApiV1NotificationTestallMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -12941,20 +12542,19 @@ export const getPostApiV1NotificationTestallMutationOptions = <
     void,
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1NotificationTestall>>,
   TError,
   void,
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1NotificationTestall>>,
     void
   > = () => {
-    return postApiV1NotificationTestall(axiosOptions);
+    return postApiV1NotificationTestall();
   };
 
   return { mutationFn, ...mutationOptions };
@@ -12964,10 +12564,10 @@ export type PostApiV1NotificationTestallMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1NotificationTestall>>
 >;
 
-export type PostApiV1NotificationTestallMutationError = AxiosError<unknown>;
+export type PostApiV1NotificationTestallMutationError = unknown;
 
 export const usePostApiV1NotificationTestall = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -12976,7 +12576,6 @@ export const usePostApiV1NotificationTestall = <
     void,
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1NotificationTestall>>,
   TError,
@@ -12991,20 +12590,21 @@ export const usePostApiV1NotificationTestall = <
 
 export const postApiV1NotificationActionName = (
   name: MaybeRef<string | undefined | null>,
-  notificationResource: MaybeRef<NotificationResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  notificationResource: MaybeRef<NotificationResource>
+) => {
   name = unref(name);
   notificationResource = unref(notificationResource);
-  return axios.post(
-    `http://localhost:3001/api/v1/notification/action/${name}`,
-    notificationResource,
-    options
-  );
+
+  return customInstance<void>({
+    url: `/api/v1/notification/action/${name}`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: notificationResource,
+  });
 };
 
 export const getPostApiV1NotificationActionNameMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -13013,14 +12613,13 @@ export const getPostApiV1NotificationActionNameMutationOptions = <
     { name: string; data: NotificationResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1NotificationActionName>>,
   TError,
   { name: string; data: NotificationResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1NotificationActionName>>,
@@ -13028,7 +12627,7 @@ export const getPostApiV1NotificationActionNameMutationOptions = <
   > = (props) => {
     const { name, data } = props ?? {};
 
-    return postApiV1NotificationActionName(name, data, axiosOptions);
+    return postApiV1NotificationActionName(name, data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -13038,10 +12637,10 @@ export type PostApiV1NotificationActionNameMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1NotificationActionName>>
 >;
 export type PostApiV1NotificationActionNameMutationBody = NotificationResource;
-export type PostApiV1NotificationActionNameMutationError = AxiosError<unknown>;
+export type PostApiV1NotificationActionNameMutationError = unknown;
 
 export const usePostApiV1NotificationActionName = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -13050,7 +12649,6 @@ export const usePostApiV1NotificationActionName = <
     { name: string; data: NotificationResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1NotificationActionName>>,
   TError,
@@ -13065,47 +12663,42 @@ export const usePostApiV1NotificationActionName = <
 
 export const getApiV1Parse = (
   params?: MaybeRef<GetApiV1ParseParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<ParseResource>> => {
+  signal?: AbortSignal
+) => {
   params = unref(params);
-  return axios.get(`http://localhost:3001/api/v1/parse`, {
-    ...options,
-    params: { ...unref(params), ...options?.params },
+
+  return customInstance<ParseResource>({
+    url: `/api/v1/parse`,
+    method: "GET",
+    params: unref(params),
+    signal,
   });
 };
 
 export const getGetApiV1ParseQueryKey = (
   params?: MaybeRef<GetApiV1ParseParams>
 ) => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'parse',
-    ...(params ? [params] : []),
-  ] as const;
+  return ["api", "v1", "parse", ...(params ? [params] : [])] as const;
 };
 
 export const getGetApiV1ParseQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1Parse>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1ParseParams>,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getApiV1Parse>>, TError, TData>
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1ParseQueryKey(params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiV1Parse>>> = ({
     signal,
-  }) => getApiV1Parse(params, { signal, ...axiosOptions });
+  }) => getApiV1Parse(params, signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1Parse>>,
@@ -13117,18 +12710,17 @@ export const getGetApiV1ParseQueryOptions = <
 export type GetApiV1ParseQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1Parse>>
 >;
-export type GetApiV1ParseQueryError = AxiosError<unknown>;
+export type GetApiV1ParseQueryError = unknown;
 
 export const useGetApiV1Parse = <
   TData = Awaited<ReturnType<typeof getApiV1Parse>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1ParseParams>,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getApiV1Parse>>, TError, TData>
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1ParseQueryOptions(params, options);
@@ -13142,32 +12734,29 @@ export const useGetApiV1Parse = <
   return query;
 };
 
-export const getPing = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<PingResource>> => {
-  return axios.get(`http://localhost:3001/ping`, options);
+export const getPing = (signal?: AbortSignal) => {
+  return customInstance<PingResource>({ url: `/ping`, method: "GET", signal });
 };
 
 export const getGetPingQueryKey = () => {
-  return ['http:', 'localhost:3001', 'ping'] as const;
+  return ["ping"] as const;
 };
 
 export const getGetPingQueryOptions = <
   TData = Awaited<ReturnType<typeof getPing>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<Awaited<ReturnType<typeof getPing>>, TError, TData>
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetPingQueryKey();
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getPing>>> = ({
     signal,
-  }) => getPing({ signal, ...axiosOptions });
+  }) => getPing(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getPing>>,
@@ -13179,16 +12768,15 @@ export const getGetPingQueryOptions = <
 export type GetPingQueryResult = NonNullable<
   Awaited<ReturnType<typeof getPing>>
 >;
-export type GetPingQueryError = AxiosError<unknown>;
+export type GetPingQueryError = unknown;
 
 export const useGetPing = <
   TData = Awaited<ReturnType<typeof getPing>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<Awaited<ReturnType<typeof getPing>>, TError, TData>
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetPingQueryOptions(options);
 
@@ -13201,14 +12789,12 @@ export const useGetPing = <
   return query;
 };
 
-export const headPing = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<PingResource>> => {
-  return axios.head(`http://localhost:3001/ping`, options);
+export const headPing = (signal?: AbortSignal) => {
+  return customInstance<PingResource>({ url: `/ping`, method: "HEAD", signal });
 };
 
 export const getHeadPingMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -13217,20 +12803,19 @@ export const getHeadPingMutationOptions = <
     void,
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof headPing>>,
   TError,
   void,
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof headPing>>,
     void
   > = () => {
-    return headPing(axiosOptions);
+    return headPing();
   };
 
   return { mutationFn, ...mutationOptions };
@@ -13240,19 +12825,15 @@ export type HeadPingMutationResult = NonNullable<
   Awaited<ReturnType<typeof headPing>>
 >;
 
-export type HeadPingMutationError = AxiosError<unknown>;
+export type HeadPingMutationError = unknown;
 
-export const useHeadPing = <
-  TError = AxiosError<unknown>,
-  TContext = unknown
->(options?: {
+export const useHeadPing = <TError = unknown, TContext = unknown>(options?: {
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof headPing>>,
     TError,
     void,
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof headPing>>,
   TError,
@@ -13266,20 +12847,21 @@ export const useHeadPing = <
 
 export const putApiV1QualitydefinitionId = (
   id: MaybeRef<string | undefined | null>,
-  qualityDefinitionResource: MaybeRef<QualityDefinitionResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<QualityDefinitionResource>> => {
+  qualityDefinitionResource: MaybeRef<QualityDefinitionResource>
+) => {
   id = unref(id);
   qualityDefinitionResource = unref(qualityDefinitionResource);
-  return axios.put(
-    `http://localhost:3001/api/v1/qualitydefinition/${id}`,
-    qualityDefinitionResource,
-    options
-  );
+
+  return customInstance<QualityDefinitionResource>({
+    url: `/api/v1/qualitydefinition/${id}`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: qualityDefinitionResource,
+  });
 };
 
 export const getPutApiV1QualitydefinitionIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -13288,14 +12870,13 @@ export const getPutApiV1QualitydefinitionIdMutationOptions = <
     { id: string; data: QualityDefinitionResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof putApiV1QualitydefinitionId>>,
   TError,
   { id: string; data: QualityDefinitionResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof putApiV1QualitydefinitionId>>,
@@ -13303,7 +12884,7 @@ export const getPutApiV1QualitydefinitionIdMutationOptions = <
   > = (props) => {
     const { id, data } = props ?? {};
 
-    return putApiV1QualitydefinitionId(id, data, axiosOptions);
+    return putApiV1QualitydefinitionId(id, data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -13313,10 +12894,10 @@ export type PutApiV1QualitydefinitionIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof putApiV1QualitydefinitionId>>
 >;
 export type PutApiV1QualitydefinitionIdMutationBody = QualityDefinitionResource;
-export type PutApiV1QualitydefinitionIdMutationError = AxiosError<unknown>;
+export type PutApiV1QualitydefinitionIdMutationError = unknown;
 
 export const usePutApiV1QualitydefinitionId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -13325,7 +12906,6 @@ export const usePutApiV1QualitydefinitionId = <
     { id: string; data: QualityDefinitionResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof putApiV1QualitydefinitionId>>,
   TError,
@@ -13340,31 +12920,26 @@ export const usePutApiV1QualitydefinitionId = <
 
 export const getApiV1QualitydefinitionId = (
   id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<QualityDefinitionResource>> => {
+  signal?: AbortSignal
+) => {
   id = unref(id);
-  return axios.get(
-    `http://localhost:3001/api/v1/qualitydefinition/${id}`,
-    options
-  );
+
+  return customInstance<QualityDefinitionResource>({
+    url: `/api/v1/qualitydefinition/${id}`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1QualitydefinitionIdQueryKey = (
   id: MaybeRef<number | undefined | null>
 ) => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'qualitydefinition',
-    id,
-  ] as const;
+  return ["api", "v1", "qualitydefinition", id] as const;
 };
 
 export const getGetApiV1QualitydefinitionIdQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1QualitydefinitionId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -13375,17 +12950,15 @@ export const getGetApiV1QualitydefinitionIdQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1QualitydefinitionIdQueryKey(id);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1QualitydefinitionId>>
-  > = ({ signal }) =>
-    getApiV1QualitydefinitionId(id, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1QualitydefinitionId(id, signal);
 
   return {
     queryKey,
@@ -13402,11 +12975,11 @@ export const getGetApiV1QualitydefinitionIdQueryOptions = <
 export type GetApiV1QualitydefinitionIdQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1QualitydefinitionId>>
 >;
-export type GetApiV1QualitydefinitionIdQueryError = AxiosError<unknown>;
+export type GetApiV1QualitydefinitionIdQueryError = unknown;
 
 export const useGetApiV1QualitydefinitionId = <
   TData = Awaited<ReturnType<typeof getApiV1QualitydefinitionId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -13417,7 +12990,6 @@ export const useGetApiV1QualitydefinitionId = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1QualitydefinitionIdQueryOptions(id, options);
@@ -13431,19 +13003,21 @@ export const useGetApiV1QualitydefinitionId = <
   return query;
 };
 
-export const getApiV1Qualitydefinition = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<QualityDefinitionResource[]>> => {
-  return axios.get(`http://localhost:3001/api/v1/qualitydefinition`, options);
+export const getApiV1Qualitydefinition = (signal?: AbortSignal) => {
+  return customInstance<QualityDefinitionResource[]>({
+    url: `/api/v1/qualitydefinition`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1QualitydefinitionQueryKey = () => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'qualitydefinition'] as const;
+  return ["api", "v1", "qualitydefinition"] as const;
 };
 
 export const getGetApiV1QualitydefinitionQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1Qualitydefinition>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -13452,15 +13026,14 @@ export const getGetApiV1QualitydefinitionQueryOptions = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1QualitydefinitionQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1Qualitydefinition>>
-  > = ({ signal }) => getApiV1Qualitydefinition({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1Qualitydefinition(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1Qualitydefinition>>,
@@ -13472,11 +13045,11 @@ export const getGetApiV1QualitydefinitionQueryOptions = <
 export type GetApiV1QualitydefinitionQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1Qualitydefinition>>
 >;
-export type GetApiV1QualitydefinitionQueryError = AxiosError<unknown>;
+export type GetApiV1QualitydefinitionQueryError = unknown;
 
 export const useGetApiV1Qualitydefinition = <
   TData = Awaited<ReturnType<typeof getApiV1Qualitydefinition>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -13485,7 +13058,6 @@ export const useGetApiV1Qualitydefinition = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1QualitydefinitionQueryOptions(options);
 
@@ -13499,19 +13071,20 @@ export const useGetApiV1Qualitydefinition = <
 };
 
 export const putApiV1QualitydefinitionUpdate = (
-  qualityDefinitionResource: MaybeRef<QualityDefinitionResource[]>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  qualityDefinitionResource: MaybeRef<QualityDefinitionResource[]>
+) => {
   qualityDefinitionResource = unref(qualityDefinitionResource);
-  return axios.put(
-    `http://localhost:3001/api/v1/qualitydefinition/update`,
-    qualityDefinitionResource,
-    options
-  );
+
+  return customInstance<void>({
+    url: `/api/v1/qualitydefinition/update`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: qualityDefinitionResource,
+  });
 };
 
 export const getPutApiV1QualitydefinitionUpdateMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -13520,14 +13093,13 @@ export const getPutApiV1QualitydefinitionUpdateMutationOptions = <
     { data: QualityDefinitionResource[] },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof putApiV1QualitydefinitionUpdate>>,
   TError,
   { data: QualityDefinitionResource[] },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof putApiV1QualitydefinitionUpdate>>,
@@ -13535,7 +13107,7 @@ export const getPutApiV1QualitydefinitionUpdateMutationOptions = <
   > = (props) => {
     const { data } = props ?? {};
 
-    return putApiV1QualitydefinitionUpdate(data, axiosOptions);
+    return putApiV1QualitydefinitionUpdate(data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -13546,10 +13118,10 @@ export type PutApiV1QualitydefinitionUpdateMutationResult = NonNullable<
 >;
 export type PutApiV1QualitydefinitionUpdateMutationBody =
   QualityDefinitionResource[];
-export type PutApiV1QualitydefinitionUpdateMutationError = AxiosError<unknown>;
+export type PutApiV1QualitydefinitionUpdateMutationError = unknown;
 
 export const usePutApiV1QualitydefinitionUpdate = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -13558,7 +13130,6 @@ export const usePutApiV1QualitydefinitionUpdate = <
     { data: QualityDefinitionResource[] },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof putApiV1QualitydefinitionUpdate>>,
   TError,
@@ -13572,19 +13143,20 @@ export const usePutApiV1QualitydefinitionUpdate = <
 };
 
 export const postApiV1Qualityprofile = (
-  qualityProfileResource: MaybeRef<QualityProfileResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<QualityProfileResource>> => {
+  qualityProfileResource: MaybeRef<QualityProfileResource>
+) => {
   qualityProfileResource = unref(qualityProfileResource);
-  return axios.post(
-    `http://localhost:3001/api/v1/qualityprofile`,
-    qualityProfileResource,
-    options
-  );
+
+  return customInstance<QualityProfileResource>({
+    url: `/api/v1/qualityprofile`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: qualityProfileResource,
+  });
 };
 
 export const getPostApiV1QualityprofileMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -13593,14 +13165,13 @@ export const getPostApiV1QualityprofileMutationOptions = <
     { data: QualityProfileResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1Qualityprofile>>,
   TError,
   { data: QualityProfileResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1Qualityprofile>>,
@@ -13608,7 +13179,7 @@ export const getPostApiV1QualityprofileMutationOptions = <
   > = (props) => {
     const { data } = props ?? {};
 
-    return postApiV1Qualityprofile(data, axiosOptions);
+    return postApiV1Qualityprofile(data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -13618,10 +13189,10 @@ export type PostApiV1QualityprofileMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1Qualityprofile>>
 >;
 export type PostApiV1QualityprofileMutationBody = QualityProfileResource;
-export type PostApiV1QualityprofileMutationError = AxiosError<unknown>;
+export type PostApiV1QualityprofileMutationError = unknown;
 
 export const usePostApiV1Qualityprofile = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -13630,7 +13201,6 @@ export const usePostApiV1Qualityprofile = <
     { data: QualityProfileResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1Qualityprofile>>,
   TError,
@@ -13642,19 +13212,21 @@ export const usePostApiV1Qualityprofile = <
   return useMutation(mutationOptions);
 };
 
-export const getApiV1Qualityprofile = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<QualityProfileResource[]>> => {
-  return axios.get(`http://localhost:3001/api/v1/qualityprofile`, options);
+export const getApiV1Qualityprofile = (signal?: AbortSignal) => {
+  return customInstance<QualityProfileResource[]>({
+    url: `/api/v1/qualityprofile`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1QualityprofileQueryKey = () => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'qualityprofile'] as const;
+  return ["api", "v1", "qualityprofile"] as const;
 };
 
 export const getGetApiV1QualityprofileQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1Qualityprofile>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -13663,15 +13235,14 @@ export const getGetApiV1QualityprofileQueryOptions = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1QualityprofileQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1Qualityprofile>>
-  > = ({ signal }) => getApiV1Qualityprofile({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1Qualityprofile(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1Qualityprofile>>,
@@ -13683,11 +13254,11 @@ export const getGetApiV1QualityprofileQueryOptions = <
 export type GetApiV1QualityprofileQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1Qualityprofile>>
 >;
-export type GetApiV1QualityprofileQueryError = AxiosError<unknown>;
+export type GetApiV1QualityprofileQueryError = unknown;
 
 export const useGetApiV1Qualityprofile = <
   TData = Awaited<ReturnType<typeof getApiV1Qualityprofile>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -13696,7 +13267,6 @@ export const useGetApiV1Qualityprofile = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1QualityprofileQueryOptions(options);
 
@@ -13710,18 +13280,18 @@ export const useGetApiV1Qualityprofile = <
 };
 
 export const deleteApiV1QualityprofileId = (
-  id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  id: MaybeRef<number | undefined | null>
+) => {
   id = unref(id);
-  return axios.delete(
-    `http://localhost:3001/api/v1/qualityprofile/${id}`,
-    options
-  );
+
+  return customInstance<void>({
+    url: `/api/v1/qualityprofile/${id}`,
+    method: "DELETE",
+  });
 };
 
 export const getDeleteApiV1QualityprofileIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -13730,14 +13300,13 @@ export const getDeleteApiV1QualityprofileIdMutationOptions = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof deleteApiV1QualityprofileId>>,
   TError,
   { id: number },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deleteApiV1QualityprofileId>>,
@@ -13745,7 +13314,7 @@ export const getDeleteApiV1QualityprofileIdMutationOptions = <
   > = (props) => {
     const { id } = props ?? {};
 
-    return deleteApiV1QualityprofileId(id, axiosOptions);
+    return deleteApiV1QualityprofileId(id);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -13755,10 +13324,10 @@ export type DeleteApiV1QualityprofileIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof deleteApiV1QualityprofileId>>
 >;
 
-export type DeleteApiV1QualityprofileIdMutationError = AxiosError<unknown>;
+export type DeleteApiV1QualityprofileIdMutationError = unknown;
 
 export const useDeleteApiV1QualityprofileId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -13767,7 +13336,6 @@ export const useDeleteApiV1QualityprofileId = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof deleteApiV1QualityprofileId>>,
   TError,
@@ -13782,20 +13350,21 @@ export const useDeleteApiV1QualityprofileId = <
 
 export const putApiV1QualityprofileId = (
   id: MaybeRef<string | undefined | null>,
-  qualityProfileResource: MaybeRef<QualityProfileResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<QualityProfileResource>> => {
+  qualityProfileResource: MaybeRef<QualityProfileResource>
+) => {
   id = unref(id);
   qualityProfileResource = unref(qualityProfileResource);
-  return axios.put(
-    `http://localhost:3001/api/v1/qualityprofile/${id}`,
-    qualityProfileResource,
-    options
-  );
+
+  return customInstance<QualityProfileResource>({
+    url: `/api/v1/qualityprofile/${id}`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: qualityProfileResource,
+  });
 };
 
 export const getPutApiV1QualityprofileIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -13804,14 +13373,13 @@ export const getPutApiV1QualityprofileIdMutationOptions = <
     { id: string; data: QualityProfileResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof putApiV1QualityprofileId>>,
   TError,
   { id: string; data: QualityProfileResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof putApiV1QualityprofileId>>,
@@ -13819,7 +13387,7 @@ export const getPutApiV1QualityprofileIdMutationOptions = <
   > = (props) => {
     const { id, data } = props ?? {};
 
-    return putApiV1QualityprofileId(id, data, axiosOptions);
+    return putApiV1QualityprofileId(id, data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -13829,10 +13397,10 @@ export type PutApiV1QualityprofileIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof putApiV1QualityprofileId>>
 >;
 export type PutApiV1QualityprofileIdMutationBody = QualityProfileResource;
-export type PutApiV1QualityprofileIdMutationError = AxiosError<unknown>;
+export type PutApiV1QualityprofileIdMutationError = unknown;
 
 export const usePutApiV1QualityprofileId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -13841,7 +13409,6 @@ export const usePutApiV1QualityprofileId = <
     { id: string; data: QualityProfileResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof putApiV1QualityprofileId>>,
   TError,
@@ -13855,31 +13422,26 @@ export const usePutApiV1QualityprofileId = <
 
 export const getApiV1QualityprofileId = (
   id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<QualityProfileResource>> => {
+  signal?: AbortSignal
+) => {
   id = unref(id);
-  return axios.get(
-    `http://localhost:3001/api/v1/qualityprofile/${id}`,
-    options
-  );
+
+  return customInstance<QualityProfileResource>({
+    url: `/api/v1/qualityprofile/${id}`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1QualityprofileIdQueryKey = (
   id: MaybeRef<number | undefined | null>
 ) => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'qualityprofile',
-    id,
-  ] as const;
+  return ["api", "v1", "qualityprofile", id] as const;
 };
 
 export const getGetApiV1QualityprofileIdQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1QualityprofileId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -13890,16 +13452,15 @@ export const getGetApiV1QualityprofileIdQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1QualityprofileIdQueryKey(id);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1QualityprofileId>>
-  > = ({ signal }) => getApiV1QualityprofileId(id, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1QualityprofileId(id, signal);
 
   return {
     queryKey,
@@ -13916,11 +13477,11 @@ export const getGetApiV1QualityprofileIdQueryOptions = <
 export type GetApiV1QualityprofileIdQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1QualityprofileId>>
 >;
-export type GetApiV1QualityprofileIdQueryError = AxiosError<unknown>;
+export type GetApiV1QualityprofileIdQueryError = unknown;
 
 export const useGetApiV1QualityprofileId = <
   TData = Awaited<ReturnType<typeof getApiV1QualityprofileId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -13931,7 +13492,6 @@ export const useGetApiV1QualityprofileId = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1QualityprofileIdQueryOptions(id, options);
@@ -13945,29 +13505,21 @@ export const useGetApiV1QualityprofileId = <
   return query;
 };
 
-export const getApiV1QualityprofileSchema = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<QualityProfileResource>> => {
-  return axios.get(
-    `http://localhost:3001/api/v1/qualityprofile/schema`,
-    options
-  );
+export const getApiV1QualityprofileSchema = (signal?: AbortSignal) => {
+  return customInstance<QualityProfileResource>({
+    url: `/api/v1/qualityprofile/schema`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1QualityprofileSchemaQueryKey = () => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'qualityprofile',
-    'schema',
-  ] as const;
+  return ["api", "v1", "qualityprofile", "schema"] as const;
 };
 
 export const getGetApiV1QualityprofileSchemaQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1QualityprofileSchema>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -13976,15 +13528,14 @@ export const getGetApiV1QualityprofileSchemaQueryOptions = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1QualityprofileSchemaQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1QualityprofileSchema>>
-  > = ({ signal }) => getApiV1QualityprofileSchema({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1QualityprofileSchema(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1QualityprofileSchema>>,
@@ -13996,11 +13547,11 @@ export const getGetApiV1QualityprofileSchemaQueryOptions = <
 export type GetApiV1QualityprofileSchemaQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1QualityprofileSchema>>
 >;
-export type GetApiV1QualityprofileSchemaQueryError = AxiosError<unknown>;
+export type GetApiV1QualityprofileSchemaQueryError = unknown;
 
 export const useGetApiV1QualityprofileSchema = <
   TData = Awaited<ReturnType<typeof getApiV1QualityprofileSchema>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -14009,7 +13560,6 @@ export const useGetApiV1QualityprofileSchema = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1QualityprofileSchemaQueryOptions(options);
 
@@ -14024,19 +13574,20 @@ export const useGetApiV1QualityprofileSchema = <
 
 export const deleteApiV1QueueId = (
   id: MaybeRef<number | undefined | null>,
-  params?: MaybeRef<DeleteApiV1QueueIdParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  params?: MaybeRef<DeleteApiV1QueueIdParams>
+) => {
   id = unref(id);
   params = unref(params);
-  return axios.delete(`http://localhost:3001/api/v1/queue/${id}`, {
-    ...options,
-    params: { ...unref(params), ...options?.params },
+
+  return customInstance<void>({
+    url: `/api/v1/queue/${id}`,
+    method: "DELETE",
+    params: unref(params),
   });
 };
 
 export const getDeleteApiV1QueueIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -14045,14 +13596,13 @@ export const getDeleteApiV1QueueIdMutationOptions = <
     { id: number; params?: DeleteApiV1QueueIdParams },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof deleteApiV1QueueId>>,
   TError,
   { id: number; params?: DeleteApiV1QueueIdParams },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deleteApiV1QueueId>>,
@@ -14060,7 +13610,7 @@ export const getDeleteApiV1QueueIdMutationOptions = <
   > = (props) => {
     const { id, params } = props ?? {};
 
-    return deleteApiV1QueueId(id, params, axiosOptions);
+    return deleteApiV1QueueId(id, params);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -14070,10 +13620,10 @@ export type DeleteApiV1QueueIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof deleteApiV1QueueId>>
 >;
 
-export type DeleteApiV1QueueIdMutationError = AxiosError<unknown>;
+export type DeleteApiV1QueueIdMutationError = unknown;
 
 export const useDeleteApiV1QueueId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -14082,7 +13632,6 @@ export const useDeleteApiV1QueueId = <
     { id: number; params?: DeleteApiV1QueueIdParams },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof deleteApiV1QueueId>>,
   TError,
@@ -14096,20 +13645,22 @@ export const useDeleteApiV1QueueId = <
 
 export const deleteApiV1QueueBulk = (
   queueBulkResource: MaybeRef<QueueBulkResource>,
-  params?: MaybeRef<DeleteApiV1QueueBulkParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  params?: MaybeRef<DeleteApiV1QueueBulkParams>
+) => {
   queueBulkResource = unref(queueBulkResource);
   params = unref(params);
-  return axios.delete(`http://localhost:3001/api/v1/queue/bulk`, {
+
+  return customInstance<void>({
+    url: `/api/v1/queue/bulk`,
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
     data: queueBulkResource,
-    ...options,
-    params: { ...unref(params), ...options?.params },
+    params: unref(params),
   });
 };
 
 export const getDeleteApiV1QueueBulkMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -14118,14 +13669,13 @@ export const getDeleteApiV1QueueBulkMutationOptions = <
     { data: QueueBulkResource; params?: DeleteApiV1QueueBulkParams },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof deleteApiV1QueueBulk>>,
   TError,
   { data: QueueBulkResource; params?: DeleteApiV1QueueBulkParams },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deleteApiV1QueueBulk>>,
@@ -14133,7 +13683,7 @@ export const getDeleteApiV1QueueBulkMutationOptions = <
   > = (props) => {
     const { data, params } = props ?? {};
 
-    return deleteApiV1QueueBulk(data, params, axiosOptions);
+    return deleteApiV1QueueBulk(data, params);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -14143,10 +13693,10 @@ export type DeleteApiV1QueueBulkMutationResult = NonNullable<
   Awaited<ReturnType<typeof deleteApiV1QueueBulk>>
 >;
 export type DeleteApiV1QueueBulkMutationBody = QueueBulkResource;
-export type DeleteApiV1QueueBulkMutationError = AxiosError<unknown>;
+export type DeleteApiV1QueueBulkMutationError = unknown;
 
 export const useDeleteApiV1QueueBulk = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -14155,7 +13705,6 @@ export const useDeleteApiV1QueueBulk = <
     { data: QueueBulkResource; params?: DeleteApiV1QueueBulkParams },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof deleteApiV1QueueBulk>>,
   TError,
@@ -14169,47 +13718,42 @@ export const useDeleteApiV1QueueBulk = <
 
 export const getApiV1Queue = (
   params?: MaybeRef<GetApiV1QueueParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<QueueResourcePagingResource>> => {
+  signal?: AbortSignal
+) => {
   params = unref(params);
-  return axios.get(`http://localhost:3001/api/v1/queue`, {
-    ...options,
-    params: { ...unref(params), ...options?.params },
+
+  return customInstance<QueueResourcePagingResource>({
+    url: `/api/v1/queue`,
+    method: "GET",
+    params: unref(params),
+    signal,
   });
 };
 
 export const getGetApiV1QueueQueryKey = (
   params?: MaybeRef<GetApiV1QueueParams>
 ) => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'queue',
-    ...(params ? [params] : []),
-  ] as const;
+  return ["api", "v1", "queue", ...(params ? [params] : [])] as const;
 };
 
 export const getGetApiV1QueueQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1Queue>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1QueueParams>,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getApiV1Queue>>, TError, TData>
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1QueueQueryKey(params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiV1Queue>>> = ({
     signal,
-  }) => getApiV1Queue(params, { signal, ...axiosOptions });
+  }) => getApiV1Queue(params, signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1Queue>>,
@@ -14221,18 +13765,17 @@ export const getGetApiV1QueueQueryOptions = <
 export type GetApiV1QueueQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1Queue>>
 >;
-export type GetApiV1QueueQueryError = AxiosError<unknown>;
+export type GetApiV1QueueQueryError = unknown;
 
 export const useGetApiV1Queue = <
   TData = Awaited<ReturnType<typeof getApiV1Queue>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1QueueParams>,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getApiV1Queue>>, TError, TData>
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1QueueQueryOptions(params, options);
@@ -14247,19 +13790,18 @@ export const useGetApiV1Queue = <
 };
 
 export const postApiV1QueueGrabId = (
-  id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  id: MaybeRef<number | undefined | null>
+) => {
   id = unref(id);
-  return axios.post(
-    `http://localhost:3001/api/v1/queue/grab/${id}`,
-    undefined,
-    options
-  );
+
+  return customInstance<void>({
+    url: `/api/v1/queue/grab/${id}`,
+    method: "POST",
+  });
 };
 
 export const getPostApiV1QueueGrabIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -14268,14 +13810,13 @@ export const getPostApiV1QueueGrabIdMutationOptions = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1QueueGrabId>>,
   TError,
   { id: number },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1QueueGrabId>>,
@@ -14283,7 +13824,7 @@ export const getPostApiV1QueueGrabIdMutationOptions = <
   > = (props) => {
     const { id } = props ?? {};
 
-    return postApiV1QueueGrabId(id, axiosOptions);
+    return postApiV1QueueGrabId(id);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -14293,10 +13834,10 @@ export type PostApiV1QueueGrabIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1QueueGrabId>>
 >;
 
-export type PostApiV1QueueGrabIdMutationError = AxiosError<unknown>;
+export type PostApiV1QueueGrabIdMutationError = unknown;
 
 export const usePostApiV1QueueGrabId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -14305,7 +13846,6 @@ export const usePostApiV1QueueGrabId = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1QueueGrabId>>,
   TError,
@@ -14318,19 +13858,20 @@ export const usePostApiV1QueueGrabId = <
 };
 
 export const postApiV1QueueGrabBulk = (
-  queueBulkResource: MaybeRef<QueueBulkResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  queueBulkResource: MaybeRef<QueueBulkResource>
+) => {
   queueBulkResource = unref(queueBulkResource);
-  return axios.post(
-    `http://localhost:3001/api/v1/queue/grab/bulk`,
-    queueBulkResource,
-    options
-  );
+
+  return customInstance<void>({
+    url: `/api/v1/queue/grab/bulk`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: queueBulkResource,
+  });
 };
 
 export const getPostApiV1QueueGrabBulkMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -14339,14 +13880,13 @@ export const getPostApiV1QueueGrabBulkMutationOptions = <
     { data: QueueBulkResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1QueueGrabBulk>>,
   TError,
   { data: QueueBulkResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1QueueGrabBulk>>,
@@ -14354,7 +13894,7 @@ export const getPostApiV1QueueGrabBulkMutationOptions = <
   > = (props) => {
     const { data } = props ?? {};
 
-    return postApiV1QueueGrabBulk(data, axiosOptions);
+    return postApiV1QueueGrabBulk(data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -14364,10 +13904,10 @@ export type PostApiV1QueueGrabBulkMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1QueueGrabBulk>>
 >;
 export type PostApiV1QueueGrabBulkMutationBody = QueueBulkResource;
-export type PostApiV1QueueGrabBulkMutationError = AxiosError<unknown>;
+export type PostApiV1QueueGrabBulkMutationError = unknown;
 
 export const usePostApiV1QueueGrabBulk = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -14376,7 +13916,6 @@ export const usePostApiV1QueueGrabBulk = <
     { data: QueueBulkResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1QueueGrabBulk>>,
   TError,
@@ -14390,12 +13929,15 @@ export const usePostApiV1QueueGrabBulk = <
 
 export const getApiV1QueueDetails = (
   params?: MaybeRef<GetApiV1QueueDetailsParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<QueueResource[]>> => {
+  signal?: AbortSignal
+) => {
   params = unref(params);
-  return axios.get(`http://localhost:3001/api/v1/queue/details`, {
-    ...options,
-    params: { ...unref(params), ...options?.params },
+
+  return customInstance<QueueResource[]>({
+    url: `/api/v1/queue/details`,
+    method: "GET",
+    params: unref(params),
+    signal,
   });
 };
 
@@ -14403,19 +13945,17 @@ export const getGetApiV1QueueDetailsQueryKey = (
   params?: MaybeRef<GetApiV1QueueDetailsParams>
 ) => {
   return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'queue',
-    'details',
+    "api",
+    "v1",
+    "queue",
+    "details",
     ...(params ? [params] : []),
   ] as const;
 };
 
 export const getGetApiV1QueueDetailsQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1QueueDetails>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1QueueDetailsParams>,
   options?: {
@@ -14426,16 +13966,15 @@ export const getGetApiV1QueueDetailsQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1QueueDetailsQueryKey(params);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1QueueDetails>>
-  > = ({ signal }) => getApiV1QueueDetails(params, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1QueueDetails(params, signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1QueueDetails>>,
@@ -14447,11 +13986,11 @@ export const getGetApiV1QueueDetailsQueryOptions = <
 export type GetApiV1QueueDetailsQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1QueueDetails>>
 >;
-export type GetApiV1QueueDetailsQueryError = AxiosError<unknown>;
+export type GetApiV1QueueDetailsQueryError = unknown;
 
 export const useGetApiV1QueueDetails = <
   TData = Awaited<ReturnType<typeof getApiV1QueueDetails>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1QueueDetailsParams>,
   options?: {
@@ -14462,7 +14001,6 @@ export const useGetApiV1QueueDetails = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1QueueDetailsQueryOptions(params, options);
@@ -14476,19 +14014,21 @@ export const useGetApiV1QueueDetails = <
   return query;
 };
 
-export const getApiV1QueueStatus = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<QueueStatusResource>> => {
-  return axios.get(`http://localhost:3001/api/v1/queue/status`, options);
+export const getApiV1QueueStatus = (signal?: AbortSignal) => {
+  return customInstance<QueueStatusResource>({
+    url: `/api/v1/queue/status`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1QueueStatusQueryKey = () => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'queue', 'status'] as const;
+  return ["api", "v1", "queue", "status"] as const;
 };
 
 export const getGetApiV1QueueStatusQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1QueueStatus>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -14497,15 +14037,14 @@ export const getGetApiV1QueueStatusQueryOptions = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1QueueStatusQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1QueueStatus>>
-  > = ({ signal }) => getApiV1QueueStatus({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1QueueStatus(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1QueueStatus>>,
@@ -14517,11 +14056,11 @@ export const getGetApiV1QueueStatusQueryOptions = <
 export type GetApiV1QueueStatusQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1QueueStatus>>
 >;
-export type GetApiV1QueueStatusQueryError = AxiosError<unknown>;
+export type GetApiV1QueueStatusQueryError = unknown;
 
 export const useGetApiV1QueueStatus = <
   TData = Awaited<ReturnType<typeof getApiV1QueueStatus>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -14530,7 +14069,6 @@ export const useGetApiV1QueueStatus = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1QueueStatusQueryOptions(options);
 
@@ -14544,19 +14082,20 @@ export const useGetApiV1QueueStatus = <
 };
 
 export const postApiV1Release = (
-  releaseResource: MaybeRef<ReleaseResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<ReleaseResource>> => {
+  releaseResource: MaybeRef<ReleaseResource>
+) => {
   releaseResource = unref(releaseResource);
-  return axios.post(
-    `http://localhost:3001/api/v1/release`,
-    releaseResource,
-    options
-  );
+
+  return customInstance<ReleaseResource>({
+    url: `/api/v1/release`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: releaseResource,
+  });
 };
 
 export const getPostApiV1ReleaseMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -14565,14 +14104,13 @@ export const getPostApiV1ReleaseMutationOptions = <
     { data: ReleaseResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1Release>>,
   TError,
   { data: ReleaseResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1Release>>,
@@ -14580,7 +14118,7 @@ export const getPostApiV1ReleaseMutationOptions = <
   > = (props) => {
     const { data } = props ?? {};
 
-    return postApiV1Release(data, axiosOptions);
+    return postApiV1Release(data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -14590,10 +14128,10 @@ export type PostApiV1ReleaseMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1Release>>
 >;
 export type PostApiV1ReleaseMutationBody = ReleaseResource;
-export type PostApiV1ReleaseMutationError = AxiosError<unknown>;
+export type PostApiV1ReleaseMutationError = unknown;
 
 export const usePostApiV1Release = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -14602,7 +14140,6 @@ export const usePostApiV1Release = <
     { data: ReleaseResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1Release>>,
   TError,
@@ -14616,31 +14153,27 @@ export const usePostApiV1Release = <
 
 export const getApiV1Release = (
   params?: MaybeRef<GetApiV1ReleaseParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<ReleaseResource[]>> => {
+  signal?: AbortSignal
+) => {
   params = unref(params);
-  return axios.get(`http://localhost:3001/api/v1/release`, {
-    ...options,
-    params: { ...unref(params), ...options?.params },
+
+  return customInstance<ReleaseResource[]>({
+    url: `/api/v1/release`,
+    method: "GET",
+    params: unref(params),
+    signal,
   });
 };
 
 export const getGetApiV1ReleaseQueryKey = (
   params?: MaybeRef<GetApiV1ReleaseParams>
 ) => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'release',
-    ...(params ? [params] : []),
-  ] as const;
+  return ["api", "v1", "release", ...(params ? [params] : [])] as const;
 };
 
 export const getGetApiV1ReleaseQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1Release>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1ReleaseParams>,
   options?: {
@@ -14651,16 +14184,15 @@ export const getGetApiV1ReleaseQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1ReleaseQueryKey(params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiV1Release>>> = ({
     signal,
-  }) => getApiV1Release(params, { signal, ...axiosOptions });
+  }) => getApiV1Release(params, signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1Release>>,
@@ -14672,11 +14204,11 @@ export const getGetApiV1ReleaseQueryOptions = <
 export type GetApiV1ReleaseQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1Release>>
 >;
-export type GetApiV1ReleaseQueryError = AxiosError<unknown>;
+export type GetApiV1ReleaseQueryError = unknown;
 
 export const useGetApiV1Release = <
   TData = Awaited<ReturnType<typeof getApiV1Release>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1ReleaseParams>,
   options?: {
@@ -14687,7 +14219,6 @@ export const useGetApiV1Release = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1ReleaseQueryOptions(params, options);
@@ -14701,19 +14232,21 @@ export const useGetApiV1Release = <
   return query;
 };
 
-export const getApiV1Releaseprofile = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<ReleaseProfileResource[]>> => {
-  return axios.get(`http://localhost:3001/api/v1/releaseprofile`, options);
+export const getApiV1Releaseprofile = (signal?: AbortSignal) => {
+  return customInstance<ReleaseProfileResource[]>({
+    url: `/api/v1/releaseprofile`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1ReleaseprofileQueryKey = () => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'releaseprofile'] as const;
+  return ["api", "v1", "releaseprofile"] as const;
 };
 
 export const getGetApiV1ReleaseprofileQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1Releaseprofile>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -14722,15 +14255,14 @@ export const getGetApiV1ReleaseprofileQueryOptions = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1ReleaseprofileQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1Releaseprofile>>
-  > = ({ signal }) => getApiV1Releaseprofile({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1Releaseprofile(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1Releaseprofile>>,
@@ -14742,11 +14274,11 @@ export const getGetApiV1ReleaseprofileQueryOptions = <
 export type GetApiV1ReleaseprofileQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1Releaseprofile>>
 >;
-export type GetApiV1ReleaseprofileQueryError = AxiosError<unknown>;
+export type GetApiV1ReleaseprofileQueryError = unknown;
 
 export const useGetApiV1Releaseprofile = <
   TData = Awaited<ReturnType<typeof getApiV1Releaseprofile>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -14755,7 +14287,6 @@ export const useGetApiV1Releaseprofile = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1ReleaseprofileQueryOptions(options);
 
@@ -14769,19 +14300,20 @@ export const useGetApiV1Releaseprofile = <
 };
 
 export const postApiV1Releaseprofile = (
-  releaseProfileResource: MaybeRef<ReleaseProfileResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<ReleaseProfileResource>> => {
+  releaseProfileResource: MaybeRef<ReleaseProfileResource>
+) => {
   releaseProfileResource = unref(releaseProfileResource);
-  return axios.post(
-    `http://localhost:3001/api/v1/releaseprofile`,
-    releaseProfileResource,
-    options
-  );
+
+  return customInstance<ReleaseProfileResource>({
+    url: `/api/v1/releaseprofile`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: releaseProfileResource,
+  });
 };
 
 export const getPostApiV1ReleaseprofileMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -14790,14 +14322,13 @@ export const getPostApiV1ReleaseprofileMutationOptions = <
     { data: ReleaseProfileResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1Releaseprofile>>,
   TError,
   { data: ReleaseProfileResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1Releaseprofile>>,
@@ -14805,7 +14336,7 @@ export const getPostApiV1ReleaseprofileMutationOptions = <
   > = (props) => {
     const { data } = props ?? {};
 
-    return postApiV1Releaseprofile(data, axiosOptions);
+    return postApiV1Releaseprofile(data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -14815,10 +14346,10 @@ export type PostApiV1ReleaseprofileMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1Releaseprofile>>
 >;
 export type PostApiV1ReleaseprofileMutationBody = ReleaseProfileResource;
-export type PostApiV1ReleaseprofileMutationError = AxiosError<unknown>;
+export type PostApiV1ReleaseprofileMutationError = unknown;
 
 export const usePostApiV1Releaseprofile = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -14827,7 +14358,6 @@ export const usePostApiV1Releaseprofile = <
     { data: ReleaseProfileResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1Releaseprofile>>,
   TError,
@@ -14841,20 +14371,21 @@ export const usePostApiV1Releaseprofile = <
 
 export const putApiV1ReleaseprofileId = (
   id: MaybeRef<string | undefined | null>,
-  releaseProfileResource: MaybeRef<ReleaseProfileResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<ReleaseProfileResource>> => {
+  releaseProfileResource: MaybeRef<ReleaseProfileResource>
+) => {
   id = unref(id);
   releaseProfileResource = unref(releaseProfileResource);
-  return axios.put(
-    `http://localhost:3001/api/v1/releaseprofile/${id}`,
-    releaseProfileResource,
-    options
-  );
+
+  return customInstance<ReleaseProfileResource>({
+    url: `/api/v1/releaseprofile/${id}`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: releaseProfileResource,
+  });
 };
 
 export const getPutApiV1ReleaseprofileIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -14863,14 +14394,13 @@ export const getPutApiV1ReleaseprofileIdMutationOptions = <
     { id: string; data: ReleaseProfileResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof putApiV1ReleaseprofileId>>,
   TError,
   { id: string; data: ReleaseProfileResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof putApiV1ReleaseprofileId>>,
@@ -14878,7 +14408,7 @@ export const getPutApiV1ReleaseprofileIdMutationOptions = <
   > = (props) => {
     const { id, data } = props ?? {};
 
-    return putApiV1ReleaseprofileId(id, data, axiosOptions);
+    return putApiV1ReleaseprofileId(id, data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -14888,10 +14418,10 @@ export type PutApiV1ReleaseprofileIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof putApiV1ReleaseprofileId>>
 >;
 export type PutApiV1ReleaseprofileIdMutationBody = ReleaseProfileResource;
-export type PutApiV1ReleaseprofileIdMutationError = AxiosError<unknown>;
+export type PutApiV1ReleaseprofileIdMutationError = unknown;
 
 export const usePutApiV1ReleaseprofileId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -14900,7 +14430,6 @@ export const usePutApiV1ReleaseprofileId = <
     { id: string; data: ReleaseProfileResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof putApiV1ReleaseprofileId>>,
   TError,
@@ -14913,18 +14442,18 @@ export const usePutApiV1ReleaseprofileId = <
 };
 
 export const deleteApiV1ReleaseprofileId = (
-  id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  id: MaybeRef<number | undefined | null>
+) => {
   id = unref(id);
-  return axios.delete(
-    `http://localhost:3001/api/v1/releaseprofile/${id}`,
-    options
-  );
+
+  return customInstance<void>({
+    url: `/api/v1/releaseprofile/${id}`,
+    method: "DELETE",
+  });
 };
 
 export const getDeleteApiV1ReleaseprofileIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -14933,14 +14462,13 @@ export const getDeleteApiV1ReleaseprofileIdMutationOptions = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof deleteApiV1ReleaseprofileId>>,
   TError,
   { id: number },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deleteApiV1ReleaseprofileId>>,
@@ -14948,7 +14476,7 @@ export const getDeleteApiV1ReleaseprofileIdMutationOptions = <
   > = (props) => {
     const { id } = props ?? {};
 
-    return deleteApiV1ReleaseprofileId(id, axiosOptions);
+    return deleteApiV1ReleaseprofileId(id);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -14958,10 +14486,10 @@ export type DeleteApiV1ReleaseprofileIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof deleteApiV1ReleaseprofileId>>
 >;
 
-export type DeleteApiV1ReleaseprofileIdMutationError = AxiosError<unknown>;
+export type DeleteApiV1ReleaseprofileIdMutationError = unknown;
 
 export const useDeleteApiV1ReleaseprofileId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -14970,7 +14498,6 @@ export const useDeleteApiV1ReleaseprofileId = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof deleteApiV1ReleaseprofileId>>,
   TError,
@@ -14985,31 +14512,26 @@ export const useDeleteApiV1ReleaseprofileId = <
 
 export const getApiV1ReleaseprofileId = (
   id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<ReleaseProfileResource>> => {
+  signal?: AbortSignal
+) => {
   id = unref(id);
-  return axios.get(
-    `http://localhost:3001/api/v1/releaseprofile/${id}`,
-    options
-  );
+
+  return customInstance<ReleaseProfileResource>({
+    url: `/api/v1/releaseprofile/${id}`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1ReleaseprofileIdQueryKey = (
   id: MaybeRef<number | undefined | null>
 ) => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'releaseprofile',
-    id,
-  ] as const;
+  return ["api", "v1", "releaseprofile", id] as const;
 };
 
 export const getGetApiV1ReleaseprofileIdQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1ReleaseprofileId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -15020,16 +14542,15 @@ export const getGetApiV1ReleaseprofileIdQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1ReleaseprofileIdQueryKey(id);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1ReleaseprofileId>>
-  > = ({ signal }) => getApiV1ReleaseprofileId(id, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1ReleaseprofileId(id, signal);
 
   return {
     queryKey,
@@ -15046,11 +14567,11 @@ export const getGetApiV1ReleaseprofileIdQueryOptions = <
 export type GetApiV1ReleaseprofileIdQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1ReleaseprofileId>>
 >;
-export type GetApiV1ReleaseprofileIdQueryError = AxiosError<unknown>;
+export type GetApiV1ReleaseprofileIdQueryError = unknown;
 
 export const useGetApiV1ReleaseprofileId = <
   TData = Awaited<ReturnType<typeof getApiV1ReleaseprofileId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -15061,7 +14582,6 @@ export const useGetApiV1ReleaseprofileId = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1ReleaseprofileIdQueryOptions(id, options);
@@ -15076,19 +14596,20 @@ export const useGetApiV1ReleaseprofileId = <
 };
 
 export const postApiV1ReleasePush = (
-  releaseResource: MaybeRef<ReleaseResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<ReleaseResource>> => {
+  releaseResource: MaybeRef<ReleaseResource>
+) => {
   releaseResource = unref(releaseResource);
-  return axios.post(
-    `http://localhost:3001/api/v1/release/push`,
-    releaseResource,
-    options
-  );
+
+  return customInstance<ReleaseResource>({
+    url: `/api/v1/release/push`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: releaseResource,
+  });
 };
 
 export const getPostApiV1ReleasePushMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -15097,14 +14618,13 @@ export const getPostApiV1ReleasePushMutationOptions = <
     { data: ReleaseResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1ReleasePush>>,
   TError,
   { data: ReleaseResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1ReleasePush>>,
@@ -15112,7 +14632,7 @@ export const getPostApiV1ReleasePushMutationOptions = <
   > = (props) => {
     const { data } = props ?? {};
 
-    return postApiV1ReleasePush(data, axiosOptions);
+    return postApiV1ReleasePush(data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -15122,10 +14642,10 @@ export type PostApiV1ReleasePushMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1ReleasePush>>
 >;
 export type PostApiV1ReleasePushMutationBody = ReleaseResource;
-export type PostApiV1ReleasePushMutationError = AxiosError<unknown>;
+export type PostApiV1ReleasePushMutationError = unknown;
 
 export const usePostApiV1ReleasePush = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -15134,7 +14654,6 @@ export const usePostApiV1ReleasePush = <
     { data: ReleaseResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1ReleasePush>>,
   TError,
@@ -15147,19 +14666,20 @@ export const usePostApiV1ReleasePush = <
 };
 
 export const postApiV1Remotepathmapping = (
-  remotePathMappingResource: MaybeRef<RemotePathMappingResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<RemotePathMappingResource>> => {
+  remotePathMappingResource: MaybeRef<RemotePathMappingResource>
+) => {
   remotePathMappingResource = unref(remotePathMappingResource);
-  return axios.post(
-    `http://localhost:3001/api/v1/remotepathmapping`,
-    remotePathMappingResource,
-    options
-  );
+
+  return customInstance<RemotePathMappingResource>({
+    url: `/api/v1/remotepathmapping`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: remotePathMappingResource,
+  });
 };
 
 export const getPostApiV1RemotepathmappingMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -15168,14 +14688,13 @@ export const getPostApiV1RemotepathmappingMutationOptions = <
     { data: RemotePathMappingResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1Remotepathmapping>>,
   TError,
   { data: RemotePathMappingResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1Remotepathmapping>>,
@@ -15183,7 +14702,7 @@ export const getPostApiV1RemotepathmappingMutationOptions = <
   > = (props) => {
     const { data } = props ?? {};
 
-    return postApiV1Remotepathmapping(data, axiosOptions);
+    return postApiV1Remotepathmapping(data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -15193,10 +14712,10 @@ export type PostApiV1RemotepathmappingMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1Remotepathmapping>>
 >;
 export type PostApiV1RemotepathmappingMutationBody = RemotePathMappingResource;
-export type PostApiV1RemotepathmappingMutationError = AxiosError<unknown>;
+export type PostApiV1RemotepathmappingMutationError = unknown;
 
 export const usePostApiV1Remotepathmapping = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -15205,7 +14724,6 @@ export const usePostApiV1Remotepathmapping = <
     { data: RemotePathMappingResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1Remotepathmapping>>,
   TError,
@@ -15217,19 +14735,21 @@ export const usePostApiV1Remotepathmapping = <
   return useMutation(mutationOptions);
 };
 
-export const getApiV1Remotepathmapping = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<RemotePathMappingResource[]>> => {
-  return axios.get(`http://localhost:3001/api/v1/remotepathmapping`, options);
+export const getApiV1Remotepathmapping = (signal?: AbortSignal) => {
+  return customInstance<RemotePathMappingResource[]>({
+    url: `/api/v1/remotepathmapping`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1RemotepathmappingQueryKey = () => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'remotepathmapping'] as const;
+  return ["api", "v1", "remotepathmapping"] as const;
 };
 
 export const getGetApiV1RemotepathmappingQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1Remotepathmapping>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -15238,15 +14758,14 @@ export const getGetApiV1RemotepathmappingQueryOptions = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1RemotepathmappingQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1Remotepathmapping>>
-  > = ({ signal }) => getApiV1Remotepathmapping({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1Remotepathmapping(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1Remotepathmapping>>,
@@ -15258,11 +14777,11 @@ export const getGetApiV1RemotepathmappingQueryOptions = <
 export type GetApiV1RemotepathmappingQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1Remotepathmapping>>
 >;
-export type GetApiV1RemotepathmappingQueryError = AxiosError<unknown>;
+export type GetApiV1RemotepathmappingQueryError = unknown;
 
 export const useGetApiV1Remotepathmapping = <
   TData = Awaited<ReturnType<typeof getApiV1Remotepathmapping>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -15271,7 +14790,6 @@ export const useGetApiV1Remotepathmapping = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1RemotepathmappingQueryOptions(options);
 
@@ -15285,18 +14803,18 @@ export const useGetApiV1Remotepathmapping = <
 };
 
 export const deleteApiV1RemotepathmappingId = (
-  id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  id: MaybeRef<number | undefined | null>
+) => {
   id = unref(id);
-  return axios.delete(
-    `http://localhost:3001/api/v1/remotepathmapping/${id}`,
-    options
-  );
+
+  return customInstance<void>({
+    url: `/api/v1/remotepathmapping/${id}`,
+    method: "DELETE",
+  });
 };
 
 export const getDeleteApiV1RemotepathmappingIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -15305,14 +14823,13 @@ export const getDeleteApiV1RemotepathmappingIdMutationOptions = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof deleteApiV1RemotepathmappingId>>,
   TError,
   { id: number },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deleteApiV1RemotepathmappingId>>,
@@ -15320,7 +14837,7 @@ export const getDeleteApiV1RemotepathmappingIdMutationOptions = <
   > = (props) => {
     const { id } = props ?? {};
 
-    return deleteApiV1RemotepathmappingId(id, axiosOptions);
+    return deleteApiV1RemotepathmappingId(id);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -15330,10 +14847,10 @@ export type DeleteApiV1RemotepathmappingIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof deleteApiV1RemotepathmappingId>>
 >;
 
-export type DeleteApiV1RemotepathmappingIdMutationError = AxiosError<unknown>;
+export type DeleteApiV1RemotepathmappingIdMutationError = unknown;
 
 export const useDeleteApiV1RemotepathmappingId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -15342,7 +14859,6 @@ export const useDeleteApiV1RemotepathmappingId = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof deleteApiV1RemotepathmappingId>>,
   TError,
@@ -15357,20 +14873,21 @@ export const useDeleteApiV1RemotepathmappingId = <
 
 export const putApiV1RemotepathmappingId = (
   id: MaybeRef<string | undefined | null>,
-  remotePathMappingResource: MaybeRef<RemotePathMappingResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<RemotePathMappingResource>> => {
+  remotePathMappingResource: MaybeRef<RemotePathMappingResource>
+) => {
   id = unref(id);
   remotePathMappingResource = unref(remotePathMappingResource);
-  return axios.put(
-    `http://localhost:3001/api/v1/remotepathmapping/${id}`,
-    remotePathMappingResource,
-    options
-  );
+
+  return customInstance<RemotePathMappingResource>({
+    url: `/api/v1/remotepathmapping/${id}`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: remotePathMappingResource,
+  });
 };
 
 export const getPutApiV1RemotepathmappingIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -15379,14 +14896,13 @@ export const getPutApiV1RemotepathmappingIdMutationOptions = <
     { id: string; data: RemotePathMappingResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof putApiV1RemotepathmappingId>>,
   TError,
   { id: string; data: RemotePathMappingResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof putApiV1RemotepathmappingId>>,
@@ -15394,7 +14910,7 @@ export const getPutApiV1RemotepathmappingIdMutationOptions = <
   > = (props) => {
     const { id, data } = props ?? {};
 
-    return putApiV1RemotepathmappingId(id, data, axiosOptions);
+    return putApiV1RemotepathmappingId(id, data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -15404,10 +14920,10 @@ export type PutApiV1RemotepathmappingIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof putApiV1RemotepathmappingId>>
 >;
 export type PutApiV1RemotepathmappingIdMutationBody = RemotePathMappingResource;
-export type PutApiV1RemotepathmappingIdMutationError = AxiosError<unknown>;
+export type PutApiV1RemotepathmappingIdMutationError = unknown;
 
 export const usePutApiV1RemotepathmappingId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -15416,7 +14932,6 @@ export const usePutApiV1RemotepathmappingId = <
     { id: string; data: RemotePathMappingResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof putApiV1RemotepathmappingId>>,
   TError,
@@ -15431,31 +14946,26 @@ export const usePutApiV1RemotepathmappingId = <
 
 export const getApiV1RemotepathmappingId = (
   id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<RemotePathMappingResource>> => {
+  signal?: AbortSignal
+) => {
   id = unref(id);
-  return axios.get(
-    `http://localhost:3001/api/v1/remotepathmapping/${id}`,
-    options
-  );
+
+  return customInstance<RemotePathMappingResource>({
+    url: `/api/v1/remotepathmapping/${id}`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1RemotepathmappingIdQueryKey = (
   id: MaybeRef<number | undefined | null>
 ) => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'remotepathmapping',
-    id,
-  ] as const;
+  return ["api", "v1", "remotepathmapping", id] as const;
 };
 
 export const getGetApiV1RemotepathmappingIdQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1RemotepathmappingId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -15466,17 +14976,15 @@ export const getGetApiV1RemotepathmappingIdQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1RemotepathmappingIdQueryKey(id);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1RemotepathmappingId>>
-  > = ({ signal }) =>
-    getApiV1RemotepathmappingId(id, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1RemotepathmappingId(id, signal);
 
   return {
     queryKey,
@@ -15493,11 +15001,11 @@ export const getGetApiV1RemotepathmappingIdQueryOptions = <
 export type GetApiV1RemotepathmappingIdQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1RemotepathmappingId>>
 >;
-export type GetApiV1RemotepathmappingIdQueryError = AxiosError<unknown>;
+export type GetApiV1RemotepathmappingIdQueryError = unknown;
 
 export const useGetApiV1RemotepathmappingId = <
   TData = Awaited<ReturnType<typeof getApiV1RemotepathmappingId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -15508,7 +15016,6 @@ export const useGetApiV1RemotepathmappingId = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1RemotepathmappingIdQueryOptions(id, options);
@@ -15524,47 +15031,42 @@ export const useGetApiV1RemotepathmappingId = <
 
 export const getApiV1Rename = (
   params?: MaybeRef<GetApiV1RenameParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<RenameBookResource[]>> => {
+  signal?: AbortSignal
+) => {
   params = unref(params);
-  return axios.get(`http://localhost:3001/api/v1/rename`, {
-    ...options,
-    params: { ...unref(params), ...options?.params },
+
+  return customInstance<RenameBookResource[]>({
+    url: `/api/v1/rename`,
+    method: "GET",
+    params: unref(params),
+    signal,
   });
 };
 
 export const getGetApiV1RenameQueryKey = (
   params?: MaybeRef<GetApiV1RenameParams>
 ) => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'rename',
-    ...(params ? [params] : []),
-  ] as const;
+  return ["api", "v1", "rename", ...(params ? [params] : [])] as const;
 };
 
 export const getGetApiV1RenameQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1Rename>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1RenameParams>,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getApiV1Rename>>, TError, TData>
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1RenameQueryKey(params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiV1Rename>>> = ({
     signal,
-  }) => getApiV1Rename(params, { signal, ...axiosOptions });
+  }) => getApiV1Rename(params, signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1Rename>>,
@@ -15576,18 +15078,17 @@ export const getGetApiV1RenameQueryOptions = <
 export type GetApiV1RenameQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1Rename>>
 >;
-export type GetApiV1RenameQueryError = AxiosError<unknown>;
+export type GetApiV1RenameQueryError = unknown;
 
 export const useGetApiV1Rename = <
   TData = Awaited<ReturnType<typeof getApiV1Rename>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1RenameParams>,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getApiV1Rename>>, TError, TData>
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1RenameQueryOptions(params, options);
@@ -15603,47 +15104,42 @@ export const useGetApiV1Rename = <
 
 export const getApiV1Retag = (
   params?: MaybeRef<GetApiV1RetagParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<RetagBookResource[]>> => {
+  signal?: AbortSignal
+) => {
   params = unref(params);
-  return axios.get(`http://localhost:3001/api/v1/retag`, {
-    ...options,
-    params: { ...unref(params), ...options?.params },
+
+  return customInstance<RetagBookResource[]>({
+    url: `/api/v1/retag`,
+    method: "GET",
+    params: unref(params),
+    signal,
   });
 };
 
 export const getGetApiV1RetagQueryKey = (
   params?: MaybeRef<GetApiV1RetagParams>
 ) => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'retag',
-    ...(params ? [params] : []),
-  ] as const;
+  return ["api", "v1", "retag", ...(params ? [params] : [])] as const;
 };
 
 export const getGetApiV1RetagQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1Retag>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1RetagParams>,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getApiV1Retag>>, TError, TData>
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1RetagQueryKey(params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiV1Retag>>> = ({
     signal,
-  }) => getApiV1Retag(params, { signal, ...axiosOptions });
+  }) => getApiV1Retag(params, signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1Retag>>,
@@ -15655,18 +15151,17 @@ export const getGetApiV1RetagQueryOptions = <
 export type GetApiV1RetagQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1Retag>>
 >;
-export type GetApiV1RetagQueryError = AxiosError<unknown>;
+export type GetApiV1RetagQueryError = unknown;
 
 export const useGetApiV1Retag = <
   TData = Awaited<ReturnType<typeof getApiV1Retag>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1RetagParams>,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getApiV1Retag>>, TError, TData>
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1RetagQueryOptions(params, options);
@@ -15681,19 +15176,20 @@ export const useGetApiV1Retag = <
 };
 
 export const postApiV1Rootfolder = (
-  rootFolderResource: MaybeRef<RootFolderResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<RootFolderResource>> => {
+  rootFolderResource: MaybeRef<RootFolderResource>
+) => {
   rootFolderResource = unref(rootFolderResource);
-  return axios.post(
-    `http://localhost:3001/api/v1/rootfolder`,
-    rootFolderResource,
-    options
-  );
+
+  return customInstance<RootFolderResource>({
+    url: `/api/v1/rootfolder`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: rootFolderResource,
+  });
 };
 
 export const getPostApiV1RootfolderMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -15702,14 +15198,13 @@ export const getPostApiV1RootfolderMutationOptions = <
     { data: RootFolderResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1Rootfolder>>,
   TError,
   { data: RootFolderResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1Rootfolder>>,
@@ -15717,7 +15212,7 @@ export const getPostApiV1RootfolderMutationOptions = <
   > = (props) => {
     const { data } = props ?? {};
 
-    return postApiV1Rootfolder(data, axiosOptions);
+    return postApiV1Rootfolder(data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -15727,10 +15222,10 @@ export type PostApiV1RootfolderMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1Rootfolder>>
 >;
 export type PostApiV1RootfolderMutationBody = RootFolderResource;
-export type PostApiV1RootfolderMutationError = AxiosError<unknown>;
+export type PostApiV1RootfolderMutationError = unknown;
 
 export const usePostApiV1Rootfolder = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -15739,7 +15234,6 @@ export const usePostApiV1Rootfolder = <
     { data: RootFolderResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1Rootfolder>>,
   TError,
@@ -15751,19 +15245,21 @@ export const usePostApiV1Rootfolder = <
   return useMutation(mutationOptions);
 };
 
-export const getApiV1Rootfolder = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<RootFolderResource[]>> => {
-  return axios.get(`http://localhost:3001/api/v1/rootfolder`, options);
+export const getApiV1Rootfolder = (signal?: AbortSignal) => {
+  return customInstance<RootFolderResource[]>({
+    url: `/api/v1/rootfolder`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1RootfolderQueryKey = () => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'rootfolder'] as const;
+  return ["api", "v1", "rootfolder"] as const;
 };
 
 export const getGetApiV1RootfolderQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1Rootfolder>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -15772,15 +15268,14 @@ export const getGetApiV1RootfolderQueryOptions = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1RootfolderQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1Rootfolder>>
-  > = ({ signal }) => getApiV1Rootfolder({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1Rootfolder(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1Rootfolder>>,
@@ -15792,11 +15287,11 @@ export const getGetApiV1RootfolderQueryOptions = <
 export type GetApiV1RootfolderQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1Rootfolder>>
 >;
-export type GetApiV1RootfolderQueryError = AxiosError<unknown>;
+export type GetApiV1RootfolderQueryError = unknown;
 
 export const useGetApiV1Rootfolder = <
   TData = Awaited<ReturnType<typeof getApiV1Rootfolder>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -15805,7 +15300,6 @@ export const useGetApiV1Rootfolder = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1RootfolderQueryOptions(options);
 
@@ -15820,20 +15314,21 @@ export const useGetApiV1Rootfolder = <
 
 export const putApiV1RootfolderId = (
   id: MaybeRef<string | undefined | null>,
-  rootFolderResource: MaybeRef<RootFolderResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<RootFolderResource>> => {
+  rootFolderResource: MaybeRef<RootFolderResource>
+) => {
   id = unref(id);
   rootFolderResource = unref(rootFolderResource);
-  return axios.put(
-    `http://localhost:3001/api/v1/rootfolder/${id}`,
-    rootFolderResource,
-    options
-  );
+
+  return customInstance<RootFolderResource>({
+    url: `/api/v1/rootfolder/${id}`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: rootFolderResource,
+  });
 };
 
 export const getPutApiV1RootfolderIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -15842,14 +15337,13 @@ export const getPutApiV1RootfolderIdMutationOptions = <
     { id: string; data: RootFolderResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof putApiV1RootfolderId>>,
   TError,
   { id: string; data: RootFolderResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof putApiV1RootfolderId>>,
@@ -15857,7 +15351,7 @@ export const getPutApiV1RootfolderIdMutationOptions = <
   > = (props) => {
     const { id, data } = props ?? {};
 
-    return putApiV1RootfolderId(id, data, axiosOptions);
+    return putApiV1RootfolderId(id, data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -15867,10 +15361,10 @@ export type PutApiV1RootfolderIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof putApiV1RootfolderId>>
 >;
 export type PutApiV1RootfolderIdMutationBody = RootFolderResource;
-export type PutApiV1RootfolderIdMutationError = AxiosError<unknown>;
+export type PutApiV1RootfolderIdMutationError = unknown;
 
 export const usePutApiV1RootfolderId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -15879,7 +15373,6 @@ export const usePutApiV1RootfolderId = <
     { id: string; data: RootFolderResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof putApiV1RootfolderId>>,
   TError,
@@ -15892,15 +15385,18 @@ export const usePutApiV1RootfolderId = <
 };
 
 export const deleteApiV1RootfolderId = (
-  id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  id: MaybeRef<number | undefined | null>
+) => {
   id = unref(id);
-  return axios.delete(`http://localhost:3001/api/v1/rootfolder/${id}`, options);
+
+  return customInstance<void>({
+    url: `/api/v1/rootfolder/${id}`,
+    method: "DELETE",
+  });
 };
 
 export const getDeleteApiV1RootfolderIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -15909,14 +15405,13 @@ export const getDeleteApiV1RootfolderIdMutationOptions = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof deleteApiV1RootfolderId>>,
   TError,
   { id: number },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deleteApiV1RootfolderId>>,
@@ -15924,7 +15419,7 @@ export const getDeleteApiV1RootfolderIdMutationOptions = <
   > = (props) => {
     const { id } = props ?? {};
 
-    return deleteApiV1RootfolderId(id, axiosOptions);
+    return deleteApiV1RootfolderId(id);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -15934,10 +15429,10 @@ export type DeleteApiV1RootfolderIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof deleteApiV1RootfolderId>>
 >;
 
-export type DeleteApiV1RootfolderIdMutationError = AxiosError<unknown>;
+export type DeleteApiV1RootfolderIdMutationError = unknown;
 
 export const useDeleteApiV1RootfolderId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -15946,7 +15441,6 @@ export const useDeleteApiV1RootfolderId = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof deleteApiV1RootfolderId>>,
   TError,
@@ -15960,21 +15454,26 @@ export const useDeleteApiV1RootfolderId = <
 
 export const getApiV1RootfolderId = (
   id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<RootFolderResource>> => {
+  signal?: AbortSignal
+) => {
   id = unref(id);
-  return axios.get(`http://localhost:3001/api/v1/rootfolder/${id}`, options);
+
+  return customInstance<RootFolderResource>({
+    url: `/api/v1/rootfolder/${id}`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1RootfolderIdQueryKey = (
   id: MaybeRef<number | undefined | null>
 ) => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'rootfolder', id] as const;
+  return ["api", "v1", "rootfolder", id] as const;
 };
 
 export const getGetApiV1RootfolderIdQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1RootfolderId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -15985,16 +15484,15 @@ export const getGetApiV1RootfolderIdQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1RootfolderIdQueryKey(id);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1RootfolderId>>
-  > = ({ signal }) => getApiV1RootfolderId(id, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1RootfolderId(id, signal);
 
   return {
     queryKey,
@@ -16011,11 +15509,11 @@ export const getGetApiV1RootfolderIdQueryOptions = <
 export type GetApiV1RootfolderIdQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1RootfolderId>>
 >;
-export type GetApiV1RootfolderIdQueryError = AxiosError<unknown>;
+export type GetApiV1RootfolderIdQueryError = unknown;
 
 export const useGetApiV1RootfolderId = <
   TData = Awaited<ReturnType<typeof getApiV1RootfolderId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -16026,7 +15524,6 @@ export const useGetApiV1RootfolderId = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1RootfolderIdQueryOptions(id, options);
@@ -16042,47 +15539,42 @@ export const useGetApiV1RootfolderId = <
 
 export const getApiV1Search = (
   params?: MaybeRef<GetApiV1SearchParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<SearchResource[]>> => {
+  signal?: AbortSignal
+) => {
   params = unref(params);
-  return axios.get(`http://localhost:3001/api/v1/search`, {
-    ...options,
-    params: { ...unref(params), ...options?.params },
+
+  return customInstance<SearchResource[]>({
+    url: `/api/v1/search`,
+    method: "GET",
+    params: unref(params),
+    signal,
   });
 };
 
 export const getGetApiV1SearchQueryKey = (
   params?: MaybeRef<GetApiV1SearchParams>
 ) => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'search',
-    ...(params ? [params] : []),
-  ] as const;
+  return ["api", "v1", "search", ...(params ? [params] : [])] as const;
 };
 
 export const getGetApiV1SearchQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1Search>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1SearchParams>,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getApiV1Search>>, TError, TData>
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1SearchQueryKey(params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiV1Search>>> = ({
     signal,
-  }) => getApiV1Search(params, { signal, ...axiosOptions });
+  }) => getApiV1Search(params, signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1Search>>,
@@ -16094,18 +15586,17 @@ export const getGetApiV1SearchQueryOptions = <
 export type GetApiV1SearchQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1Search>>
 >;
-export type GetApiV1SearchQueryError = AxiosError<unknown>;
+export type GetApiV1SearchQueryError = unknown;
 
 export const useGetApiV1Search = <
   TData = Awaited<ReturnType<typeof getApiV1Search>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
-  params?: MaybeRef<GetApiV1SearchParams | undefined>,
+  params?: MaybeRef<GetApiV1SearchParams>,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getApiV1Search>>, TError, TData>
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1SearchQueryOptions(params, options);
@@ -16121,47 +15612,42 @@ export const useGetApiV1Search = <
 
 export const getApiV1Series = (
   params?: MaybeRef<GetApiV1SeriesParams>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<SeriesResource[]>> => {
+  signal?: AbortSignal
+) => {
   params = unref(params);
-  return axios.get(`http://localhost:3001/api/v1/series`, {
-    ...options,
-    params: { ...unref(params), ...options?.params },
+
+  return customInstance<SeriesResource[]>({
+    url: `/api/v1/series`,
+    method: "GET",
+    params: unref(params),
+    signal,
   });
 };
 
 export const getGetApiV1SeriesQueryKey = (
   params?: MaybeRef<GetApiV1SeriesParams>
 ) => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'series',
-    ...(params ? [params] : []),
-  ] as const;
+  return ["api", "v1", "series", ...(params ? [params] : [])] as const;
 };
 
 export const getGetApiV1SeriesQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1Series>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1SeriesParams>,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getApiV1Series>>, TError, TData>
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1SeriesQueryKey(params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiV1Series>>> = ({
     signal,
-  }) => getApiV1Series(params, { signal, ...axiosOptions });
+  }) => getApiV1Series(params, signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1Series>>,
@@ -16173,18 +15659,17 @@ export const getGetApiV1SeriesQueryOptions = <
 export type GetApiV1SeriesQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1Series>>
 >;
-export type GetApiV1SeriesQueryError = AxiosError<unknown>;
+export type GetApiV1SeriesQueryError = unknown;
 
 export const useGetApiV1Series = <
   TData = Awaited<ReturnType<typeof getApiV1Series>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   params?: MaybeRef<GetApiV1SeriesParams>,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getApiV1Series>>, TError, TData>
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1SeriesQueryOptions(params, options);
@@ -16200,37 +15685,41 @@ export const useGetApiV1Series = <
 
 export const getContentPath = (
   path: MaybeRef<string | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  signal?: AbortSignal
+) => {
   path = unref(path);
-  return axios.get(`http://localhost:3001/content/${path}`, options);
+
+  return customInstance<void>({
+    url: `/content/${path}`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetContentPathQueryKey = (
   path: MaybeRef<string | undefined | null>
 ) => {
-  return ['http:', 'localhost:3001', 'content', path] as const;
+  return ["content", path] as const;
 };
 
 export const getGetContentPathQueryOptions = <
   TData = Awaited<ReturnType<typeof getContentPath>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   path: MaybeRef<string | undefined | null>,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getContentPath>>, TError, TData>
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetContentPathQueryKey(path);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getContentPath>>> = ({
     signal,
-  }) => getContentPath(path, { signal, ...axiosOptions });
+  }) => getContentPath(path, signal);
 
   return {
     queryKey,
@@ -16247,18 +15736,17 @@ export const getGetContentPathQueryOptions = <
 export type GetContentPathQueryResult = NonNullable<
   Awaited<ReturnType<typeof getContentPath>>
 >;
-export type GetContentPathQueryError = AxiosError<unknown>;
+export type GetContentPathQueryError = unknown;
 
 export const useGetContentPath = <
   TData = Awaited<ReturnType<typeof getContentPath>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   path: MaybeRef<string | undefined | null>,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getContentPath>>, TError, TData>
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetContentPathQueryOptions(path, options);
@@ -16272,32 +15760,29 @@ export const useGetContentPath = <
   return query;
 };
 
-export const get = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
-  return axios.get(`http://localhost:3001/`, options);
+export const get = (signal?: AbortSignal) => {
+  return customInstance<void>({ url: `/`, method: "GET", signal });
 };
 
 export const getGetQueryKey = () => {
-  return ['http:', 'localhost:3001'] as const;
+  return [] as const;
 };
 
 export const getGetQueryOptions = <
   TData = Awaited<ReturnType<typeof get>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<Awaited<ReturnType<typeof get>>, TError, TData>
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetQueryKey();
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof get>>> = ({
     signal,
-  }) => get({ signal, ...axiosOptions });
+  }) => get(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof get>>,
@@ -16307,16 +15792,15 @@ export const getGetQueryOptions = <
 };
 
 export type GetQueryResult = NonNullable<Awaited<ReturnType<typeof get>>>;
-export type GetQueryError = AxiosError<unknown>;
+export type GetQueryError = unknown;
 
 export const useGet = <
   TData = Awaited<ReturnType<typeof get>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<Awaited<ReturnType<typeof get>>, TError, TData>
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetQueryOptions(options);
 
@@ -16331,37 +15815,37 @@ export const useGet = <
 
 export const getPath = (
   path: MaybeRef<string | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  signal?: AbortSignal
+) => {
   path = unref(path);
-  return axios.get(`http://localhost:3001/${path}`, options);
+
+  return customInstance<void>({ url: `/${path}`, method: "GET", signal });
 };
 
 export const getGetPathQueryKey = (
   path: MaybeRef<string | undefined | null>
 ) => {
-  return ['http:', 'localhost:3001', path] as const;
+  return [path] as const;
 };
 
 export const getGetPathQueryOptions = <
   TData = Awaited<ReturnType<typeof getPath>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   path: MaybeRef<string | undefined | null>,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getPath>>, TError, TData>
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetPathQueryKey(path);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getPath>>> = ({
     signal,
-  }) => getPath(path, { signal, ...axiosOptions });
+  }) => getPath(path, signal);
 
   return {
     queryKey,
@@ -16374,18 +15858,17 @@ export const getGetPathQueryOptions = <
 export type GetPathQueryResult = NonNullable<
   Awaited<ReturnType<typeof getPath>>
 >;
-export type GetPathQueryError = AxiosError<unknown>;
+export type GetPathQueryError = unknown;
 
 export const useGetPath = <
   TData = Awaited<ReturnType<typeof getPath>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   path: MaybeRef<string | undefined | null>,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getPath>>, TError, TData>
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetPathQueryOptions(path, options);
@@ -16399,19 +15882,21 @@ export const useGetPath = <
   return query;
 };
 
-export const getApiV1SystemStatus = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<SystemResource>> => {
-  return axios.get(`http://localhost:3001/api/v1/system/status`, options);
+export const getApiV1SystemStatus = (signal?: AbortSignal) => {
+  return customInstance<SystemResource>({
+    url: `/api/v1/system/status`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1SystemStatusQueryKey = () => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'system', 'status'] as const;
+  return ["api", "v1", "system", "status"] as const;
 };
 
 export const getGetApiV1SystemStatusQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1SystemStatus>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -16420,15 +15905,14 @@ export const getGetApiV1SystemStatusQueryOptions = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1SystemStatusQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1SystemStatus>>
-  > = ({ signal }) => getApiV1SystemStatus({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1SystemStatus(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1SystemStatus>>,
@@ -16440,11 +15924,11 @@ export const getGetApiV1SystemStatusQueryOptions = <
 export type GetApiV1SystemStatusQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1SystemStatus>>
 >;
-export type GetApiV1SystemStatusQueryError = AxiosError<unknown>;
+export type GetApiV1SystemStatusQueryError = unknown;
 
 export const useGetApiV1SystemStatus = <
   TData = Awaited<ReturnType<typeof getApiV1SystemStatus>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -16453,7 +15937,6 @@ export const useGetApiV1SystemStatus = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1SystemStatusQueryOptions(options);
 
@@ -16466,19 +15949,21 @@ export const useGetApiV1SystemStatus = <
   return query;
 };
 
-export const getApiV1SystemRoutes = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
-  return axios.get(`http://localhost:3001/api/v1/system/routes`, options);
+export const getApiV1SystemRoutes = (signal?: AbortSignal) => {
+  return customInstance<void>({
+    url: `/api/v1/system/routes`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1SystemRoutesQueryKey = () => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'system', 'routes'] as const;
+  return ["api", "v1", "system", "routes"] as const;
 };
 
 export const getGetApiV1SystemRoutesQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1SystemRoutes>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -16487,15 +15972,14 @@ export const getGetApiV1SystemRoutesQueryOptions = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1SystemRoutesQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1SystemRoutes>>
-  > = ({ signal }) => getApiV1SystemRoutes({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1SystemRoutes(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1SystemRoutes>>,
@@ -16507,11 +15991,11 @@ export const getGetApiV1SystemRoutesQueryOptions = <
 export type GetApiV1SystemRoutesQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1SystemRoutes>>
 >;
-export type GetApiV1SystemRoutesQueryError = AxiosError<unknown>;
+export type GetApiV1SystemRoutesQueryError = unknown;
 
 export const useGetApiV1SystemRoutes = <
   TData = Awaited<ReturnType<typeof getApiV1SystemRoutes>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -16520,7 +16004,6 @@ export const useGetApiV1SystemRoutes = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1SystemRoutesQueryOptions(options);
 
@@ -16533,30 +16016,21 @@ export const useGetApiV1SystemRoutes = <
   return query;
 };
 
-export const getApiV1SystemRoutesDuplicate = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
-  return axios.get(
-    `http://localhost:3001/api/v1/system/routes/duplicate`,
-    options
-  );
+export const getApiV1SystemRoutesDuplicate = (signal?: AbortSignal) => {
+  return customInstance<void>({
+    url: `/api/v1/system/routes/duplicate`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1SystemRoutesDuplicateQueryKey = () => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'system',
-    'routes',
-    'duplicate',
-  ] as const;
+  return ["api", "v1", "system", "routes", "duplicate"] as const;
 };
 
 export const getGetApiV1SystemRoutesDuplicateQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1SystemRoutesDuplicate>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -16565,16 +16039,14 @@ export const getGetApiV1SystemRoutesDuplicateQueryOptions = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1SystemRoutesDuplicateQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1SystemRoutesDuplicate>>
-  > = ({ signal }) =>
-    getApiV1SystemRoutesDuplicate({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1SystemRoutesDuplicate(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1SystemRoutesDuplicate>>,
@@ -16586,11 +16058,11 @@ export const getGetApiV1SystemRoutesDuplicateQueryOptions = <
 export type GetApiV1SystemRoutesDuplicateQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1SystemRoutesDuplicate>>
 >;
-export type GetApiV1SystemRoutesDuplicateQueryError = AxiosError<unknown>;
+export type GetApiV1SystemRoutesDuplicateQueryError = unknown;
 
 export const useGetApiV1SystemRoutesDuplicate = <
   TData = Awaited<ReturnType<typeof getApiV1SystemRoutesDuplicate>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -16599,7 +16071,6 @@ export const useGetApiV1SystemRoutesDuplicate = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1SystemRoutesDuplicateQueryOptions(options);
 
@@ -16612,18 +16083,15 @@ export const useGetApiV1SystemRoutesDuplicate = <
   return query;
 };
 
-export const postApiV1SystemShutdown = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
-  return axios.post(
-    `http://localhost:3001/api/v1/system/shutdown`,
-    undefined,
-    options
-  );
+export const postApiV1SystemShutdown = () => {
+  return customInstance<void>({
+    url: `/api/v1/system/shutdown`,
+    method: "POST",
+  });
 };
 
 export const getPostApiV1SystemShutdownMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -16632,20 +16100,19 @@ export const getPostApiV1SystemShutdownMutationOptions = <
     void,
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1SystemShutdown>>,
   TError,
   void,
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1SystemShutdown>>,
     void
   > = () => {
-    return postApiV1SystemShutdown(axiosOptions);
+    return postApiV1SystemShutdown();
   };
 
   return { mutationFn, ...mutationOptions };
@@ -16655,10 +16122,10 @@ export type PostApiV1SystemShutdownMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1SystemShutdown>>
 >;
 
-export type PostApiV1SystemShutdownMutationError = AxiosError<unknown>;
+export type PostApiV1SystemShutdownMutationError = unknown;
 
 export const usePostApiV1SystemShutdown = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -16667,7 +16134,6 @@ export const usePostApiV1SystemShutdown = <
     void,
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1SystemShutdown>>,
   TError,
@@ -16679,18 +16145,15 @@ export const usePostApiV1SystemShutdown = <
   return useMutation(mutationOptions);
 };
 
-export const postApiV1SystemRestart = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
-  return axios.post(
-    `http://localhost:3001/api/v1/system/restart`,
-    undefined,
-    options
-  );
+export const postApiV1SystemRestart = () => {
+  return customInstance<void>({
+    url: `/api/v1/system/restart`,
+    method: "POST",
+  });
 };
 
 export const getPostApiV1SystemRestartMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -16699,20 +16162,19 @@ export const getPostApiV1SystemRestartMutationOptions = <
     void,
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1SystemRestart>>,
   TError,
   void,
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1SystemRestart>>,
     void
   > = () => {
-    return postApiV1SystemRestart(axiosOptions);
+    return postApiV1SystemRestart();
   };
 
   return { mutationFn, ...mutationOptions };
@@ -16722,10 +16184,10 @@ export type PostApiV1SystemRestartMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1SystemRestart>>
 >;
 
-export type PostApiV1SystemRestartMutationError = AxiosError<unknown>;
+export type PostApiV1SystemRestartMutationError = unknown;
 
 export const usePostApiV1SystemRestart = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -16734,7 +16196,6 @@ export const usePostApiV1SystemRestart = <
     void,
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1SystemRestart>>,
   TError,
@@ -16746,32 +16207,33 @@ export const usePostApiV1SystemRestart = <
   return useMutation(mutationOptions);
 };
 
-export const getApiV1Tag = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<TagResource[]>> => {
-  return axios.get(`http://localhost:3001/api/v1/tag`, options);
+export const getApiV1Tag = (signal?: AbortSignal) => {
+  return customInstance<TagResource[]>({
+    url: `/api/v1/tag`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1TagQueryKey = () => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'tag'] as const;
+  return ["api", "v1", "tag"] as const;
 };
 
 export const getGetApiV1TagQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1Tag>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<Awaited<ReturnType<typeof getApiV1Tag>>, TError, TData>
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1TagQueryKey();
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiV1Tag>>> = ({
     signal,
-  }) => getApiV1Tag({ signal, ...axiosOptions });
+  }) => getApiV1Tag(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1Tag>>,
@@ -16783,16 +16245,15 @@ export const getGetApiV1TagQueryOptions = <
 export type GetApiV1TagQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1Tag>>
 >;
-export type GetApiV1TagQueryError = AxiosError<unknown>;
+export type GetApiV1TagQueryError = unknown;
 
 export const useGetApiV1Tag = <
   TData = Awaited<ReturnType<typeof getApiV1Tag>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<Awaited<ReturnType<typeof getApiV1Tag>>, TError, TData>
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1TagQueryOptions(options);
 
@@ -16805,16 +16266,19 @@ export const useGetApiV1Tag = <
   return query;
 };
 
-export const postApiV1Tag = (
-  tagResource: MaybeRef<TagResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<TagResource>> => {
+export const postApiV1Tag = (tagResource: MaybeRef<TagResource>) => {
   tagResource = unref(tagResource);
-  return axios.post(`http://localhost:3001/api/v1/tag`, tagResource, options);
+
+  return customInstance<TagResource>({
+    url: `/api/v1/tag`,
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    data: tagResource,
+  });
 };
 
 export const getPostApiV1TagMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -16823,14 +16287,13 @@ export const getPostApiV1TagMutationOptions = <
     { data: TagResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof postApiV1Tag>>,
   TError,
   { data: TagResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof postApiV1Tag>>,
@@ -16838,7 +16301,7 @@ export const getPostApiV1TagMutationOptions = <
   > = (props) => {
     const { data } = props ?? {};
 
-    return postApiV1Tag(data, axiosOptions);
+    return postApiV1Tag(data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -16848,10 +16311,10 @@ export type PostApiV1TagMutationResult = NonNullable<
   Awaited<ReturnType<typeof postApiV1Tag>>
 >;
 export type PostApiV1TagMutationBody = TagResource;
-export type PostApiV1TagMutationError = AxiosError<unknown>;
+export type PostApiV1TagMutationError = unknown;
 
 export const usePostApiV1Tag = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -16860,7 +16323,6 @@ export const usePostApiV1Tag = <
     { data: TagResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof postApiV1Tag>>,
   TError,
@@ -16874,20 +16336,21 @@ export const usePostApiV1Tag = <
 
 export const putApiV1TagId = (
   id: MaybeRef<string | undefined | null>,
-  tagResource: MaybeRef<TagResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<TagResource>> => {
+  tagResource: MaybeRef<TagResource>
+) => {
   id = unref(id);
   tagResource = unref(tagResource);
-  return axios.put(
-    `http://localhost:3001/api/v1/tag/${id}`,
-    tagResource,
-    options
-  );
+
+  return customInstance<TagResource>({
+    url: `/api/v1/tag/${id}`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: tagResource,
+  });
 };
 
 export const getPutApiV1TagIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -16896,14 +16359,13 @@ export const getPutApiV1TagIdMutationOptions = <
     { id: string; data: TagResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof putApiV1TagId>>,
   TError,
   { id: string; data: TagResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof putApiV1TagId>>,
@@ -16911,7 +16373,7 @@ export const getPutApiV1TagIdMutationOptions = <
   > = (props) => {
     const { id, data } = props ?? {};
 
-    return putApiV1TagId(id, data, axiosOptions);
+    return putApiV1TagId(id, data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -16921,10 +16383,10 @@ export type PutApiV1TagIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof putApiV1TagId>>
 >;
 export type PutApiV1TagIdMutationBody = TagResource;
-export type PutApiV1TagIdMutationError = AxiosError<unknown>;
+export type PutApiV1TagIdMutationError = unknown;
 
 export const usePutApiV1TagId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -16933,7 +16395,6 @@ export const usePutApiV1TagId = <
     { id: string; data: TagResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof putApiV1TagId>>,
   TError,
@@ -16945,16 +16406,14 @@ export const usePutApiV1TagId = <
   return useMutation(mutationOptions);
 };
 
-export const deleteApiV1TagId = (
-  id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+export const deleteApiV1TagId = (id: MaybeRef<number | undefined | null>) => {
   id = unref(id);
-  return axios.delete(`http://localhost:3001/api/v1/tag/${id}`, options);
+
+  return customInstance<void>({ url: `/api/v1/tag/${id}`, method: "DELETE" });
 };
 
 export const getDeleteApiV1TagIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -16963,14 +16422,13 @@ export const getDeleteApiV1TagIdMutationOptions = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof deleteApiV1TagId>>,
   TError,
   { id: number },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deleteApiV1TagId>>,
@@ -16978,7 +16436,7 @@ export const getDeleteApiV1TagIdMutationOptions = <
   > = (props) => {
     const { id } = props ?? {};
 
-    return deleteApiV1TagId(id, axiosOptions);
+    return deleteApiV1TagId(id);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -16988,10 +16446,10 @@ export type DeleteApiV1TagIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof deleteApiV1TagId>>
 >;
 
-export type DeleteApiV1TagIdMutationError = AxiosError<unknown>;
+export type DeleteApiV1TagIdMutationError = unknown;
 
 export const useDeleteApiV1TagId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -17000,7 +16458,6 @@ export const useDeleteApiV1TagId = <
     { id: number },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof deleteApiV1TagId>>,
   TError,
@@ -17014,37 +16471,41 @@ export const useDeleteApiV1TagId = <
 
 export const getApiV1TagId = (
   id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<TagResource>> => {
+  signal?: AbortSignal
+) => {
   id = unref(id);
-  return axios.get(`http://localhost:3001/api/v1/tag/${id}`, options);
+
+  return customInstance<TagResource>({
+    url: `/api/v1/tag/${id}`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1TagIdQueryKey = (
   id: MaybeRef<number | undefined | null>
 ) => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'tag', id] as const;
+  return ["api", "v1", "tag", id] as const;
 };
 
 export const getGetApiV1TagIdQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1TagId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getApiV1TagId>>, TError, TData>
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1TagIdQueryKey(id);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiV1TagId>>> = ({
     signal,
-  }) => getApiV1TagId(id, { signal, ...axiosOptions });
+  }) => getApiV1TagId(id, signal);
 
   return {
     queryKey,
@@ -17061,18 +16522,17 @@ export const getGetApiV1TagIdQueryOptions = <
 export type GetApiV1TagIdQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1TagId>>
 >;
-export type GetApiV1TagIdQueryError = AxiosError<unknown>;
+export type GetApiV1TagIdQueryError = unknown;
 
 export const useGetApiV1TagId = <
   TData = Awaited<ReturnType<typeof getApiV1TagId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof getApiV1TagId>>, TError, TData>
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1TagIdQueryOptions(id, options);
@@ -17086,19 +16546,21 @@ export const useGetApiV1TagId = <
   return query;
 };
 
-export const getApiV1TagDetail = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<TagDetailsResource[]>> => {
-  return axios.get(`http://localhost:3001/api/v1/tag/detail`, options);
+export const getApiV1TagDetail = (signal?: AbortSignal) => {
+  return customInstance<TagDetailsResource[]>({
+    url: `/api/v1/tag/detail`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1TagDetailQueryKey = () => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'tag', 'detail'] as const;
+  return ["api", "v1", "tag", "detail"] as const;
 };
 
 export const getGetApiV1TagDetailQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1TagDetail>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -17107,15 +16569,14 @@ export const getGetApiV1TagDetailQueryOptions = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1TagDetailQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1TagDetail>>
-  > = ({ signal }) => getApiV1TagDetail({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1TagDetail(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1TagDetail>>,
@@ -17127,11 +16588,11 @@ export const getGetApiV1TagDetailQueryOptions = <
 export type GetApiV1TagDetailQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1TagDetail>>
 >;
-export type GetApiV1TagDetailQueryError = AxiosError<unknown>;
+export type GetApiV1TagDetailQueryError = unknown;
 
 export const useGetApiV1TagDetail = <
   TData = Awaited<ReturnType<typeof getApiV1TagDetail>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -17140,7 +16601,6 @@ export const useGetApiV1TagDetail = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1TagDetailQueryOptions(options);
 
@@ -17155,21 +16615,26 @@ export const useGetApiV1TagDetail = <
 
 export const getApiV1TagDetailId = (
   id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<TagDetailsResource>> => {
+  signal?: AbortSignal
+) => {
   id = unref(id);
-  return axios.get(`http://localhost:3001/api/v1/tag/detail/${id}`, options);
+
+  return customInstance<TagDetailsResource>({
+    url: `/api/v1/tag/detail/${id}`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1TagDetailIdQueryKey = (
   id: MaybeRef<number | undefined | null>
 ) => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'tag', 'detail', id] as const;
+  return ["api", "v1", "tag", "detail", id] as const;
 };
 
 export const getGetApiV1TagDetailIdQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1TagDetailId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -17180,16 +16645,15 @@ export const getGetApiV1TagDetailIdQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1TagDetailIdQueryKey(id);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1TagDetailId>>
-  > = ({ signal }) => getApiV1TagDetailId(id, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1TagDetailId(id, signal);
 
   return {
     queryKey,
@@ -17206,11 +16670,11 @@ export const getGetApiV1TagDetailIdQueryOptions = <
 export type GetApiV1TagDetailIdQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1TagDetailId>>
 >;
-export type GetApiV1TagDetailIdQueryError = AxiosError<unknown>;
+export type GetApiV1TagDetailIdQueryError = unknown;
 
 export const useGetApiV1TagDetailId = <
   TData = Awaited<ReturnType<typeof getApiV1TagDetailId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -17221,7 +16685,6 @@ export const useGetApiV1TagDetailId = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1TagDetailIdQueryOptions(id, options);
@@ -17235,19 +16698,21 @@ export const useGetApiV1TagDetailId = <
   return query;
 };
 
-export const getApiV1SystemTask = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<TaskResource[]>> => {
-  return axios.get(`http://localhost:3001/api/v1/system/task`, options);
+export const getApiV1SystemTask = (signal?: AbortSignal) => {
+  return customInstance<TaskResource[]>({
+    url: `/api/v1/system/task`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1SystemTaskQueryKey = () => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'system', 'task'] as const;
+  return ["api", "v1", "system", "task"] as const;
 };
 
 export const getGetApiV1SystemTaskQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1SystemTask>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -17256,15 +16721,14 @@ export const getGetApiV1SystemTaskQueryOptions = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1SystemTaskQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1SystemTask>>
-  > = ({ signal }) => getApiV1SystemTask({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1SystemTask(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1SystemTask>>,
@@ -17276,11 +16740,11 @@ export const getGetApiV1SystemTaskQueryOptions = <
 export type GetApiV1SystemTaskQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1SystemTask>>
 >;
-export type GetApiV1SystemTaskQueryError = AxiosError<unknown>;
+export type GetApiV1SystemTaskQueryError = unknown;
 
 export const useGetApiV1SystemTask = <
   TData = Awaited<ReturnType<typeof getApiV1SystemTask>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -17289,7 +16753,6 @@ export const useGetApiV1SystemTask = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1SystemTaskQueryOptions(options);
 
@@ -17304,29 +16767,26 @@ export const useGetApiV1SystemTask = <
 
 export const getApiV1SystemTaskId = (
   id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<TaskResource>> => {
+  signal?: AbortSignal
+) => {
   id = unref(id);
-  return axios.get(`http://localhost:3001/api/v1/system/task/${id}`, options);
+
+  return customInstance<TaskResource>({
+    url: `/api/v1/system/task/${id}`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1SystemTaskIdQueryKey = (
   id: MaybeRef<number | undefined | null>
 ) => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'system',
-    'task',
-    id,
-  ] as const;
+  return ["api", "v1", "system", "task", id] as const;
 };
 
 export const getGetApiV1SystemTaskIdQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1SystemTaskId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -17337,16 +16797,15 @@ export const getGetApiV1SystemTaskIdQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1SystemTaskIdQueryKey(id);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1SystemTaskId>>
-  > = ({ signal }) => getApiV1SystemTaskId(id, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1SystemTaskId(id, signal);
 
   return {
     queryKey,
@@ -17363,11 +16822,11 @@ export const getGetApiV1SystemTaskIdQueryOptions = <
 export type GetApiV1SystemTaskIdQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1SystemTaskId>>
 >;
-export type GetApiV1SystemTaskIdQueryError = AxiosError<unknown>;
+export type GetApiV1SystemTaskIdQueryError = unknown;
 
 export const useGetApiV1SystemTaskId = <
   TData = Awaited<ReturnType<typeof getApiV1SystemTaskId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -17378,7 +16837,6 @@ export const useGetApiV1SystemTaskId = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1SystemTaskIdQueryOptions(id, options);
@@ -17394,20 +16852,21 @@ export const useGetApiV1SystemTaskId = <
 
 export const putApiV1ConfigUiId = (
   id: MaybeRef<string | undefined | null>,
-  uiConfigResource: MaybeRef<UiConfigResource>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<UiConfigResource>> => {
+  uiConfigResource: MaybeRef<UiConfigResource>
+) => {
   id = unref(id);
   uiConfigResource = unref(uiConfigResource);
-  return axios.put(
-    `http://localhost:3001/api/v1/config/ui/${id}`,
-    uiConfigResource,
-    options
-  );
+
+  return customInstance<UiConfigResource>({
+    url: `/api/v1/config/ui/${id}`,
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    data: uiConfigResource,
+  });
 };
 
 export const getPutApiV1ConfigUiIdMutationOptions = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -17416,14 +16875,13 @@ export const getPutApiV1ConfigUiIdMutationOptions = <
     { id: string; data: UiConfigResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof putApiV1ConfigUiId>>,
   TError,
   { id: string; data: UiConfigResource },
   TContext
 > => {
-  const { mutation: mutationOptions, axios: axiosOptions } = options ?? {};
+  const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof putApiV1ConfigUiId>>,
@@ -17431,7 +16889,7 @@ export const getPutApiV1ConfigUiIdMutationOptions = <
   > = (props) => {
     const { id, data } = props ?? {};
 
-    return putApiV1ConfigUiId(id, data, axiosOptions);
+    return putApiV1ConfigUiId(id, data);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -17441,10 +16899,10 @@ export type PutApiV1ConfigUiIdMutationResult = NonNullable<
   Awaited<ReturnType<typeof putApiV1ConfigUiId>>
 >;
 export type PutApiV1ConfigUiIdMutationBody = UiConfigResource;
-export type PutApiV1ConfigUiIdMutationError = AxiosError<unknown>;
+export type PutApiV1ConfigUiIdMutationError = unknown;
 
 export const usePutApiV1ConfigUiId = <
-  TError = AxiosError<unknown>,
+  TError = unknown,
   TContext = unknown
 >(options?: {
   mutation?: UseMutationOptions<
@@ -17453,7 +16911,6 @@ export const usePutApiV1ConfigUiId = <
     { id: string; data: UiConfigResource },
     TContext
   >;
-  axios?: AxiosRequestConfig;
 }): UseMutationReturnType<
   Awaited<ReturnType<typeof putApiV1ConfigUiId>>,
   TError,
@@ -17467,21 +16924,26 @@ export const usePutApiV1ConfigUiId = <
 
 export const getApiV1ConfigUiId = (
   id: MaybeRef<number | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<UiConfigResource>> => {
+  signal?: AbortSignal
+) => {
   id = unref(id);
-  return axios.get(`http://localhost:3001/api/v1/config/ui/${id}`, options);
+
+  return customInstance<UiConfigResource>({
+    url: `/api/v1/config/ui/${id}`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1ConfigUiIdQueryKey = (
   id: MaybeRef<number | undefined | null>
 ) => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'config', 'ui', id] as const;
+  return ["api", "v1", "config", "ui", id] as const;
 };
 
 export const getGetApiV1ConfigUiIdQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1ConfigUiId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -17492,16 +16954,15 @@ export const getGetApiV1ConfigUiIdQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1ConfigUiIdQueryKey(id);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1ConfigUiId>>
-  > = ({ signal }) => getApiV1ConfigUiId(id, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1ConfigUiId(id, signal);
 
   return {
     queryKey,
@@ -17518,11 +16979,11 @@ export const getGetApiV1ConfigUiIdQueryOptions = <
 export type GetApiV1ConfigUiIdQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1ConfigUiId>>
 >;
-export type GetApiV1ConfigUiIdQueryError = AxiosError<unknown>;
+export type GetApiV1ConfigUiIdQueryError = unknown;
 
 export const useGetApiV1ConfigUiId = <
   TData = Awaited<ReturnType<typeof getApiV1ConfigUiId>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   id: MaybeRef<number | undefined | null>,
   options?: {
@@ -17533,7 +16994,6 @@ export const useGetApiV1ConfigUiId = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1ConfigUiIdQueryOptions(id, options);
@@ -17547,32 +17007,33 @@ export const useGetApiV1ConfigUiId = <
   return query;
 };
 
-export const getApiV1ConfigUi = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<UiConfigResource>> => {
-  return axios.get(`http://localhost:3001/api/v1/config/ui`, options);
+export const getApiV1ConfigUi = (signal?: AbortSignal) => {
+  return customInstance<UiConfigResource>({
+    url: `/api/v1/config/ui`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1ConfigUiQueryKey = () => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'config', 'ui'] as const;
+  return ["api", "v1", "config", "ui"] as const;
 };
 
 export const getGetApiV1ConfigUiQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1ConfigUi>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<Awaited<ReturnType<typeof getApiV1ConfigUi>>, TError, TData>
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1ConfigUiQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1ConfigUi>>
-  > = ({ signal }) => getApiV1ConfigUi({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1ConfigUi(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1ConfigUi>>,
@@ -17584,16 +17045,15 @@ export const getGetApiV1ConfigUiQueryOptions = <
 export type GetApiV1ConfigUiQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1ConfigUi>>
 >;
-export type GetApiV1ConfigUiQueryError = AxiosError<unknown>;
+export type GetApiV1ConfigUiQueryError = unknown;
 
 export const useGetApiV1ConfigUi = <
   TData = Awaited<ReturnType<typeof getApiV1ConfigUi>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<Awaited<ReturnType<typeof getApiV1ConfigUi>>, TError, TData>
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1ConfigUiQueryOptions(options);
 
@@ -17606,32 +17066,33 @@ export const useGetApiV1ConfigUi = <
   return query;
 };
 
-export const getApiV1Update = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<UpdateResource[]>> => {
-  return axios.get(`http://localhost:3001/api/v1/update`, options);
+export const getApiV1Update = (signal?: AbortSignal) => {
+  return customInstance<UpdateResource[]>({
+    url: `/api/v1/update`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1UpdateQueryKey = () => {
-  return ['http:', 'localhost:3001', 'api', 'v1', 'update'] as const;
+  return ["api", "v1", "update"] as const;
 };
 
 export const getGetApiV1UpdateQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1Update>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<Awaited<ReturnType<typeof getApiV1Update>>, TError, TData>
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1UpdateQueryKey();
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiV1Update>>> = ({
     signal,
-  }) => getApiV1Update({ signal, ...axiosOptions });
+  }) => getApiV1Update(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1Update>>,
@@ -17643,16 +17104,15 @@ export const getGetApiV1UpdateQueryOptions = <
 export type GetApiV1UpdateQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1Update>>
 >;
-export type GetApiV1UpdateQueryError = AxiosError<unknown>;
+export type GetApiV1UpdateQueryError = unknown;
 
 export const useGetApiV1Update = <
   TData = Awaited<ReturnType<typeof getApiV1Update>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<Awaited<ReturnType<typeof getApiV1Update>>, TError, TData>
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1UpdateQueryOptions(options);
 
@@ -17665,27 +17125,21 @@ export const useGetApiV1Update = <
   return query;
 };
 
-export const getApiV1LogFileUpdate = (
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<LogFileResource[]>> => {
-  return axios.get(`http://localhost:3001/api/v1/log/file/update`, options);
+export const getApiV1LogFileUpdate = (signal?: AbortSignal) => {
+  return customInstance<LogFileResource[]>({
+    url: `/api/v1/log/file/update`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1LogFileUpdateQueryKey = () => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'log',
-    'file',
-    'update',
-  ] as const;
+  return ["api", "v1", "log", "file", "update"] as const;
 };
 
 export const getGetApiV1LogFileUpdateQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1LogFileUpdate>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -17694,15 +17148,14 @@ export const getGetApiV1LogFileUpdateQueryOptions = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1LogFileUpdateQueryKey();
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1LogFileUpdate>>
-  > = ({ signal }) => getApiV1LogFileUpdate({ signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1LogFileUpdate(signal);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getApiV1LogFileUpdate>>,
@@ -17714,11 +17167,11 @@ export const getGetApiV1LogFileUpdateQueryOptions = <
 export type GetApiV1LogFileUpdateQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1LogFileUpdate>>
 >;
-export type GetApiV1LogFileUpdateQueryError = AxiosError<unknown>;
+export type GetApiV1LogFileUpdateQueryError = unknown;
 
 export const useGetApiV1LogFileUpdate = <
   TData = Awaited<ReturnType<typeof getApiV1LogFileUpdate>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(options?: {
   query?: Partial<
     UseQueryOptions<
@@ -17727,7 +17180,6 @@ export const useGetApiV1LogFileUpdate = <
       TData
     >
   >;
-  axios?: AxiosRequestConfig;
 }): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1LogFileUpdateQueryOptions(options);
 
@@ -17742,33 +17194,26 @@ export const useGetApiV1LogFileUpdate = <
 
 export const getApiV1LogFileUpdateFilename = (
   filename: MaybeRef<string | undefined | null>,
-  options?: AxiosRequestConfig
-): Promise<AxiosResponse<void>> => {
+  signal?: AbortSignal
+) => {
   filename = unref(filename);
-  return axios.get(
-    `http://localhost:3001/api/v1/log/file/update/${filename}`,
-    options
-  );
+
+  return customInstance<void>({
+    url: `/api/v1/log/file/update/${filename}`,
+    method: "GET",
+    signal,
+  });
 };
 
 export const getGetApiV1LogFileUpdateFilenameQueryKey = (
   filename: MaybeRef<string | undefined | null>
 ) => {
-  return [
-    'http:',
-    'localhost:3001',
-    'api',
-    'v1',
-    'log',
-    'file',
-    'update',
-    filename,
-  ] as const;
+  return ["api", "v1", "log", "file", "update", filename] as const;
 };
 
 export const getGetApiV1LogFileUpdateFilenameQueryOptions = <
   TData = Awaited<ReturnType<typeof getApiV1LogFileUpdateFilename>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   filename: MaybeRef<string | undefined | null>,
   options?: {
@@ -17779,17 +17224,15 @@ export const getGetApiV1LogFileUpdateFilenameQueryOptions = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+  const { query: queryOptions } = options ?? {};
 
   const queryKey = getGetApiV1LogFileUpdateFilenameQueryKey(filename);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getApiV1LogFileUpdateFilename>>
-  > = ({ signal }) =>
-    getApiV1LogFileUpdateFilename(filename, { signal, ...axiosOptions });
+  > = ({ signal }) => getApiV1LogFileUpdateFilename(filename, signal);
 
   return {
     queryKey,
@@ -17806,11 +17249,11 @@ export const getGetApiV1LogFileUpdateFilenameQueryOptions = <
 export type GetApiV1LogFileUpdateFilenameQueryResult = NonNullable<
   Awaited<ReturnType<typeof getApiV1LogFileUpdateFilename>>
 >;
-export type GetApiV1LogFileUpdateFilenameQueryError = AxiosError<unknown>;
+export type GetApiV1LogFileUpdateFilenameQueryError = unknown;
 
 export const useGetApiV1LogFileUpdateFilename = <
   TData = Awaited<ReturnType<typeof getApiV1LogFileUpdateFilename>>,
-  TError = AxiosError<unknown>
+  TError = unknown
 >(
   filename: MaybeRef<string | undefined | null>,
   options?: {
@@ -17821,7 +17264,6 @@ export const useGetApiV1LogFileUpdateFilename = <
         TData
       >
     >;
-    axios?: AxiosRequestConfig;
   }
 ): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
   const queryOptions = getGetApiV1LogFileUpdateFilenameQueryOptions(
