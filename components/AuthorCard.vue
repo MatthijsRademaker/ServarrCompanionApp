@@ -12,6 +12,8 @@ const props = defineProps<{
   <ProductCard
     :title="title"
     :imgUrl="imgUrl"
+    :img-width="200"
+    :img-height="200"
     :id="id"
     :rating="rating"
     :indexed="indexed ?? false"

@@ -14,6 +14,8 @@ defineProps<{
     :title="title"
     :imgUrl="imgUrl"
     :id="id"
+    :img-width="140"
+    :img-height="180"
     :genres="genres"
     :rating="rating"
     :indexed="indexed ?? false"

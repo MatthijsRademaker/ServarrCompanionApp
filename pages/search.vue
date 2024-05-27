@@ -1,28 +1,32 @@
 <script setup lang="ts">
-import { useGetApiV1Search } from '~/thirdPartyApis/readarr/index';
+import { useDebounceFn } from '@vueuse/core';
+import { useGetApiV1Search } from '~/thirdPartyApis/readarr';
 import type {
   GetApiV1SearchParams,
   SearchResource,
 } from '~/thirdPartyApis/readarr/models';
-
+const searchStore = useSearchStore();
+const { searchResults } = storeToRefs(searchStore);
 const query = ref<string>();
-const queryRequest = computed<GetApiV1SearchParams | undefined>(() =>
-  query.value && query.value.length >= 3
-    ? {
-        term: query.value,
-      }
-    : undefined
-);
+const queryRequest = ref<GetApiV1SearchParams>({
+  term: '',
+});
 
-const { data, isLoading, refetch } = useGetApiV1Search(queryRequest, {
+const enableSearch = computed(() => queryRequest.value.term?.length >= 3);
+
+const { data, isLoading } = useGetApiV1Search(queryRequest, {
   query: {
-    enabled: !!queryRequest.value,
+    enabled: enableSearch,
   },
 });
 
-watch(query, () => {
-  if (queryRequest.value) {
-    refetch();
+const debouncedSearch = useDebounceFn(() => {
+  queryRequest.value.term = query.value;
+}, 500);
+
+watch(data, (newValue) => {
+  if (newValue) {
+    searchStore.setSearchResults(newValue);
   }
 });
 
@@ -42,6 +46,7 @@ const getImg = (item: SearchResource) => {
       <v-text-field
         v-model="query"
         label="Search"
+        @input="debouncedSearch"
         outlined
         clearable
         placeholder="Author or Book Name"
@@ -53,7 +58,7 @@ const getImg = (item: SearchResource) => {
     <v-col v-if="isLoading" v-for="i in 9" :key="i" cols="12" sm="6" md="4">
       <v-skeleton-loader height="200" type="card"></v-skeleton-loader>
     </v-col>
-    <v-col v-for="item in data" :key="item.id" cols="12" sm="6" md="4">
+    <v-col v-for="item in searchResults" :key="item.id" cols="12" sm="6" md="4">
       <BookCard
         v-if="item.book"
         :title="getTitle(item) ?? ''"

@@ -6,6 +6,8 @@ const props = defineProps<{
   id: number | string;
   rating: number;
   type: string;
+  imgWidth: number;
+  imgHeight: number;
   genres?: string[];
 }>();
 
@@ -13,7 +15,7 @@ const router = useRouter();
 
 const goToDetails = () => {
   // TODO rename to isIndexed
-  const subPath = props.indexed ? 'watched' : 'unwatched';
+  const subPath = props.indexed ? 'indexed' : 'not-indexed';
 
   router.push(`/${props.type}/${subPath}/${props.id}`);
 };
@@ -36,7 +38,7 @@ const genresSlice = ref<string[] | undefined>(props.genres?.slice(0, 3));
     </v-card-title>
     <div class="grid-container">
       <div class="one">
-        <img :src="imgUrl" height="180" width="140" />
+        <img :src="imgUrl" :height="imgHeight" :width="imgWidth" />
       </div>
       <div
         class="two"

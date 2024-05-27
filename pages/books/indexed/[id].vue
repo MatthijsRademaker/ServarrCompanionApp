@@ -12,7 +12,7 @@ const { data: book, refetch: refetchGetBook } = useGetApiV1BookId(
   route.params.id as string
 );
 
-const filePath = computed(() => {
+const imageFilePath = computed(() => {
   const subPath = book.value?.images?.[0].url;
   return `${import.meta.env.VITE_FILE_SERVER_URL}/readarr${
     subPath?.split('?')[0]
@@ -72,7 +72,7 @@ const addBookToWatchList = () => {
   <DetailedCard
     :is-loading="isLoading"
     :title="book?.title"
-    :main-image-path="filePath"
+    :main-image-path="imageFilePath"
     :main-overview="bookOverview?.overview"
     :side-title="book?.author?.authorName"
     :side-image-path="book?.author?.images?.[0].url"

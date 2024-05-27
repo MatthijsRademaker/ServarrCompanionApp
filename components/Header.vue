@@ -4,9 +4,13 @@ const router = useRouter();
 const showDrawer = ref(false);
 
 const items = [
+  { title: 'Home', icon: 'mdi-home', to: '/' },
   { title: 'Search', icon: 'mdi-magnify', to: '/search' },
-  { title: 'Authors', icon: 'mdi-card-account-details', to: '/authors' },
-  { title: 'Books', icon: 'mdi-book-open-page-variant', to: '/books' },
+  {
+    title: 'Bookshelf',
+    icon: 'mdi-bookshelf',
+    to: '/bookshelf',
+  },
   { title: 'About', icon: 'mdi-information', to: '/about' },
 ];
 

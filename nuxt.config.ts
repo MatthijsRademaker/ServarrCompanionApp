@@ -2,17 +2,9 @@ import vuetify, { transformAssetUrls } from 'vite-plugin-vuetify';
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-  // $production: {
-  //   typescript: {
-  //     typeCheck: false,
-  //   },
-  // },
-
-  // $development: {
   typescript: {
-    typeCheck: true,
+    typeCheck: false,
   },
-  // },
   app: {
     head: {
       charset: 'utf-8',
@@ -33,7 +25,7 @@ export default defineNuxtConfig({
       });
     },
     '@hebilicious/vue-query-nuxt',
-    //...
+    '@pinia/nuxt',
   ],
   vite: {
     vue: {
