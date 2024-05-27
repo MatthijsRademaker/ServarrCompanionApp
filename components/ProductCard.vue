@@ -14,7 +14,6 @@ const props = defineProps<{
 const router = useRouter();
 
 const goToDetails = () => {
-  // TODO rename to isIndexed
   const subPath = props.indexed ? 'indexed' : 'not-indexed';
 
   router.push(`/${props.type}/${subPath}/${props.id}`);
@@ -89,10 +88,13 @@ const genresSlice = ref<string[] | undefined>(props.genres?.slice(0, 3));
 
 <style scoped>
 .grid-container {
-  display: grid;
-  grid-template-columns: 1fr 2fr;
-  grid-gap: 24px;
-  padding: 16px;
+  padding: 16px 16px 0 16px;
+  @media screen and (min-width: 900px) {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    grid-gap: 24px;
+    padding: 16px;
+  }
 }
 .one {
   grid-column: 1;
@@ -102,6 +104,10 @@ const genresSlice = ref<string[] | undefined>(props.genres?.slice(0, 3));
 .two {
   grid-column: 2;
   grid-row: 1 / 2;
+  margin-bottom: 16px;
+  @media screen and (min-width: 600px) {
+    margin-bottom: 0;
+  }
 }
 
 .two--no-genres {

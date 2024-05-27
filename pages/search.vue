@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useDebounceFn } from '@vueuse/core';
+import { useDisplay } from 'vuetify';
 import { useGetApiV1Search } from '~/thirdPartyApis/readarr';
 import type {
   GetApiV1SearchParams,
@@ -37,10 +38,12 @@ const getTitle = (item: SearchResource) => {
 const getImg = (item: SearchResource) => {
   return item.author ? item.author.images?.[0].url : item.book?.images?.[0].url;
 };
+
+const { mobile } = useDisplay();
 </script>
 
 <template>
-  <h1>Search for your favorite Author or Book</h1>
+  <h1 v-if="!mobile">Search for your favorite Author or Book</h1>
   <v-row>
     <v-col cols="12" sm="6" md="4">
       <v-text-field
@@ -55,10 +58,19 @@ const getImg = (item: SearchResource) => {
     </v-col>
   </v-row>
   <v-row>
-    <v-col v-if="isLoading" v-for="i in 9" :key="i" cols="12" sm="6" md="4">
-      <v-skeleton-loader height="200" type="card"></v-skeleton-loader>
-    </v-col>
-    <v-col v-for="item in searchResults" :key="item.id" cols="12" sm="6" md="4">
+    <template v-if="isLoading">
+      <v-col v-for="i in 9" :key="i" cols="12" sm="6" md="4">
+        <v-skeleton-loader height="200" type="card"></v-skeleton-loader>
+      </v-col>
+    </template>
+    <v-col
+      v-else
+      v-for="item in searchResults"
+      :key="item.id"
+      cols="12"
+      sm="6"
+      md="4"
+    >
       <BookCard
         v-if="item.book"
         :title="getTitle(item) ?? ''"

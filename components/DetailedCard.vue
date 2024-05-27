@@ -14,6 +14,8 @@ const props = defineProps<{
 const goToGoodReads = () => {
   window.open(props.goodReadsLink, '_blank');
 };
+
+const { mobile } = useDisplay();
 </script>
 
 <template>
@@ -37,19 +39,19 @@ const goToGoodReads = () => {
           <div class="one">
             <img :src="mainImagePath" height="340" width="240" />
           </div>
-          <div class="two">
+          <div class="two" v-if="mobile">
             <h2>Overview</h2>
             <div class="genre-container">
               <p>{{ mainOverview }}</p>
             </div>
           </div>
-          <div class="three">
+          <div class="three" v-if="mobile">
             <h2>{{ sideTitle }}</h2>
             <div class="author-details-container">
               <img :src="sideImagePath" height="240" width="240" />
             </div>
           </div>
-          <div class="four">
+          <div class="four" v-if="mobile">
             <p>{{ sideOverview }}</p>
           </div>
           <div class="bottom-row">
@@ -83,9 +85,11 @@ const goToGoodReads = () => {
 
 <style scoped>
 .grid-container {
-  display: grid;
-  grid-template-columns: 1fr 4fr 1fr 2fr;
-  grid-gap: 24px;
+  @media screen and (min-width: 900px) {
+    display: grid;
+    grid-template-columns: 1fr 4fr 1fr 2fr;
+    grid-gap: 24px;
+  }
   padding: 16px;
 }
 .one {
@@ -111,7 +115,9 @@ const goToGoodReads = () => {
 }
 
 .bottom-row {
-  margin-top: 48px;
+  @media screen and (min-width: 600px) {
+    margin-top: 48px;
+  }
   grid-column: 1/3;
   grid-row: 2;
 }
@@ -130,7 +136,13 @@ const goToGoodReads = () => {
 
 .button-container {
   display: flex;
+  flex-direction: column;
+
   gap: 16px;
   padding: 16px;
+
+  @media screen and (min-width: 600px) {
+    flex-direction: row;
+  }
 }
 </style>
