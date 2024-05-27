@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useDisplay } from 'vuetify';
+
 const props = defineProps<{
   title: string;
   mainImagePath: string;

@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { useDebounceFn } from '@vueuse/core';
 import { useDisplay } from 'vuetify';
-import { useGetApiV1Search } from '~/thirdPartyApis/readarr';
+import {
+  useGetApiV1Search,
+  useGetApiV1AuthorId,
+  useGet,
+} from '~/thirdPartyApis/readarr';
 import type {
   GetApiV1SearchParams,
   SearchResource,
