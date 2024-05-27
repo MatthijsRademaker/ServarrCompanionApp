@@ -58,7 +58,8 @@ const getImg = (item: SearchResource) => {
         v-if="item.book"
         :title="getTitle(item) ?? ''"
         :imgUrl="getImg(item) ?? ''"
-        :id="item.book.id ?? 0"
+        :id="item.book.id ?? item.book?.foreignBookId ?? 0"
+        :indexed="item.book?.id !== 0"
         :genres="item.book?.genres ?? []"
         :rating="item.book?.ratings?.value ?? 0"
         :pageCount="item.book?.pageCount ?? 0"
@@ -67,8 +68,9 @@ const getImg = (item: SearchResource) => {
         v-else
         :title="getTitle(item) ?? ''"
         :imgUrl="getImg(item) ?? ''"
-        :id="item.author?.id ?? 0"
+        :id="item.author?.id ?? item.author?.foreignAuthorId ?? 0"
         :genres="item.author?.genres ?? []"
+        :indexed="item.author?.grabbed"
         :rating="item.author?.ratings?.value ?? 0"
         :overview="item.author?.overview ?? ''"
       />

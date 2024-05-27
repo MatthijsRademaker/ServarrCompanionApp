@@ -2,14 +2,11 @@
 const props = defineProps<{
   title: string;
   imgUrl: string;
-  id: number;
+  id: number | string;
   rating: number;
+  indexed?: boolean;
   overview: string;
 }>();
-
-const router = useRouter();
-
-const rating = ref<number>(props.rating);
 </script>
 <template>
   <ProductCard
@@ -17,6 +14,7 @@ const rating = ref<number>(props.rating);
     :imgUrl="imgUrl"
     :id="id"
     :rating="rating"
+    :indexed="indexed ?? false"
     type="authors"
   >
     <p>{{ overview }}</p>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import logo from '~/assets/logo.png';
 const router = useRouter();
 const showDrawer = ref(false);
 
@@ -21,8 +22,9 @@ const onNavItemClick = (to: string) => {
       <v-app-bar-nav-icon
         @click.stop="showDrawer = !showDrawer"
       ></v-app-bar-nav-icon>
+      <v-img src="/assets/logo.png" width="80" height="80" />
     </template>
-    <v-app-bar-title>Servarr Companion App</v-app-bar-title>
+    <v-app-bar-title> Servarr Companion App </v-app-bar-title>
 
     <v-spacer></v-spacer>
 
@@ -55,5 +57,10 @@ const onNavItemClick = (to: string) => {
 <style scoped>
 .header {
   margin-bottom: 64px;
+}
+
+.title {
+  display: flex;
+  align-items: center;
 }
 </style>

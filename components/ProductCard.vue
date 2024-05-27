@@ -1,8 +1,9 @@
 <script setup lang="ts">
 const props = defineProps<{
   title: string;
+  indexed: boolean;
   imgUrl: string;
-  id: number;
+  id: number | string;
   rating: number;
   type: string;
   genres?: string[];
@@ -11,7 +12,10 @@ const props = defineProps<{
 const router = useRouter();
 
 const goToDetails = () => {
-  router.push(`/${props.type}/${props.title}`);
+  // TODO rename to isIndexed
+  const subPath = props.indexed ? 'watched' : 'unwatched';
+
+  router.push(`/${props.type}/${subPath}/${props.id}`);
 };
 
 const rating = ref<number>(props.rating);
@@ -32,7 +36,7 @@ const genresSlice = ref<string[] | undefined>(props.genres?.slice(0, 3));
     </v-card-title>
     <div class="grid-container">
       <div class="one">
-        <img :src="imgUrl" height="240" width="240" />
+        <img :src="imgUrl" height="180" width="140" />
       </div>
       <div
         class="two"
@@ -100,7 +104,7 @@ const genresSlice = ref<string[] | undefined>(props.genres?.slice(0, 3));
 
 .two--no-genres {
   grid-row: 1 / 3;
-  max-height: 170px;
+  max-height: 117px;
 
   overflow: hidden;
 
@@ -128,7 +132,7 @@ const genresSlice = ref<string[] | undefined>(props.genres?.slice(0, 3));
   overflow: hidden;
 
   overflow-y: scroll;
-  max-height: 80px;
+  max-height: 60px;
 
   &::-webkit-scrollbar {
     width: 8px;

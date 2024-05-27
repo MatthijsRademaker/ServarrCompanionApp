@@ -2,6 +2,25 @@ import vuetify, { transformAssetUrls } from 'vite-plugin-vuetify';
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
+  // $production: {
+  //   typescript: {
+  //     typeCheck: false,
+  //   },
+  // },
+
+  // $development: {
+  typescript: {
+    typeCheck: true,
+  },
+  // },
+  app: {
+    head: {
+      charset: 'utf-8',
+      viewport: 'width=device-width, initial-scale=1',
+      title: 'Servarr companion app',
+    },
+  },
+
   devtools: { enabled: true },
   build: {
     transpile: ['vuetify'],
@@ -22,9 +41,6 @@ export default defineNuxtConfig({
         transformAssetUrls,
       },
     },
-  },
-  typescript: {
-    typeCheck: false,
   },
   routeRules: {
     '*': { ssr: false },
