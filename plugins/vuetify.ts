@@ -7,9 +7,9 @@ import { createVuetify } from 'vuetify';
 export default defineNuxtPlugin((app) => {
   const vuetify = createVuetify({
     theme: {
-      defaultTheme: 'light',
+      defaultTheme: 'lidarr',
       themes: {
-        light: {
+        readarr: {
           colors: {
             surface: '#F5EDE0',
             primary: '#9B5E34',
@@ -20,6 +20,19 @@ export default defineNuxtPlugin((app) => {
             success: '#4CAF50',
             warning: '#FFC107',
             background: '#FF0000',
+          },
+        },
+        lidarr: {
+          colors: {
+            surface: '#2B2D42',
+            primary: '#3A506B',
+            secondary: '#5C9EAD',
+            accent: '#D7816A',
+            error: '#FF5252',
+            info: '#2196F3',
+            success: '#4CAF50',
+            warning: '#FFC107',
+            background: '#2B2D42',
           },
         },
       },
