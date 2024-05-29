@@ -1,29 +1,43 @@
-// custom-instance.ts
-export type MutatorOptions = {
+import ky from 'ky';
+
+/**
+ * Based on https://github.com/anymaniax/orval/blob/master/tests/mutators/custom-client.ts
+ */
+
+export type BodyType<BodyData> = BodyData;
+
+export type Params = Record<string, string> | string; // all relevant URLSearchParams arguments
+
+export interface OrvalOptions {
   url: string;
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
-  params?: any;
-  data?: unknown;
+  method:
+    | 'get'
+    | 'GET'
+    | 'post'
+    | 'POST'
+    | 'put'
+    | 'PUT'
+    | 'delete'
+    | 'DELETE'
+    | 'patch'
+    | 'PATCH';
+  params?: Params;
+  data?: BodyType<unknown>;
+  headers?: Record<string, string>;
+  signal?: AbortSignal;
   responseType?: string;
-};
-export const mutator = async <T>(
-  baseUrl: string,
-  apiKey: string,
-  { url, method, params, data }: MutatorOptions
-): Promise<T> => {
-  const response = await fetch(
-    `${baseUrl}${url}` + `${params ? '?' : ''}` + new URLSearchParams(params),
-    {
-      method,
-      ...(data ? { body: JSON.stringify(data) } : {}),
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Api-Key': apiKey,
-      },
-    }
-  );
+}
 
-  return response.json();
-};
+export const mutator = <T>(orvalOptions: OrvalOptions) => {
+  const { url, method, params, data, headers, signal } = orvalOptions;
 
-export default mutator;
+  return ky(url.startsWith('/') ? url.slice(1) : url, {
+    prefixUrl: import.meta.env.VITE_ZORGFUNNEL_API_BASE_URL,
+    ...(method ? { method: method } : {}),
+    ...(params ? { searchParams: params } : {}),
+    ...(data ? { json: data } : {}),
+    ...(headers ? { headers: headers } : {}),
+    ...(signal ? { signal: signal } : {}),
+    // TODO: json() should be based on OrvalOptions.responseType
+  }).json<T>();
+};
