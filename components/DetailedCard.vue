@@ -10,11 +10,14 @@ const props = defineProps<{
   sideOverview: string;
   genres: string[];
   isLoading: boolean;
-  goodReadsLink: string;
+  link?: string;
+  linkText?: string;
+  height?: number;
+  width?: number;
 }>();
 
-const goToGoodReads = () => {
-  window.open(props.goodReadsLink, '_blank');
+const goToLink = () => {
+  window.open(props.link, '_blank');
 };
 
 const { mobile } = useDisplay();
@@ -39,24 +42,29 @@ const { mobile } = useDisplay();
         </v-card-title>
         <div class="grid-container">
           <div class="one">
-            <img :src="mainImagePath" height="340" width="240" />
+            <v-img
+              cover
+              :src="mainImagePath"
+              :height="height ?? 340"
+              :aspect-ratio="4 / 3"
+            />
           </div>
-          <div class="two" v-if="mobile">
+          <div class="two" v-if="!mobile">
             <h2>Overview</h2>
             <div class="genre-container">
               <p>{{ mainOverview }}</p>
             </div>
           </div>
-          <div class="three" v-if="mobile">
+          <div class="three" v-if="!mobile && sideTitle">
             <h2>{{ sideTitle }}</h2>
             <div class="author-details-container">
               <img :src="sideImagePath" height="240" width="240" />
             </div>
           </div>
-          <div class="four" v-if="mobile">
+          <div class="four" v-if="!mobile && sideTitle">
             <p>{{ sideOverview }}</p>
           </div>
-          <div class="bottom-row">
+          <div :class="{ 'bottom-row': sideTitle, three: !sideTitle }">
             <h2>Genres</h2>
             <div class="genre-container">
               <template v-for="genre in genres">
@@ -68,11 +76,12 @@ const { mobile } = useDisplay();
         <div class="button-container">
           <slot name="buttons" />
           <v-btn
+            v-if="link"
             append-icon="mdi-open-in-new"
             color="primary"
             link
-            @click="goToGoodReads"
-            >See on GoodReads</v-btn
+            @click="goToLink"
+            >{{ linkText }}</v-btn
           >
         </div>
       </v-card>
@@ -97,10 +106,14 @@ const { mobile } = useDisplay();
 .one {
   grid-column: 1;
   grid-row: 1 / 4;
+  max-height: 540px;
+  overflow-y: auto;
 }
 .two {
   grid-column: 2;
   grid-row: 1;
+  max-height: 540px;
+  overflow-y: auto;
 }
 
 .three {

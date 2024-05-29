@@ -31,6 +31,7 @@ const debouncedSearch = useDebounceFn(() => {
 
 watch(data, (newValue) => {
   if (newValue) {
+    debugger;
     searchStore.setReadarrSearchResults(newValue);
   }
 });
@@ -44,6 +45,18 @@ const getImg = (item: SearchResource) => {
 };
 
 const { mobile } = useDisplay();
+
+const getDetailsPathAuthor = (item: SearchResource) => {
+  return item.author?.id
+    ? `authors/indexed/${item.author?.id}`
+    : `authors/not-indexed/${item.author?.foreignAuthorId}`;
+};
+
+const getDetailsPathBook = (item: SearchResource) => {
+  return item.book?.id
+    ? `books/indexed/${item.book?.id}`
+    : `books/not-indexed/${item.book?.foreignBookId}`;
+};
 </script>
 
 <template>
@@ -69,14 +82,13 @@ const { mobile } = useDisplay();
     </template>
     <v-col
       v-else
-      v-for="item in readarrSearchResults"
-      :key="item.id"
+      v-for="(item, index) in readarrSearchResults"
+      :key="index"
       cols="12"
       sm="6"
       md="4"
     >
-      <!-- TODO refactor to product cards -->
-      <BookCard
+      <ProductCard
         v-if="item.book"
         :title="getTitle(item) ?? ''"
         :imgUrl="getImg(item) ?? ''"
@@ -84,9 +96,16 @@ const { mobile } = useDisplay();
         :indexed="item.book?.id !== 0"
         :genres="item.book?.genres ?? []"
         :rating="item.book?.ratings?.value ?? 0"
-        :pageCount="item.book?.pageCount ?? 0"
-      />
-      <AuthorCard
+        :img-width="140"
+        :img-height="180"
+        icon="mdi-book-open-page-variant"
+        :go-to-route="getDetailsPathBook(item)"
+      >
+        <p>Page count: {{ item?.book?.pageCount }}</p>
+      </ProductCard>
+      <!-- TODO refactor to product cards -->
+
+      <ProductCard
         v-else
         :title="getTitle(item) ?? ''"
         :imgUrl="getImg(item) ?? ''"
@@ -94,8 +113,14 @@ const { mobile } = useDisplay();
         :genres="item.author?.genres ?? []"
         :indexed="item.author?.id !== 0"
         :rating="item.author?.ratings?.value ?? 0"
-        :overview="item.author?.overview ?? ''"
-      />
+        :img-width="200"
+        :img-height="180"
+        icon="mdi-card-account-details"
+        :go-to-route="getDetailsPathAuthor(item)"
+      >
+        <p>{{ item.author?.overview }}</p>
+      </ProductCard>
+      <AuthorCard />
     </v-col>
   </v-row>
 </template>

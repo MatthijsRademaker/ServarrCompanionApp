@@ -30,8 +30,8 @@ watch(data, (newValue) => {
 
 const getImg = (item) => {
   return item.artist
-    ? item.artist.images?.[0].url
-    : item.album?.images?.[0].url;
+    ? item.artist.images?.[0]?.url
+    : item.album?.images?.[0]?.url;
 };
 
 const { mobile } = useDisplay();
@@ -44,8 +44,8 @@ const getAlbumRoute = (item) => {
 
 const getArtistRoute = (item) => {
   return item.artist?.id
-    ? `/artists/indexed/${item.artist.id}`
-    : `/artists/not-indexed/${item.artist.foreignArtistId}`;
+    ? `artists/indexed/${item.artist.id}`
+    : `artists/not-indexed/${item.artist.foreignArtistId}`;
 };
 </script>
 
@@ -83,7 +83,7 @@ const getArtistRoute = (item) => {
         :title="item.album.title"
         :imgUrl="getImg(item)"
         :id="item.album.id"
-        :img-width="140"
+        :img-width="180"
         :img-height="180"
         :genres="item.album.genres"
         :rating="item.album.ratings.value"
@@ -93,14 +93,14 @@ const getArtistRoute = (item) => {
       </ProductCard>
       <ProductCard
         v-if="item.artist"
-        :title="item.artist.title"
+        :title="item.artist.artistName"
         :imgUrl="getImg(item)"
         :id="item.artist.id"
-        :img-width="140"
+        :img-width="180"
         :img-height="180"
         :genres="item.artist.genres"
         :rating="item.artist.ratings.value"
-        icon="mdi-music-box-multiple"
+        icon="mdi-account"
         :go-to-route="getArtistRoute(item)"
       >
       </ProductCard>
