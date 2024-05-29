@@ -1,4 +1,4 @@
-import mutator, { type MutatorOptions } from './mutator';
+import { mutator, type MutatorOptions } from './mutator';
 
 export const readarrMutator = async <T>(options: MutatorOptions) =>
   mutator<T>(

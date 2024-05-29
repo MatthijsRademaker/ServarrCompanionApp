@@ -29,7 +29,9 @@ watch(data, (newValue) => {
 });
 
 const getImg = (item) => {
-  return item.author ? item.author.images?.[0].url : item.book?.images?.[0].url;
+  return item.artist
+    ? item.artist.images?.[0].url
+    : item.album?.images?.[0].url;
 };
 
 const { mobile } = useDisplay();
@@ -70,7 +72,7 @@ const getArtistRoute = (item) => {
     </template>
     <v-col
       v-else
-      v-for="item in searchResults"
+      v-for="item in lidarrSearchResults"
       :key="item.id"
       cols="12"
       sm="6"
