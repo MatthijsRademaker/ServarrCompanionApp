@@ -133,7 +133,7 @@ import type {
   UiConfigResource,
   UpdateResource,
 } from "./models";
-import { customInstance } from "../mutator";
+import { lidarrMutator } from "../mutators/lidarr";
 
 // https://stackoverflow.com/questions/49579094/typescript-conditional-types-filter-out-readonly-properties-pick-only-requir/49579497#49579497
 type IfEquals<X, Y, A = X, B = never> = (<T>() => T extends X ? 1 : 2) extends <
@@ -172,7 +172,7 @@ export const getApiV1Album = (
 ) => {
   params = unref(params);
 
-  return customInstance<AlbumResource[]>({
+  return lidarrMutator<AlbumResource[]>({
     url: `/api/v1/album`,
     method: "GET",
     params: unref(params),
@@ -244,7 +244,7 @@ export const postApiV1Album = (
 ) => {
   albumResource = unref(albumResource);
 
-  return customInstance<AlbumResource>({
+  return lidarrMutator<AlbumResource>({
     url: `/api/v1/album`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -316,7 +316,7 @@ export const putApiV1AlbumId = (
   id = unref(id);
   albumResource = unref(albumResource);
 
-  return customInstance<AlbumResource>({
+  return lidarrMutator<AlbumResource>({
     url: `/api/v1/album/${id}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -388,7 +388,7 @@ export const deleteApiV1AlbumId = (
   id = unref(id);
   params = unref(params);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/album/${id}`,
     method: "DELETE",
     params: unref(params),
@@ -458,7 +458,7 @@ export const getApiV1AlbumId = (
 ) => {
   id = unref(id);
 
-  return customInstance<AlbumResource>({
+  return lidarrMutator<AlbumResource>({
     url: `/api/v1/album/${id}`,
     method: "GET",
     signal,
@@ -542,7 +542,7 @@ export const putApiV1AlbumMonitor = (
 ) => {
   albumsMonitoredResource = unref(albumsMonitoredResource);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/album/monitor`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -613,7 +613,7 @@ export const getApiV1AlbumLookup = (
 ) => {
   params = unref(params);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/album/lookup`,
     method: "GET",
     params: unref(params),
@@ -693,7 +693,7 @@ export const postApiV1Albumstudio = (
 ) => {
   albumStudioResource = unref(albumStudioResource);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/albumstudio`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -759,7 +759,7 @@ export const usePostApiV1Albumstudio = <
 };
 
 export const getApi = (signal?: AbortSignal) => {
-  return customInstance<void>({ url: `/api`, method: "GET", signal });
+  return lidarrMutator<void>({ url: `/api`, method: "GET", signal });
 };
 
 export const getGetApiQueryKey = () => {
@@ -817,7 +817,7 @@ export const getApiV1ArtistId = (
 ) => {
   id = unref(id);
 
-  return customInstance<ArtistResource>({
+  return lidarrMutator<ArtistResource>({
     url: `/api/v1/artist/${id}`,
     method: "GET",
     signal,
@@ -905,7 +905,7 @@ export const putApiV1ArtistId = (
   artistResource = unref(artistResource);
   params = unref(params);
 
-  return customInstance<ArtistResource>({
+  return lidarrMutator<ArtistResource>({
     url: `/api/v1/artist/${id}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -998,7 +998,7 @@ export const deleteApiV1ArtistId = (
   id = unref(id);
   params = unref(params);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/artist/${id}`,
     method: "DELETE",
     params: unref(params),
@@ -1068,7 +1068,7 @@ export const getApiV1Artist = (
 ) => {
   params = unref(params);
 
-  return customInstance<ArtistResource[]>({
+  return lidarrMutator<ArtistResource[]>({
     url: `/api/v1/artist`,
     method: "GET",
     params: unref(params),
@@ -1140,7 +1140,7 @@ export const postApiV1Artist = (
 ) => {
   artistResource = unref(artistResource);
 
-  return customInstance<ArtistResource>({
+  return lidarrMutator<ArtistResource>({
     url: `/api/v1/artist`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -1210,7 +1210,7 @@ export const putApiV1ArtistEditor = (
 ) => {
   artistEditorResource = unref(artistEditorResource);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/artist/editor`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -1280,7 +1280,7 @@ export const deleteApiV1ArtistEditor = (
 ) => {
   artistEditorResource = unref(artistEditorResource);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/artist/editor`,
     method: "DELETE",
     headers: { "Content-Type": "application/json" },
@@ -1351,7 +1351,7 @@ export const getApiV1ArtistLookup = (
 ) => {
   params = unref(params);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/artist/lookup`,
     method: "GET",
     params: unref(params),
@@ -1449,7 +1449,7 @@ export const postLogin = (
     formData.append("rememberMe", postLoginBody.rememberMe);
   }
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/login`,
     method: "POST",
     headers: { "Content-Type": "multipart/form-data" },
@@ -1513,7 +1513,7 @@ export const usePostLogin = <TError = unknown, TContext = unknown>(options?: {
 };
 
 export const getLogin = (signal?: AbortSignal) => {
-  return customInstance<void>({ url: `/login`, method: "GET", signal });
+  return lidarrMutator<void>({ url: `/login`, method: "GET", signal });
 };
 
 export const getGetLoginQueryKey = () => {
@@ -1568,7 +1568,7 @@ export const useGetLogin = <
 };
 
 export const getLogout = (signal?: AbortSignal) => {
-  return customInstance<void>({ url: `/logout`, method: "GET", signal });
+  return lidarrMutator<void>({ url: `/logout`, method: "GET", signal });
 };
 
 export const getGetLogoutQueryKey = () => {
@@ -1628,7 +1628,7 @@ export const getApiV1AutotaggingId = (
 ) => {
   id = unref(id);
 
-  return customInstance<AutoTaggingResource>({
+  return lidarrMutator<AutoTaggingResource>({
     url: `/api/v1/autotagging/${id}`,
     method: "GET",
     signal,
@@ -1714,7 +1714,7 @@ export const putApiV1AutotaggingId = (
   id = unref(id);
   autoTaggingResource = unref(autoTaggingResource);
 
-  return customInstance<AutoTaggingResource>({
+  return lidarrMutator<AutoTaggingResource>({
     url: `/api/v1/autotagging/${id}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -1784,7 +1784,7 @@ export const deleteApiV1AutotaggingId = (
 ) => {
   id = unref(id);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/autotagging/${id}`,
     method: "DELETE",
   });
@@ -1852,7 +1852,7 @@ export const postApiV1Autotagging = (
 ) => {
   autoTaggingResource = unref(autoTaggingResource);
 
-  return customInstance<AutoTaggingResource>({
+  return lidarrMutator<AutoTaggingResource>({
     url: `/api/v1/autotagging`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -1918,7 +1918,7 @@ export const usePostApiV1Autotagging = <
 };
 
 export const getApiV1Autotagging = (signal?: AbortSignal) => {
-  return customInstance<AutoTaggingResource[]>({
+  return lidarrMutator<AutoTaggingResource[]>({
     url: `/api/v1/autotagging`,
     method: "GET",
     signal,
@@ -1985,7 +1985,7 @@ export const useGetApiV1Autotagging = <
 };
 
 export const getApiV1AutotaggingSchema = (signal?: AbortSignal) => {
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/autotagging/schema`,
     method: "GET",
     signal,
@@ -2052,7 +2052,7 @@ export const useGetApiV1AutotaggingSchema = <
 };
 
 export const getApiV1SystemBackup = (signal?: AbortSignal) => {
-  return customInstance<BackupResource[]>({
+  return lidarrMutator<BackupResource[]>({
     url: `/api/v1/system/backup`,
     method: "GET",
     signal,
@@ -2123,7 +2123,7 @@ export const deleteApiV1SystemBackupId = (
 ) => {
   id = unref(id);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/system/backup/${id}`,
     method: "DELETE",
   });
@@ -2191,7 +2191,7 @@ export const postApiV1SystemBackupRestoreId = (
 ) => {
   id = unref(id);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/system/backup/restore/${id}`,
     method: "POST",
   });
@@ -2256,7 +2256,7 @@ export const usePostApiV1SystemBackupRestoreId = <
 };
 
 export const postApiV1SystemBackupRestoreUpload = () => {
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/system/backup/restore/upload`,
     method: "POST",
   });
@@ -2324,7 +2324,7 @@ export const getApiV1Blocklist = (
 ) => {
   params = unref(params);
 
-  return customInstance<BlocklistResourcePagingResource>({
+  return lidarrMutator<BlocklistResourcePagingResource>({
     url: `/api/v1/blocklist`,
     method: "GET",
     params: unref(params),
@@ -2404,7 +2404,7 @@ export const deleteApiV1BlocklistId = (
 ) => {
   id = unref(id);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/blocklist/${id}`,
     method: "DELETE",
   });
@@ -2472,7 +2472,7 @@ export const deleteApiV1BlocklistBulk = (
 ) => {
   blocklistBulkResource = unref(blocklistBulkResource);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/blocklist/bulk`,
     method: "DELETE",
     headers: { "Content-Type": "application/json" },
@@ -2543,7 +2543,7 @@ export const getApiV1Calendar = (
 ) => {
   params = unref(params);
 
-  return customInstance<AlbumResource[]>({
+  return lidarrMutator<AlbumResource[]>({
     url: `/api/v1/calendar`,
     method: "GET",
     params: unref(params),
@@ -2624,7 +2624,7 @@ export const getApiV1CalendarId = (
 ) => {
   id = unref(id);
 
-  return customInstance<AlbumResource>({
+  return lidarrMutator<AlbumResource>({
     url: `/api/v1/calendar/${id}`,
     method: "GET",
     signal,
@@ -2709,7 +2709,7 @@ export const getFeedV1CalendarLidarrIcs = (
 ) => {
   params = unref(params);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/feed/v1/calendar/lidarr.ics`,
     method: "GET",
     params: unref(params),
@@ -2799,7 +2799,7 @@ export const getApiV1CommandId = (
 ) => {
   id = unref(id);
 
-  return customInstance<CommandResource>({
+  return lidarrMutator<CommandResource>({
     url: `/api/v1/command/${id}`,
     method: "GET",
     signal,
@@ -2883,7 +2883,7 @@ export const deleteApiV1CommandId = (
 ) => {
   id = unref(id);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/command/${id}`,
     method: "DELETE",
   });
@@ -2951,7 +2951,7 @@ export const postApiV1Command = (
 ) => {
   commandResource = unref(commandResource);
 
-  return customInstance<CommandResource>({
+  return lidarrMutator<CommandResource>({
     url: `/api/v1/command`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -3017,7 +3017,7 @@ export const usePostApiV1Command = <
 };
 
 export const getApiV1Command = (signal?: AbortSignal) => {
-  return customInstance<CommandResource[]>({
+  return lidarrMutator<CommandResource[]>({
     url: `/api/v1/command`,
     method: "GET",
     signal,
@@ -3081,7 +3081,7 @@ export const getApiV1CustomfilterId = (
 ) => {
   id = unref(id);
 
-  return customInstance<CustomFilterResource>({
+  return lidarrMutator<CustomFilterResource>({
     url: `/api/v1/customfilter/${id}`,
     method: "GET",
     signal,
@@ -3167,7 +3167,7 @@ export const putApiV1CustomfilterId = (
   id = unref(id);
   customFilterResource = unref(customFilterResource);
 
-  return customInstance<CustomFilterResource>({
+  return lidarrMutator<CustomFilterResource>({
     url: `/api/v1/customfilter/${id}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -3237,7 +3237,7 @@ export const deleteApiV1CustomfilterId = (
 ) => {
   id = unref(id);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/customfilter/${id}`,
     method: "DELETE",
   });
@@ -3301,7 +3301,7 @@ export const useDeleteApiV1CustomfilterId = <
 };
 
 export const getApiV1Customfilter = (signal?: AbortSignal) => {
-  return customInstance<CustomFilterResource[]>({
+  return lidarrMutator<CustomFilterResource[]>({
     url: `/api/v1/customfilter`,
     method: "GET",
     signal,
@@ -3372,7 +3372,7 @@ export const postApiV1Customfilter = (
 ) => {
   customFilterResource = unref(customFilterResource);
 
-  return customInstance<CustomFilterResource>({
+  return lidarrMutator<CustomFilterResource>({
     url: `/api/v1/customfilter`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -3443,7 +3443,7 @@ export const getApiV1CustomformatId = (
 ) => {
   id = unref(id);
 
-  return customInstance<CustomFormatResource>({
+  return lidarrMutator<CustomFormatResource>({
     url: `/api/v1/customformat/${id}`,
     method: "GET",
     signal,
@@ -3529,7 +3529,7 @@ export const putApiV1CustomformatId = (
   id = unref(id);
   customFormatResource = unref(customFormatResource);
 
-  return customInstance<CustomFormatResource>({
+  return lidarrMutator<CustomFormatResource>({
     url: `/api/v1/customformat/${id}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -3599,7 +3599,7 @@ export const deleteApiV1CustomformatId = (
 ) => {
   id = unref(id);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/customformat/${id}`,
     method: "DELETE",
   });
@@ -3667,7 +3667,7 @@ export const postApiV1Customformat = (
 ) => {
   customFormatResource = unref(customFormatResource);
 
-  return customInstance<CustomFormatResource>({
+  return lidarrMutator<CustomFormatResource>({
     url: `/api/v1/customformat`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -3733,7 +3733,7 @@ export const usePostApiV1Customformat = <
 };
 
 export const getApiV1Customformat = (signal?: AbortSignal) => {
-  return customInstance<CustomFormatResource[]>({
+  return lidarrMutator<CustomFormatResource[]>({
     url: `/api/v1/customformat`,
     method: "GET",
     signal,
@@ -3800,7 +3800,7 @@ export const useGetApiV1Customformat = <
 };
 
 export const getApiV1CustomformatSchema = (signal?: AbortSignal) => {
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/customformat/schema`,
     method: "GET",
     signal,
@@ -3872,7 +3872,7 @@ export const getApiV1WantedCutoff = (
 ) => {
   params = unref(params);
 
-  return customInstance<AlbumResourcePagingResource>({
+  return lidarrMutator<AlbumResourcePagingResource>({
     url: `/api/v1/wanted/cutoff`,
     method: "GET",
     params: unref(params),
@@ -3959,7 +3959,7 @@ export const getApiV1WantedCutoffId = (
 ) => {
   id = unref(id);
 
-  return customInstance<AlbumResource>({
+  return lidarrMutator<AlbumResource>({
     url: `/api/v1/wanted/cutoff/${id}`,
     method: "GET",
     signal,
@@ -4043,7 +4043,7 @@ export const postApiV1Delayprofile = (
 ) => {
   delayProfileResource = unref(delayProfileResource);
 
-  return customInstance<DelayProfileResource>({
+  return lidarrMutator<DelayProfileResource>({
     url: `/api/v1/delayprofile`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -4109,7 +4109,7 @@ export const usePostApiV1Delayprofile = <
 };
 
 export const getApiV1Delayprofile = (signal?: AbortSignal) => {
-  return customInstance<DelayProfileResource[]>({
+  return lidarrMutator<DelayProfileResource[]>({
     url: `/api/v1/delayprofile`,
     method: "GET",
     signal,
@@ -4180,7 +4180,7 @@ export const deleteApiV1DelayprofileId = (
 ) => {
   id = unref(id);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/delayprofile/${id}`,
     method: "DELETE",
   });
@@ -4250,7 +4250,7 @@ export const putApiV1DelayprofileId = (
   id = unref(id);
   delayProfileResource = unref(delayProfileResource);
 
-  return customInstance<DelayProfileResource>({
+  return lidarrMutator<DelayProfileResource>({
     url: `/api/v1/delayprofile/${id}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -4321,7 +4321,7 @@ export const getApiV1DelayprofileId = (
 ) => {
   id = unref(id);
 
-  return customInstance<DelayProfileResource>({
+  return lidarrMutator<DelayProfileResource>({
     url: `/api/v1/delayprofile/${id}`,
     method: "GET",
     signal,
@@ -4407,7 +4407,7 @@ export const putApiV1DelayprofileReorderId = (
   id = unref(id);
   params = unref(params);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/delayprofile/reorder/${id}`,
     method: "PUT",
     params: unref(params),
@@ -4473,7 +4473,7 @@ export const usePutApiV1DelayprofileReorderId = <
 };
 
 export const getApiV1Diskspace = (signal?: AbortSignal) => {
-  return customInstance<DiskSpaceResource[]>({
+  return lidarrMutator<DiskSpaceResource[]>({
     url: `/api/v1/diskspace`,
     method: "GET",
     signal,
@@ -4545,7 +4545,7 @@ export const getApiV1DownloadclientId = (
 ) => {
   id = unref(id);
 
-  return customInstance<DownloadClientResource>({
+  return lidarrMutator<DownloadClientResource>({
     url: `/api/v1/downloadclient/${id}`,
     method: "GET",
     signal,
@@ -4633,7 +4633,7 @@ export const putApiV1DownloadclientId = (
   downloadClientResource = unref(downloadClientResource);
   params = unref(params);
 
-  return customInstance<DownloadClientResource>({
+  return lidarrMutator<DownloadClientResource>({
     url: `/api/v1/downloadclient/${id}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -4724,7 +4724,7 @@ export const deleteApiV1DownloadclientId = (
 ) => {
   id = unref(id);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/downloadclient/${id}`,
     method: "DELETE",
   });
@@ -4789,7 +4789,7 @@ export const useDeleteApiV1DownloadclientId = <
 };
 
 export const getApiV1Downloadclient = (signal?: AbortSignal) => {
-  return customInstance<DownloadClientResource[]>({
+  return lidarrMutator<DownloadClientResource[]>({
     url: `/api/v1/downloadclient`,
     method: "GET",
     signal,
@@ -4862,7 +4862,7 @@ export const postApiV1Downloadclient = (
   downloadClientResource = unref(downloadClientResource);
   params = unref(params);
 
-  return customInstance<DownloadClientResource>({
+  return lidarrMutator<DownloadClientResource>({
     url: `/api/v1/downloadclient`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -4933,7 +4933,7 @@ export const putApiV1DownloadclientBulk = (
 ) => {
   downloadClientBulkResource = unref(downloadClientBulkResource);
 
-  return customInstance<DownloadClientResource>({
+  return lidarrMutator<DownloadClientResource>({
     url: `/api/v1/downloadclient/bulk`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -5003,7 +5003,7 @@ export const deleteApiV1DownloadclientBulk = (
 ) => {
   downloadClientBulkResource = unref(downloadClientBulkResource);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/downloadclient/bulk`,
     method: "DELETE",
     headers: { "Content-Type": "application/json" },
@@ -5071,7 +5071,7 @@ export const useDeleteApiV1DownloadclientBulk = <
 };
 
 export const getApiV1DownloadclientSchema = (signal?: AbortSignal) => {
-  return customInstance<DownloadClientResource[]>({
+  return lidarrMutator<DownloadClientResource[]>({
     url: `/api/v1/downloadclient/schema`,
     method: "GET",
     signal,
@@ -5144,7 +5144,7 @@ export const postApiV1DownloadclientTest = (
   downloadClientResource = unref(downloadClientResource);
   params = unref(params);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/downloadclient/test`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -5218,7 +5218,7 @@ export const usePostApiV1DownloadclientTest = <
 };
 
 export const postApiV1DownloadclientTestall = () => {
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/downloadclient/testall`,
     method: "POST",
   });
@@ -5287,7 +5287,7 @@ export const postApiV1DownloadclientActionName = (
   name = unref(name);
   downloadClientResource = unref(downloadClientResource);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/downloadclient/action/${name}`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -5360,7 +5360,7 @@ export const getApiV1ConfigDownloadclientId = (
 ) => {
   id = unref(id);
 
-  return customInstance<DownloadClientConfigResource>({
+  return lidarrMutator<DownloadClientConfigResource>({
     url: `/api/v1/config/downloadclient/${id}`,
     method: "GET",
     signal,
@@ -5449,7 +5449,7 @@ export const putApiV1ConfigDownloadclientId = (
   id = unref(id);
   downloadClientConfigResource = unref(downloadClientConfigResource);
 
-  return customInstance<DownloadClientConfigResource>({
+  return lidarrMutator<DownloadClientConfigResource>({
     url: `/api/v1/config/downloadclient/${id}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -5517,7 +5517,7 @@ export const usePutApiV1ConfigDownloadclientId = <
 };
 
 export const getApiV1ConfigDownloadclient = (signal?: AbortSignal) => {
-  return customInstance<DownloadClientConfigResource>({
+  return lidarrMutator<DownloadClientConfigResource>({
     url: `/api/v1/config/downloadclient`,
     method: "GET",
     signal,
@@ -5589,7 +5589,7 @@ export const getApiV1Filesystem = (
 ) => {
   params = unref(params);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/filesystem`,
     method: "GET",
     params: unref(params),
@@ -5670,7 +5670,7 @@ export const getApiV1FilesystemType = (
 ) => {
   params = unref(params);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/filesystem/type`,
     method: "GET",
     params: unref(params),
@@ -5757,7 +5757,7 @@ export const getApiV1FilesystemMediafiles = (
 ) => {
   params = unref(params);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/filesystem/mediafiles`,
     method: "GET",
     params: unref(params),
@@ -5842,7 +5842,7 @@ export const useGetApiV1FilesystemMediafiles = <
 };
 
 export const getApiV1Health = (signal?: AbortSignal) => {
-  return customInstance<HealthResource[]>({
+  return lidarrMutator<HealthResource[]>({
     url: `/api/v1/health`,
     method: "GET",
     signal,
@@ -5906,7 +5906,7 @@ export const getApiV1History = (
 ) => {
   params = unref(params);
 
-  return customInstance<HistoryResourcePagingResource>({
+  return lidarrMutator<HistoryResourcePagingResource>({
     url: `/api/v1/history`,
     method: "GET",
     params: unref(params),
@@ -5987,7 +5987,7 @@ export const getApiV1HistorySince = (
 ) => {
   params = unref(params);
 
-  return customInstance<HistoryResource[]>({
+  return lidarrMutator<HistoryResource[]>({
     url: `/api/v1/history/since`,
     method: "GET",
     params: unref(params),
@@ -6074,7 +6074,7 @@ export const getApiV1HistoryArtist = (
 ) => {
   params = unref(params);
 
-  return customInstance<HistoryResource[]>({
+  return lidarrMutator<HistoryResource[]>({
     url: `/api/v1/history/artist`,
     method: "GET",
     params: unref(params),
@@ -6160,7 +6160,7 @@ export const postApiV1HistoryFailedId = (
 ) => {
   id = unref(id);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/history/failed/${id}`,
     method: "POST",
   });
@@ -6229,7 +6229,7 @@ export const getApiV1ConfigHostId = (
 ) => {
   id = unref(id);
 
-  return customInstance<HostConfigResource>({
+  return lidarrMutator<HostConfigResource>({
     url: `/api/v1/config/host/${id}`,
     method: "GET",
     signal,
@@ -6315,7 +6315,7 @@ export const putApiV1ConfigHostId = (
   id = unref(id);
   hostConfigResource = unref(hostConfigResource);
 
-  return customInstance<HostConfigResource>({
+  return lidarrMutator<HostConfigResource>({
     url: `/api/v1/config/host/${id}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -6381,7 +6381,7 @@ export const usePutApiV1ConfigHostId = <
 };
 
 export const getApiV1ConfigHost = (signal?: AbortSignal) => {
-  return customInstance<HostConfigResource>({
+  return lidarrMutator<HostConfigResource>({
     url: `/api/v1/config/host`,
     method: "GET",
     signal,
@@ -6453,7 +6453,7 @@ export const getApiV1ImportlistId = (
 ) => {
   id = unref(id);
 
-  return customInstance<ImportListResource>({
+  return lidarrMutator<ImportListResource>({
     url: `/api/v1/importlist/${id}`,
     method: "GET",
     signal,
@@ -6541,7 +6541,7 @@ export const putApiV1ImportlistId = (
   importListResource = unref(importListResource);
   params = unref(params);
 
-  return customInstance<ImportListResource>({
+  return lidarrMutator<ImportListResource>({
     url: `/api/v1/importlist/${id}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -6624,7 +6624,7 @@ export const deleteApiV1ImportlistId = (
 ) => {
   id = unref(id);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/importlist/${id}`,
     method: "DELETE",
   });
@@ -6688,7 +6688,7 @@ export const useDeleteApiV1ImportlistId = <
 };
 
 export const getApiV1Importlist = (signal?: AbortSignal) => {
-  return customInstance<ImportListResource[]>({
+  return lidarrMutator<ImportListResource[]>({
     url: `/api/v1/importlist`,
     method: "GET",
     signal,
@@ -6761,7 +6761,7 @@ export const postApiV1Importlist = (
   importListResource = unref(importListResource);
   params = unref(params);
 
-  return customInstance<ImportListResource>({
+  return lidarrMutator<ImportListResource>({
     url: `/api/v1/importlist`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -6832,7 +6832,7 @@ export const putApiV1ImportlistBulk = (
 ) => {
   importListBulkResource = unref(importListBulkResource);
 
-  return customInstance<ImportListResource>({
+  return lidarrMutator<ImportListResource>({
     url: `/api/v1/importlist/bulk`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -6902,7 +6902,7 @@ export const deleteApiV1ImportlistBulk = (
 ) => {
   importListBulkResource = unref(importListBulkResource);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/importlist/bulk`,
     method: "DELETE",
     headers: { "Content-Type": "application/json" },
@@ -6968,7 +6968,7 @@ export const useDeleteApiV1ImportlistBulk = <
 };
 
 export const getApiV1ImportlistSchema = (signal?: AbortSignal) => {
-  return customInstance<ImportListResource[]>({
+  return lidarrMutator<ImportListResource[]>({
     url: `/api/v1/importlist/schema`,
     method: "GET",
     signal,
@@ -7041,7 +7041,7 @@ export const postApiV1ImportlistTest = (
   importListResource = unref(importListResource);
   params = unref(params);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/importlist/test`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -7108,7 +7108,7 @@ export const usePostApiV1ImportlistTest = <
 };
 
 export const postApiV1ImportlistTestall = () => {
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/importlist/testall`,
     method: "POST",
   });
@@ -7176,7 +7176,7 @@ export const postApiV1ImportlistActionName = (
   name = unref(name);
   importListResource = unref(importListResource);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/importlist/action/${name}`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -7248,7 +7248,7 @@ export const getApiV1ImportlistexclusionId = (
 ) => {
   id = unref(id);
 
-  return customInstance<ImportListExclusionResource>({
+  return lidarrMutator<ImportListExclusionResource>({
     url: `/api/v1/importlistexclusion/${id}`,
     method: "GET",
     signal,
@@ -7337,7 +7337,7 @@ export const putApiV1ImportlistexclusionId = (
   id = unref(id);
   importListExclusionResource = unref(importListExclusionResource);
 
-  return customInstance<ImportListExclusionResource>({
+  return lidarrMutator<ImportListExclusionResource>({
     url: `/api/v1/importlistexclusion/${id}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -7409,7 +7409,7 @@ export const deleteApiV1ImportlistexclusionId = (
 ) => {
   id = unref(id);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/importlistexclusion/${id}`,
     method: "DELETE",
   });
@@ -7474,7 +7474,7 @@ export const useDeleteApiV1ImportlistexclusionId = <
 };
 
 export const getApiV1Importlistexclusion = (signal?: AbortSignal) => {
-  return customInstance<ImportListExclusionResource[]>({
+  return lidarrMutator<ImportListExclusionResource[]>({
     url: `/api/v1/importlistexclusion`,
     method: "GET",
     signal,
@@ -7545,7 +7545,7 @@ export const postApiV1Importlistexclusion = (
 ) => {
   importListExclusionResource = unref(importListExclusionResource);
 
-  return customInstance<ImportListExclusionResource>({
+  return lidarrMutator<ImportListExclusionResource>({
     url: `/api/v1/importlistexclusion`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -7618,7 +7618,7 @@ export const getApiV1IndexerId = (
 ) => {
   id = unref(id);
 
-  return customInstance<IndexerResource>({
+  return lidarrMutator<IndexerResource>({
     url: `/api/v1/indexer/${id}`,
     method: "GET",
     signal,
@@ -7706,7 +7706,7 @@ export const putApiV1IndexerId = (
   indexerResource = unref(indexerResource);
   params = unref(params);
 
-  return customInstance<IndexerResource>({
+  return lidarrMutator<IndexerResource>({
     url: `/api/v1/indexer/${id}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -7777,7 +7777,7 @@ export const deleteApiV1IndexerId = (
 ) => {
   id = unref(id);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/indexer/${id}`,
     method: "DELETE",
   });
@@ -7841,7 +7841,7 @@ export const useDeleteApiV1IndexerId = <
 };
 
 export const getApiV1Indexer = (signal?: AbortSignal) => {
-  return customInstance<IndexerResource[]>({
+  return lidarrMutator<IndexerResource[]>({
     url: `/api/v1/indexer`,
     method: "GET",
     signal,
@@ -7906,7 +7906,7 @@ export const postApiV1Indexer = (
   indexerResource = unref(indexerResource);
   params = unref(params);
 
-  return customInstance<IndexerResource>({
+  return lidarrMutator<IndexerResource>({
     url: `/api/v1/indexer`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -7977,7 +7977,7 @@ export const putApiV1IndexerBulk = (
 ) => {
   indexerBulkResource = unref(indexerBulkResource);
 
-  return customInstance<IndexerResource>({
+  return lidarrMutator<IndexerResource>({
     url: `/api/v1/indexer/bulk`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -8047,7 +8047,7 @@ export const deleteApiV1IndexerBulk = (
 ) => {
   indexerBulkResource = unref(indexerBulkResource);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/indexer/bulk`,
     method: "DELETE",
     headers: { "Content-Type": "application/json" },
@@ -8113,7 +8113,7 @@ export const useDeleteApiV1IndexerBulk = <
 };
 
 export const getApiV1IndexerSchema = (signal?: AbortSignal) => {
-  return customInstance<IndexerResource[]>({
+  return lidarrMutator<IndexerResource[]>({
     url: `/api/v1/indexer/schema`,
     method: "GET",
     signal,
@@ -8186,7 +8186,7 @@ export const postApiV1IndexerTest = (
   indexerResource = unref(indexerResource);
   params = unref(params);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/indexer/test`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -8253,7 +8253,7 @@ export const usePostApiV1IndexerTest = <
 };
 
 export const postApiV1IndexerTestall = () => {
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/indexer/testall`,
     method: "POST",
   });
@@ -8321,7 +8321,7 @@ export const postApiV1IndexerActionName = (
   name = unref(name);
   indexerResource = unref(indexerResource);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/indexer/action/${name}`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -8392,7 +8392,7 @@ export const getApiV1ConfigIndexerId = (
 ) => {
   id = unref(id);
 
-  return customInstance<IndexerConfigResource>({
+  return lidarrMutator<IndexerConfigResource>({
     url: `/api/v1/config/indexer/${id}`,
     method: "GET",
     signal,
@@ -8478,7 +8478,7 @@ export const putApiV1ConfigIndexerId = (
   id = unref(id);
   indexerConfigResource = unref(indexerConfigResource);
 
-  return customInstance<IndexerConfigResource>({
+  return lidarrMutator<IndexerConfigResource>({
     url: `/api/v1/config/indexer/${id}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -8544,7 +8544,7 @@ export const usePutApiV1ConfigIndexerId = <
 };
 
 export const getApiV1ConfigIndexer = (signal?: AbortSignal) => {
-  return customInstance<IndexerConfigResource>({
+  return lidarrMutator<IndexerConfigResource>({
     url: `/api/v1/config/indexer`,
     method: "GET",
     signal,
@@ -8611,7 +8611,7 @@ export const useGetApiV1ConfigIndexer = <
 };
 
 export const getApiV1Indexerflag = (signal?: AbortSignal) => {
-  return customInstance<IndexerFlagResource[]>({
+  return lidarrMutator<IndexerFlagResource[]>({
     url: `/api/v1/indexerflag`,
     method: "GET",
     signal,
@@ -8683,7 +8683,7 @@ export const getApiV1LanguageId = (
 ) => {
   id = unref(id);
 
-  return customInstance<LanguageResource>({
+  return lidarrMutator<LanguageResource>({
     url: `/api/v1/language/${id}`,
     method: "GET",
     signal,
@@ -8763,7 +8763,7 @@ export const useGetApiV1LanguageId = <
 };
 
 export const getApiV1Language = (signal?: AbortSignal) => {
-  return customInstance<LanguageResource[]>({
+  return lidarrMutator<LanguageResource[]>({
     url: `/api/v1/language`,
     method: "GET",
     signal,
@@ -8822,7 +8822,7 @@ export const useGetApiV1Language = <
 };
 
 export const getApiV1Localization = (signal?: AbortSignal) => {
-  return customInstance<LocalizationResource>({
+  return lidarrMutator<LocalizationResource>({
     url: `/api/v1/localization`,
     method: "GET",
     signal,
@@ -8894,7 +8894,7 @@ export const getApiV1Log = (
 ) => {
   params = unref(params);
 
-  return customInstance<LogResourcePagingResource>({
+  return lidarrMutator<LogResourcePagingResource>({
     url: `/api/v1/log`,
     method: "GET",
     params: unref(params),
@@ -8962,7 +8962,7 @@ export const useGetApiV1Log = <
 };
 
 export const getApiV1LogFile = (signal?: AbortSignal) => {
-  return customInstance<LogFileResource[]>({
+  return lidarrMutator<LogFileResource[]>({
     url: `/api/v1/log/file`,
     method: "GET",
     signal,
@@ -9026,7 +9026,7 @@ export const getApiV1LogFileFilename = (
 ) => {
   filename = unref(filename);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/log/file/${filename}`,
     method: "GET",
     signal,
@@ -9113,7 +9113,7 @@ export const postApiV1Manualimport = (
 ) => {
   manualImportUpdateResource = unref(manualImportUpdateResource);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/manualimport`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -9184,7 +9184,7 @@ export const getApiV1Manualimport = (
 ) => {
   params = unref(params);
 
-  return customInstance<ManualImportResource[]>({
+  return lidarrMutator<ManualImportResource[]>({
     url: `/api/v1/manualimport`,
     method: "GET",
     params: unref(params),
@@ -9267,7 +9267,7 @@ export const getApiV1MediacoverArtistArtistIdFilename = (
   artistId = unref(artistId);
   filename = unref(filename);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/mediacover/artist/${artistId}/${filename}`,
     method: "GET",
     signal,
@@ -9365,7 +9365,7 @@ export const getApiV1MediacoverAlbumAlbumIdFilename = (
   albumId = unref(albumId);
   filename = unref(filename);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/mediacover/album/${albumId}/${filename}`,
     method: "GET",
     signal,
@@ -9461,7 +9461,7 @@ export const getApiV1ConfigMediamanagementId = (
 ) => {
   id = unref(id);
 
-  return customInstance<MediaManagementConfigResource>({
+  return lidarrMutator<MediaManagementConfigResource>({
     url: `/api/v1/config/mediamanagement/${id}`,
     method: "GET",
     signal,
@@ -9550,7 +9550,7 @@ export const putApiV1ConfigMediamanagementId = (
   id = unref(id);
   mediaManagementConfigResource = unref(mediaManagementConfigResource);
 
-  return customInstance<MediaManagementConfigResource>({
+  return lidarrMutator<MediaManagementConfigResource>({
     url: `/api/v1/config/mediamanagement/${id}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -9618,7 +9618,7 @@ export const usePutApiV1ConfigMediamanagementId = <
 };
 
 export const getApiV1ConfigMediamanagement = (signal?: AbortSignal) => {
-  return customInstance<MediaManagementConfigResource>({
+  return lidarrMutator<MediaManagementConfigResource>({
     url: `/api/v1/config/mediamanagement`,
     method: "GET",
     signal,
@@ -9690,7 +9690,7 @@ export const getApiV1MetadataId = (
 ) => {
   id = unref(id);
 
-  return customInstance<MetadataResource>({
+  return lidarrMutator<MetadataResource>({
     url: `/api/v1/metadata/${id}`,
     method: "GET",
     signal,
@@ -9778,7 +9778,7 @@ export const putApiV1MetadataId = (
   metadataResource = unref(metadataResource);
   params = unref(params);
 
-  return customInstance<MetadataResource>({
+  return lidarrMutator<MetadataResource>({
     url: `/api/v1/metadata/${id}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -9849,7 +9849,7 @@ export const deleteApiV1MetadataId = (
 ) => {
   id = unref(id);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/metadata/${id}`,
     method: "DELETE",
   });
@@ -9913,7 +9913,7 @@ export const useDeleteApiV1MetadataId = <
 };
 
 export const getApiV1Metadata = (signal?: AbortSignal) => {
-  return customInstance<MetadataResource[]>({
+  return lidarrMutator<MetadataResource[]>({
     url: `/api/v1/metadata`,
     method: "GET",
     signal,
@@ -9978,7 +9978,7 @@ export const postApiV1Metadata = (
   metadataResource = unref(metadataResource);
   params = unref(params);
 
-  return customInstance<MetadataResource>({
+  return lidarrMutator<MetadataResource>({
     url: `/api/v1/metadata`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -10045,7 +10045,7 @@ export const usePostApiV1Metadata = <
 };
 
 export const getApiV1MetadataSchema = (signal?: AbortSignal) => {
-  return customInstance<MetadataResource[]>({
+  return lidarrMutator<MetadataResource[]>({
     url: `/api/v1/metadata/schema`,
     method: "GET",
     signal,
@@ -10118,7 +10118,7 @@ export const postApiV1MetadataTest = (
   metadataResource = unref(metadataResource);
   params = unref(params);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/metadata/test`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -10185,7 +10185,7 @@ export const usePostApiV1MetadataTest = <
 };
 
 export const postApiV1MetadataTestall = () => {
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/metadata/testall`,
     method: "POST",
   });
@@ -10253,7 +10253,7 @@ export const postApiV1MetadataActionName = (
   name = unref(name);
   metadataResource = unref(metadataResource);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/metadata/action/${name}`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -10324,7 +10324,7 @@ export const postApiV1Metadataprofile = (
 ) => {
   metadataProfileResource = unref(metadataProfileResource);
 
-  return customInstance<MetadataProfileResource>({
+  return lidarrMutator<MetadataProfileResource>({
     url: `/api/v1/metadataprofile`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -10390,7 +10390,7 @@ export const usePostApiV1Metadataprofile = <
 };
 
 export const getApiV1Metadataprofile = (signal?: AbortSignal) => {
-  return customInstance<MetadataProfileResource[]>({
+  return lidarrMutator<MetadataProfileResource[]>({
     url: `/api/v1/metadataprofile`,
     method: "GET",
     signal,
@@ -10461,7 +10461,7 @@ export const deleteApiV1MetadataprofileId = (
 ) => {
   id = unref(id);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/metadataprofile/${id}`,
     method: "DELETE",
   });
@@ -10532,7 +10532,7 @@ export const putApiV1MetadataprofileId = (
   id = unref(id);
   metadataProfileResource = unref(metadataProfileResource);
 
-  return customInstance<MetadataProfileResource>({
+  return lidarrMutator<MetadataProfileResource>({
     url: `/api/v1/metadataprofile/${id}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -10603,7 +10603,7 @@ export const getApiV1MetadataprofileId = (
 ) => {
   id = unref(id);
 
-  return customInstance<MetadataProfileResource>({
+  return lidarrMutator<MetadataProfileResource>({
     url: `/api/v1/metadataprofile/${id}`,
     method: "GET",
     signal,
@@ -10683,7 +10683,7 @@ export const useGetApiV1MetadataprofileId = <
 };
 
 export const getApiV1MetadataprofileSchema = (signal?: AbortSignal) => {
-  return customInstance<MetadataProfileResource>({
+  return lidarrMutator<MetadataProfileResource>({
     url: `/api/v1/metadataprofile/schema`,
     method: "GET",
     signal,
@@ -10755,7 +10755,7 @@ export const getApiV1ConfigMetadataproviderId = (
 ) => {
   id = unref(id);
 
-  return customInstance<MetadataProviderConfigResource>({
+  return lidarrMutator<MetadataProviderConfigResource>({
     url: `/api/v1/config/metadataprovider/${id}`,
     method: "GET",
     signal,
@@ -10844,7 +10844,7 @@ export const putApiV1ConfigMetadataproviderId = (
   id = unref(id);
   metadataProviderConfigResource = unref(metadataProviderConfigResource);
 
-  return customInstance<MetadataProviderConfigResource>({
+  return lidarrMutator<MetadataProviderConfigResource>({
     url: `/api/v1/config/metadataprovider/${id}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -10912,7 +10912,7 @@ export const usePutApiV1ConfigMetadataproviderId = <
 };
 
 export const getApiV1ConfigMetadataprovider = (signal?: AbortSignal) => {
-  return customInstance<MetadataProviderConfigResource>({
+  return lidarrMutator<MetadataProviderConfigResource>({
     url: `/api/v1/config/metadataprovider`,
     method: "GET",
     signal,
@@ -10984,7 +10984,7 @@ export const getApiV1WantedMissing = (
 ) => {
   params = unref(params);
 
-  return customInstance<AlbumResourcePagingResource>({
+  return lidarrMutator<AlbumResourcePagingResource>({
     url: `/api/v1/wanted/missing`,
     method: "GET",
     params: unref(params),
@@ -11071,7 +11071,7 @@ export const getApiV1WantedMissingId = (
 ) => {
   id = unref(id);
 
-  return customInstance<AlbumResource>({
+  return lidarrMutator<AlbumResource>({
     url: `/api/v1/wanted/missing/${id}`,
     method: "GET",
     signal,
@@ -11156,7 +11156,7 @@ export const getApiV1ConfigNamingId = (
 ) => {
   id = unref(id);
 
-  return customInstance<NamingConfigResource>({
+  return lidarrMutator<NamingConfigResource>({
     url: `/api/v1/config/naming/${id}`,
     method: "GET",
     signal,
@@ -11242,7 +11242,7 @@ export const putApiV1ConfigNamingId = (
   id = unref(id);
   namingConfigResource = unref(namingConfigResource);
 
-  return customInstance<NamingConfigResource>({
+  return lidarrMutator<NamingConfigResource>({
     url: `/api/v1/config/naming/${id}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -11308,7 +11308,7 @@ export const usePutApiV1ConfigNamingId = <
 };
 
 export const getApiV1ConfigNaming = (signal?: AbortSignal) => {
-  return customInstance<NamingConfigResource>({
+  return lidarrMutator<NamingConfigResource>({
     url: `/api/v1/config/naming`,
     method: "GET",
     signal,
@@ -11380,7 +11380,7 @@ export const getApiV1ConfigNamingExamples = (
 ) => {
   params = unref(params);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/config/naming/examples`,
     method: "GET",
     params: unref(params),
@@ -11471,7 +11471,7 @@ export const getApiV1NotificationId = (
 ) => {
   id = unref(id);
 
-  return customInstance<NotificationResource>({
+  return lidarrMutator<NotificationResource>({
     url: `/api/v1/notification/${id}`,
     method: "GET",
     signal,
@@ -11559,7 +11559,7 @@ export const putApiV1NotificationId = (
   notificationResource = unref(notificationResource);
   params = unref(params);
 
-  return customInstance<NotificationResource>({
+  return lidarrMutator<NotificationResource>({
     url: `/api/v1/notification/${id}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -11650,7 +11650,7 @@ export const deleteApiV1NotificationId = (
 ) => {
   id = unref(id);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/notification/${id}`,
     method: "DELETE",
   });
@@ -11714,7 +11714,7 @@ export const useDeleteApiV1NotificationId = <
 };
 
 export const getApiV1Notification = (signal?: AbortSignal) => {
-  return customInstance<NotificationResource[]>({
+  return lidarrMutator<NotificationResource[]>({
     url: `/api/v1/notification`,
     method: "GET",
     signal,
@@ -11787,7 +11787,7 @@ export const postApiV1Notification = (
   notificationResource = unref(notificationResource);
   params = unref(params);
 
-  return customInstance<NotificationResource>({
+  return lidarrMutator<NotificationResource>({
     url: `/api/v1/notification`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -11854,7 +11854,7 @@ export const usePostApiV1Notification = <
 };
 
 export const getApiV1NotificationSchema = (signal?: AbortSignal) => {
-  return customInstance<NotificationResource[]>({
+  return lidarrMutator<NotificationResource[]>({
     url: `/api/v1/notification/schema`,
     method: "GET",
     signal,
@@ -11927,7 +11927,7 @@ export const postApiV1NotificationTest = (
   notificationResource = unref(notificationResource);
   params = unref(params);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/notification/test`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -11994,7 +11994,7 @@ export const usePostApiV1NotificationTest = <
 };
 
 export const postApiV1NotificationTestall = () => {
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/notification/testall`,
     method: "POST",
   });
@@ -12063,7 +12063,7 @@ export const postApiV1NotificationActionName = (
   name = unref(name);
   notificationResource = unref(notificationResource);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/notification/action/${name}`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -12135,7 +12135,7 @@ export const getApiV1Parse = (
 ) => {
   params = unref(params);
 
-  return customInstance<ParseResource>({
+  return lidarrMutator<ParseResource>({
     url: `/api/v1/parse`,
     method: "GET",
     params: unref(params),
@@ -12203,7 +12203,7 @@ export const useGetApiV1Parse = <
 };
 
 export const getPing = (signal?: AbortSignal) => {
-  return customInstance<PingResource>({ url: `/ping`, method: "GET", signal });
+  return lidarrMutator<PingResource>({ url: `/ping`, method: "GET", signal });
 };
 
 export const getGetPingQueryKey = () => {
@@ -12258,7 +12258,7 @@ export const useGetPing = <
 };
 
 export const headPing = (signal?: AbortSignal) => {
-  return customInstance<PingResource>({ url: `/ping`, method: "HEAD", signal });
+  return lidarrMutator<PingResource>({ url: `/ping`, method: "HEAD", signal });
 };
 
 export const getHeadPingMutationOptions = <
@@ -12320,7 +12320,7 @@ export const putApiV1QualitydefinitionId = (
   id = unref(id);
   qualityDefinitionResource = unref(qualityDefinitionResource);
 
-  return customInstance<QualityDefinitionResource>({
+  return lidarrMutator<QualityDefinitionResource>({
     url: `/api/v1/qualitydefinition/${id}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -12392,7 +12392,7 @@ export const getApiV1QualitydefinitionId = (
 ) => {
   id = unref(id);
 
-  return customInstance<QualityDefinitionResource>({
+  return lidarrMutator<QualityDefinitionResource>({
     url: `/api/v1/qualitydefinition/${id}`,
     method: "GET",
     signal,
@@ -12472,7 +12472,7 @@ export const useGetApiV1QualitydefinitionId = <
 };
 
 export const getApiV1Qualitydefinition = (signal?: AbortSignal) => {
-  return customInstance<QualityDefinitionResource[]>({
+  return lidarrMutator<QualityDefinitionResource[]>({
     url: `/api/v1/qualitydefinition`,
     method: "GET",
     signal,
@@ -12543,7 +12543,7 @@ export const putApiV1QualitydefinitionUpdate = (
 ) => {
   qualityDefinitionResource = unref(qualityDefinitionResource);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/qualitydefinition/update`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -12615,7 +12615,7 @@ export const postApiV1Qualityprofile = (
 ) => {
   qualityProfileResource = unref(qualityProfileResource);
 
-  return customInstance<QualityProfileResource>({
+  return lidarrMutator<QualityProfileResource>({
     url: `/api/v1/qualityprofile`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -12681,7 +12681,7 @@ export const usePostApiV1Qualityprofile = <
 };
 
 export const getApiV1Qualityprofile = (signal?: AbortSignal) => {
-  return customInstance<QualityProfileResource[]>({
+  return lidarrMutator<QualityProfileResource[]>({
     url: `/api/v1/qualityprofile`,
     method: "GET",
     signal,
@@ -12752,7 +12752,7 @@ export const deleteApiV1QualityprofileId = (
 ) => {
   id = unref(id);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/qualityprofile/${id}`,
     method: "DELETE",
   });
@@ -12823,7 +12823,7 @@ export const putApiV1QualityprofileId = (
   id = unref(id);
   qualityProfileResource = unref(qualityProfileResource);
 
-  return customInstance<QualityProfileResource>({
+  return lidarrMutator<QualityProfileResource>({
     url: `/api/v1/qualityprofile/${id}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -12894,7 +12894,7 @@ export const getApiV1QualityprofileId = (
 ) => {
   id = unref(id);
 
-  return customInstance<QualityProfileResource>({
+  return lidarrMutator<QualityProfileResource>({
     url: `/api/v1/qualityprofile/${id}`,
     method: "GET",
     signal,
@@ -12974,7 +12974,7 @@ export const useGetApiV1QualityprofileId = <
 };
 
 export const getApiV1QualityprofileSchema = (signal?: AbortSignal) => {
-  return customInstance<QualityProfileResource>({
+  return lidarrMutator<QualityProfileResource>({
     url: `/api/v1/qualityprofile/schema`,
     method: "GET",
     signal,
@@ -13047,7 +13047,7 @@ export const deleteApiV1QueueId = (
   id = unref(id);
   params = unref(params);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/queue/${id}`,
     method: "DELETE",
     params: unref(params),
@@ -13118,7 +13118,7 @@ export const deleteApiV1QueueBulk = (
   queueBulkResource = unref(queueBulkResource);
   params = unref(params);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/queue/bulk`,
     method: "DELETE",
     headers: { "Content-Type": "application/json" },
@@ -13190,7 +13190,7 @@ export const getApiV1Queue = (
 ) => {
   params = unref(params);
 
-  return customInstance<QueueResourcePagingResource>({
+  return lidarrMutator<QueueResourcePagingResource>({
     url: `/api/v1/queue`,
     method: "GET",
     params: unref(params),
@@ -13262,7 +13262,7 @@ export const postApiV1QueueGrabId = (
 ) => {
   id = unref(id);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/queue/grab/${id}`,
     method: "POST",
   });
@@ -13330,7 +13330,7 @@ export const postApiV1QueueGrabBulk = (
 ) => {
   queueBulkResource = unref(queueBulkResource);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/queue/grab/bulk`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -13401,7 +13401,7 @@ export const getApiV1QueueDetails = (
 ) => {
   params = unref(params);
 
-  return customInstance<QueueResource[]>({
+  return lidarrMutator<QueueResource[]>({
     url: `/api/v1/queue/details`,
     method: "GET",
     params: unref(params),
@@ -13483,7 +13483,7 @@ export const useGetApiV1QueueDetails = <
 };
 
 export const getApiV1QueueStatus = (signal?: AbortSignal) => {
-  return customInstance<QueueStatusResource>({
+  return lidarrMutator<QueueStatusResource>({
     url: `/api/v1/queue/status`,
     method: "GET",
     signal,
@@ -13554,7 +13554,7 @@ export const postApiV1Release = (
 ) => {
   releaseResource = unref(releaseResource);
 
-  return customInstance<ReleaseResource>({
+  return lidarrMutator<ReleaseResource>({
     url: `/api/v1/release`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -13625,7 +13625,7 @@ export const getApiV1Release = (
 ) => {
   params = unref(params);
 
-  return customInstance<ReleaseResource[]>({
+  return lidarrMutator<ReleaseResource[]>({
     url: `/api/v1/release`,
     method: "GET",
     params: unref(params),
@@ -13706,7 +13706,7 @@ export const getApiV1ReleaseprofileId = (
 ) => {
   id = unref(id);
 
-  return customInstance<ReleaseProfileResource>({
+  return lidarrMutator<ReleaseProfileResource>({
     url: `/api/v1/releaseprofile/${id}`,
     method: "GET",
     signal,
@@ -13792,7 +13792,7 @@ export const putApiV1ReleaseprofileId = (
   id = unref(id);
   releaseProfileResource = unref(releaseProfileResource);
 
-  return customInstance<ReleaseProfileResource>({
+  return lidarrMutator<ReleaseProfileResource>({
     url: `/api/v1/releaseprofile/${id}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -13862,7 +13862,7 @@ export const deleteApiV1ReleaseprofileId = (
 ) => {
   id = unref(id);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/releaseprofile/${id}`,
     method: "DELETE",
   });
@@ -13927,7 +13927,7 @@ export const useDeleteApiV1ReleaseprofileId = <
 };
 
 export const getApiV1Releaseprofile = (signal?: AbortSignal) => {
-  return customInstance<ReleaseProfileResource[]>({
+  return lidarrMutator<ReleaseProfileResource[]>({
     url: `/api/v1/releaseprofile`,
     method: "GET",
     signal,
@@ -13998,7 +13998,7 @@ export const postApiV1Releaseprofile = (
 ) => {
   releaseProfileResource = unref(releaseProfileResource);
 
-  return customInstance<ReleaseProfileResource>({
+  return lidarrMutator<ReleaseProfileResource>({
     url: `/api/v1/releaseprofile`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -14068,7 +14068,7 @@ export const postApiV1ReleasePush = (
 ) => {
   releaseResource = unref(releaseResource);
 
-  return customInstance<ReleaseResource>({
+  return lidarrMutator<ReleaseResource>({
     url: `/api/v1/release/push`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -14139,7 +14139,7 @@ export const getApiV1RemotepathmappingId = (
 ) => {
   id = unref(id);
 
-  return customInstance<RemotePathMappingResource>({
+  return lidarrMutator<RemotePathMappingResource>({
     url: `/api/v1/remotepathmapping/${id}`,
     method: "GET",
     signal,
@@ -14223,7 +14223,7 @@ export const deleteApiV1RemotepathmappingId = (
 ) => {
   id = unref(id);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/remotepathmapping/${id}`,
     method: "DELETE",
   });
@@ -14294,7 +14294,7 @@ export const putApiV1RemotepathmappingId = (
   id = unref(id);
   remotePathMappingResource = unref(remotePathMappingResource);
 
-  return customInstance<RemotePathMappingResource>({
+  return lidarrMutator<RemotePathMappingResource>({
     url: `/api/v1/remotepathmapping/${id}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -14365,7 +14365,7 @@ export const postApiV1Remotepathmapping = (
 ) => {
   remotePathMappingResource = unref(remotePathMappingResource);
 
-  return customInstance<RemotePathMappingResource>({
+  return lidarrMutator<RemotePathMappingResource>({
     url: `/api/v1/remotepathmapping`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -14431,7 +14431,7 @@ export const usePostApiV1Remotepathmapping = <
 };
 
 export const getApiV1Remotepathmapping = (signal?: AbortSignal) => {
-  return customInstance<RemotePathMappingResource[]>({
+  return lidarrMutator<RemotePathMappingResource[]>({
     url: `/api/v1/remotepathmapping`,
     method: "GET",
     signal,
@@ -14503,7 +14503,7 @@ export const getApiV1Rename = (
 ) => {
   params = unref(params);
 
-  return customInstance<RenameTrackResource[]>({
+  return lidarrMutator<RenameTrackResource[]>({
     url: `/api/v1/rename`,
     method: "GET",
     params: unref(params),
@@ -14576,7 +14576,7 @@ export const getApiV1Retag = (
 ) => {
   params = unref(params);
 
-  return customInstance<RetagTrackResource[]>({
+  return lidarrMutator<RetagTrackResource[]>({
     url: `/api/v1/retag`,
     method: "GET",
     params: unref(params),
@@ -14649,7 +14649,7 @@ export const getApiV1RootfolderId = (
 ) => {
   id = unref(id);
 
-  return customInstance<RootFolderResource>({
+  return lidarrMutator<RootFolderResource>({
     url: `/api/v1/rootfolder/${id}`,
     method: "GET",
     signal,
@@ -14735,7 +14735,7 @@ export const putApiV1RootfolderId = (
   id = unref(id);
   rootFolderResource = unref(rootFolderResource);
 
-  return customInstance<RootFolderResource>({
+  return lidarrMutator<RootFolderResource>({
     url: `/api/v1/rootfolder/${id}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -14805,7 +14805,7 @@ export const deleteApiV1RootfolderId = (
 ) => {
   id = unref(id);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/rootfolder/${id}`,
     method: "DELETE",
   });
@@ -14873,7 +14873,7 @@ export const postApiV1Rootfolder = (
 ) => {
   rootFolderResource = unref(rootFolderResource);
 
-  return customInstance<RootFolderResource>({
+  return lidarrMutator<RootFolderResource>({
     url: `/api/v1/rootfolder`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -14939,7 +14939,7 @@ export const usePostApiV1Rootfolder = <
 };
 
 export const getApiV1Rootfolder = (signal?: AbortSignal) => {
-  return customInstance<RootFolderResource[]>({
+  return lidarrMutator<RootFolderResource[]>({
     url: `/api/v1/rootfolder`,
     method: "GET",
     signal,
@@ -15011,7 +15011,7 @@ export const getApiV1Search = (
 ) => {
   params = unref(params);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/search`,
     method: "GET",
     params: unref(params),
@@ -15084,7 +15084,7 @@ export const getContentPath = (
 ) => {
   path = unref(path);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/content/${path}`,
     method: "GET",
     signal,
@@ -15156,7 +15156,7 @@ export const useGetContentPath = <
 };
 
 export const get = (signal?: AbortSignal) => {
-  return customInstance<void>({ url: `/`, method: "GET", signal });
+  return lidarrMutator<void>({ url: `/`, method: "GET", signal });
 };
 
 export const getGetQueryKey = () => {
@@ -15214,7 +15214,7 @@ export const getPath = (
 ) => {
   path = unref(path);
 
-  return customInstance<void>({ url: `/${path}`, method: "GET", signal });
+  return lidarrMutator<void>({ url: `/${path}`, method: "GET", signal });
 };
 
 export const getGetPathQueryKey = (
@@ -15278,7 +15278,7 @@ export const useGetPath = <
 };
 
 export const getApiV1SystemStatus = (signal?: AbortSignal) => {
-  return customInstance<SystemResource>({
+  return lidarrMutator<SystemResource>({
     url: `/api/v1/system/status`,
     method: "GET",
     signal,
@@ -15345,7 +15345,7 @@ export const useGetApiV1SystemStatus = <
 };
 
 export const getApiV1SystemRoutes = (signal?: AbortSignal) => {
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/system/routes`,
     method: "GET",
     signal,
@@ -15412,7 +15412,7 @@ export const useGetApiV1SystemRoutes = <
 };
 
 export const getApiV1SystemRoutesDuplicate = (signal?: AbortSignal) => {
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/system/routes/duplicate`,
     method: "GET",
     signal,
@@ -15479,7 +15479,7 @@ export const useGetApiV1SystemRoutesDuplicate = <
 };
 
 export const postApiV1SystemShutdown = () => {
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/system/shutdown`,
     method: "POST",
   });
@@ -15541,10 +15541,7 @@ export const usePostApiV1SystemShutdown = <
 };
 
 export const postApiV1SystemRestart = () => {
-  return customInstance<void>({
-    url: `/api/v1/system/restart`,
-    method: "POST",
-  });
+  return lidarrMutator<void>({ url: `/api/v1/system/restart`, method: "POST" });
 };
 
 export const getPostApiV1SystemRestartMutationOptions = <
@@ -15608,7 +15605,7 @@ export const getApiV1TagId = (
 ) => {
   id = unref(id);
 
-  return customInstance<TagResource>({
+  return lidarrMutator<TagResource>({
     url: `/api/v1/tag/${id}`,
     method: "GET",
     signal,
@@ -15686,7 +15683,7 @@ export const putApiV1TagId = (
   id = unref(id);
   tagResource = unref(tagResource);
 
-  return customInstance<TagResource>({
+  return lidarrMutator<TagResource>({
     url: `/api/v1/tag/${id}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -15754,7 +15751,7 @@ export const usePutApiV1TagId = <
 export const deleteApiV1TagId = (id: MaybeRef<number | undefined | null>) => {
   id = unref(id);
 
-  return customInstance<void>({ url: `/api/v1/tag/${id}`, method: "DELETE" });
+  return lidarrMutator<void>({ url: `/api/v1/tag/${id}`, method: "DELETE" });
 };
 
 export const getDeleteApiV1TagIdMutationOptions = <
@@ -15815,7 +15812,7 @@ export const useDeleteApiV1TagId = <
 };
 
 export const getApiV1Tag = (signal?: AbortSignal) => {
-  return customInstance<TagResource[]>({
+  return lidarrMutator<TagResource[]>({
     url: `/api/v1/tag`,
     method: "GET",
     signal,
@@ -15876,7 +15873,7 @@ export const useGetApiV1Tag = <
 export const postApiV1Tag = (tagResource: MaybeRef<TagResource>) => {
   tagResource = unref(tagResource);
 
-  return customInstance<TagResource>({
+  return lidarrMutator<TagResource>({
     url: `/api/v1/tag`,
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -15947,7 +15944,7 @@ export const getApiV1TagDetailId = (
 ) => {
   id = unref(id);
 
-  return customInstance<TagDetailsResource>({
+  return lidarrMutator<TagDetailsResource>({
     url: `/api/v1/tag/detail/${id}`,
     method: "GET",
     signal,
@@ -16027,7 +16024,7 @@ export const useGetApiV1TagDetailId = <
 };
 
 export const getApiV1TagDetail = (signal?: AbortSignal) => {
-  return customInstance<TagDetailsResource[]>({
+  return lidarrMutator<TagDetailsResource[]>({
     url: `/api/v1/tag/detail`,
     method: "GET",
     signal,
@@ -16094,7 +16091,7 @@ export const useGetApiV1TagDetail = <
 };
 
 export const getApiV1SystemTask = (signal?: AbortSignal) => {
-  return customInstance<TaskResource[]>({
+  return lidarrMutator<TaskResource[]>({
     url: `/api/v1/system/task`,
     method: "GET",
     signal,
@@ -16166,7 +16163,7 @@ export const getApiV1SystemTaskId = (
 ) => {
   id = unref(id);
 
-  return customInstance<TaskResource>({
+  return lidarrMutator<TaskResource>({
     url: `/api/v1/system/task/${id}`,
     method: "GET",
     signal,
@@ -16251,7 +16248,7 @@ export const getApiV1Track = (
 ) => {
   params = unref(params);
 
-  return customInstance<TrackResource[]>({
+  return lidarrMutator<TrackResource[]>({
     url: `/api/v1/track`,
     method: "GET",
     params: unref(params),
@@ -16324,7 +16321,7 @@ export const getApiV1TrackId = (
 ) => {
   id = unref(id);
 
-  return customInstance<TrackResource>({
+  return lidarrMutator<TrackResource>({
     url: `/api/v1/track/${id}`,
     method: "GET",
     signal,
@@ -16409,7 +16406,7 @@ export const getApiV1TrackfileId = (
 ) => {
   id = unref(id);
 
-  return customInstance<TrackFileResource>({
+  return lidarrMutator<TrackFileResource>({
     url: `/api/v1/trackfile/${id}`,
     method: "GET",
     signal,
@@ -16495,7 +16492,7 @@ export const putApiV1TrackfileId = (
   id = unref(id);
   trackFileResource = unref(trackFileResource);
 
-  return customInstance<TrackFileResource>({
+  return lidarrMutator<TrackFileResource>({
     url: `/api/v1/trackfile/${id}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -16565,7 +16562,7 @@ export const deleteApiV1TrackfileId = (
 ) => {
   id = unref(id);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/trackfile/${id}`,
     method: "DELETE",
   });
@@ -16634,7 +16631,7 @@ export const getApiV1Trackfile = (
 ) => {
   params = unref(params);
 
-  return customInstance<TrackFileResource[]>({
+  return lidarrMutator<TrackFileResource[]>({
     url: `/api/v1/trackfile`,
     method: "GET",
     params: unref(params),
@@ -16714,7 +16711,7 @@ export const putApiV1TrackfileEditor = (
 ) => {
   trackFileListResource = unref(trackFileListResource);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/trackfile/editor`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -16784,7 +16781,7 @@ export const deleteApiV1TrackfileBulk = (
 ) => {
   trackFileListResource = unref(trackFileListResource);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/trackfile/bulk`,
     method: "DELETE",
     headers: { "Content-Type": "application/json" },
@@ -16856,7 +16853,7 @@ export const putApiV1ConfigUiId = (
   id = unref(id);
   uiConfigResource = unref(uiConfigResource);
 
-  return customInstance<UiConfigResource>({
+  return lidarrMutator<UiConfigResource>({
     url: `/api/v1/config/ui/${id}`,
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -16927,7 +16924,7 @@ export const getApiV1ConfigUiId = (
 ) => {
   id = unref(id);
 
-  return customInstance<UiConfigResource>({
+  return lidarrMutator<UiConfigResource>({
     url: `/api/v1/config/ui/${id}`,
     method: "GET",
     signal,
@@ -17007,7 +17004,7 @@ export const useGetApiV1ConfigUiId = <
 };
 
 export const getApiV1ConfigUi = (signal?: AbortSignal) => {
-  return customInstance<UiConfigResource>({
+  return lidarrMutator<UiConfigResource>({
     url: `/api/v1/config/ui`,
     method: "GET",
     signal,
@@ -17066,7 +17063,7 @@ export const useGetApiV1ConfigUi = <
 };
 
 export const getApiV1Update = (signal?: AbortSignal) => {
-  return customInstance<UpdateResource[]>({
+  return lidarrMutator<UpdateResource[]>({
     url: `/api/v1/update`,
     method: "GET",
     signal,
@@ -17125,7 +17122,7 @@ export const useGetApiV1Update = <
 };
 
 export const getApiV1LogFileUpdate = (signal?: AbortSignal) => {
-  return customInstance<LogFileResource[]>({
+  return lidarrMutator<LogFileResource[]>({
     url: `/api/v1/log/file/update`,
     method: "GET",
     signal,
@@ -17197,7 +17194,7 @@ export const getApiV1LogFileUpdateFilename = (
 ) => {
   filename = unref(filename);
 
-  return customInstance<void>({
+  return lidarrMutator<void>({
     url: `/api/v1/log/file/update/${filename}`,
     method: "GET",
     signal,

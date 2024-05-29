@@ -11,7 +11,7 @@ import type {
   SearchResource,
 } from '~/thirdPartyApis/readarr/models';
 const searchStore = useSearchStore();
-const { searchResults } = storeToRefs(searchStore);
+const { readarrSearchResults } = storeToRefs(searchStore);
 const query = ref<string>();
 const queryRequest = ref<GetApiV1SearchParams>({
   term: '',
@@ -31,7 +31,7 @@ const debouncedSearch = useDebounceFn(() => {
 
 watch(data, (newValue) => {
   if (newValue) {
-    searchStore.setSearchResults(newValue);
+    searchStore.setReadarrSearchResults(newValue);
   }
 });
 
@@ -69,12 +69,13 @@ const { mobile } = useDisplay();
     </template>
     <v-col
       v-else
-      v-for="item in searchResults"
+      v-for="item in readarrSearchResults"
       :key="item.id"
       cols="12"
       sm="6"
       md="4"
     >
+      <!-- TODO refactor to product cards -->
       <BookCard
         v-if="item.book"
         :title="getTitle(item) ?? ''"
@@ -91,7 +92,7 @@ const { mobile } = useDisplay();
         :imgUrl="getImg(item) ?? ''"
         :id="item.author?.id ?? item.author?.foreignAuthorId ?? 0"
         :genres="item.author?.genres ?? []"
-        :indexed="item.author?.grabbed"
+        :indexed="item.author?.id !== 0"
         :rating="item.author?.ratings?.value ?? 0"
         :overview="item.author?.overview ?? ''"
       />

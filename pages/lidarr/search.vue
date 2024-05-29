@@ -4,7 +4,7 @@ import { useDisplay } from 'vuetify';
 import { useGetApiV1Search } from '~/thirdPartyApis/lidarr';
 
 const searchStore = useSearchStore();
-const { searchResults } = storeToRefs(searchStore);
+const { lidarrSearchResults } = storeToRefs(searchStore);
 const query = ref<string>();
 const queryRequest = ref({
   term: '',
@@ -24,7 +24,7 @@ const debouncedSearch = useDebounceFn(() => {
 
 watch(data, (newValue) => {
   if (newValue) {
-    searchStore.setSearchResults(newValue);
+    searchStore.setLidarrSearchResults(newValue);
   }
 });
 
@@ -34,13 +34,17 @@ const getImg = (item) => {
 
 const { mobile } = useDisplay();
 
-const getRoute = (item) => {
-  const itemType = item.author ? 'authors' : 'books';
-  const indexedPath = item.author ? 'authorId' : 'bookId';
-// TODO fix url
-  return `/${itemType}/indexed/${item.album.id`;
-    ${item.album.id
-}
+const getAlbumRoute = (item) => {
+  return item.album?.id
+    ? `/albums/indexed/${item.album.id}`
+    : `/albums/not-indexed/${item.album.foreignAlbumId}`;
+};
+
+const getArtistRoute = (item) => {
+  return item.artist?.id
+    ? `/artists/indexed/${item.artist.id}`
+    : `/artists/not-indexed/${item.artist.foreignArtistId}`;
+};
 </script>
 
 <template>
@@ -82,7 +86,7 @@ const getRoute = (item) => {
         :genres="item.album.genres"
         :rating="item.album.ratings.value"
         icon="mdi-music-box-multiple"
-        :go-to-route="getRoute(item)"
+        :go-to-route="getAlbumRoute(item)"
       >
       </ProductCard>
       <ProductCard
@@ -95,7 +99,7 @@ const getRoute = (item) => {
         :genres="item.artist.genres"
         :rating="item.artist.ratings.value"
         icon="mdi-music-box-multiple"
-        :go-to-route="`/albums/indexed/${}`"
+        :go-to-route="getArtistRoute(item)"
       >
       </ProductCard>
     </v-col>

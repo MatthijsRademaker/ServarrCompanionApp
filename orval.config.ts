@@ -12,8 +12,8 @@ export default defineConfig({
       target: './thirdPartyApis/readarr/index.ts',
       override: {
         mutator: {
-          path: './thirdPartyApis/mutator.ts',
-          name: 'customInstance',
+          path: './thirdPartyApis/mutators/readarr.ts',
+          name: 'readarrMutator',
         },
       },
     },
@@ -34,8 +34,8 @@ export default defineConfig({
       target: './thirdPartyApis/lidarr/index.ts',
       override: {
         mutator: {
-          path: './thirdPartyApis/mutator.ts',
-          name: 'customInstance',
+          path: './thirdPartyApis//mutators/lidarr.ts',
+          name: 'lidarrMutator',
         },
       },
     },

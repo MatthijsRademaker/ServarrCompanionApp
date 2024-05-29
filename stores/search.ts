@@ -1,14 +1,21 @@
 import type { SearchResource } from '~/thirdPartyApis/readarr/models';
 
 export const useSearchStore = defineStore('search', () => {
-  const searchResults = ref<SearchResource[]>();
+  const readarrSearchResults = ref<SearchResource[]>();
 
-  const setSearchResults = (results: SearchResource[]) => {
-    searchResults.value = results;
+  const setReadarrSearchResults = (results: SearchResource[]) => {
+    readarrSearchResults.value = results;
+  };
+  const lidarrSearchResults = ref<SearchResource[]>();
+
+  const setLidarrSearchResults = (results: SearchResource[]) => {
+    lidarrSearchResults.value = results;
   };
 
   return {
-    searchResults,
-    setSearchResults,
+    readarrSearchResults,
+    setReadarrSearchResults,
+    lidarrSearchResults,
+    setLidarrSearchResults,
   };
 });
