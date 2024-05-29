@@ -1,11 +1,10 @@
-<template>
-  <v-theme-provider theme="lidarr">
-    <NuxtPage />
-  </v-theme-provider>
-</template>
+<script setup lang="ts">
+import { useTheme } from 'vuetify';
 
-<style scoped>
-body {
-  background-color: #1f1f1f;
-}
-</style>
+const theme = useTheme();
+
+theme.global.name.value = 'lidarr';
+</script>
+<template>
+  <NuxtPage />
+</template>

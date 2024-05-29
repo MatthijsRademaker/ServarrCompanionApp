@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps<{
+const props = defineProps<{
   title: string;
   imgUrl: string;
   id: number | string;
@@ -8,6 +8,8 @@ defineProps<{
   pageCount: number;
   indexed?: boolean;
 }>();
+
+const subPath = props.indexed ? 'indexed' : 'not-indexed';
 </script>
 <template>
   <ProductCard
@@ -18,8 +20,8 @@ defineProps<{
     :img-height="180"
     :genres="genres"
     :rating="rating"
-    :indexed="indexed ?? false"
-    type="books"
+    icon="mdi-book-open-page-variant"
+    :go-to-route="`/books/${subPath}/${id}`"
   >
     <p>Page count: {{ pageCount }}</p>
   </ProductCard>

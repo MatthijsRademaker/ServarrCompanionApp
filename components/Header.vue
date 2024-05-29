@@ -2,6 +2,7 @@
 import logo from '~/assets/logo.png';
 const router = useRouter();
 const showDrawer = ref(false);
+const showSecondDrawer = ref(false);
 
 const items = [
   { title: 'Home', icon: 'mdi-home', to: '/' },
@@ -45,6 +46,8 @@ const setSubList = (title: string, to?: string) => {
   } else {
     subItems.value = subItemsMusic;
   }
+
+  showSecondDrawer.value = true;
 };
 </script>
 
@@ -83,7 +86,7 @@ const setSubList = (title: string, to?: string) => {
     ></v-list>
   </v-navigation-drawer>
   <v-navigation-drawer
-    v-model="showDrawer"
+    v-model="showSecondDrawer"
     :location="$vuetify.display.mobile ? 'top' : undefined"
     temporary
   >

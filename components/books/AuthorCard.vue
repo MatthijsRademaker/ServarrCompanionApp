@@ -7,6 +7,7 @@ const props = defineProps<{
   indexed?: boolean;
   overview: string;
 }>();
+const subPath = props.indexed ? 'indexed' : 'not-indexed';
 </script>
 <template>
   <ProductCard
@@ -16,8 +17,8 @@ const props = defineProps<{
     :img-height="200"
     :id="id"
     :rating="rating"
-    :indexed="indexed ?? false"
-    type="authors"
+    icon="mdi-card-account-details"
+    :go-to-route="`/authors/${subPath}/${id}`"
   >
     <p>{{ overview }}</p>
   </ProductCard>

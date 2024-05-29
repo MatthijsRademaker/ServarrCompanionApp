@@ -22,4 +22,26 @@ export default defineConfig({
       afterAllFilesWrite: 'prettier --write',
     },
   },
+  lidarr: {
+    input: './openApiSpecs/lidarr.openapi.json',
+    output: {
+      mock: false,
+      clean: true,
+      mode: 'split',
+      allParamsOptional: true,
+      client: 'vue-query',
+      schemas: './thirdPartyApis/lidarr/models',
+      target: './thirdPartyApis/lidarr/index.ts',
+      override: {
+        mutator: {
+          path: './thirdPartyApis/mutator.ts',
+          name: 'customInstance',
+        },
+      },
+    },
+
+    hooks: {
+      afterAllFilesWrite: 'prettier --write',
+    },
+  },
 });

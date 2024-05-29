@@ -1,22 +1,20 @@
 <script setup lang="ts">
 const props = defineProps<{
   title: string;
-  indexed: boolean;
   imgUrl: string;
   id: number | string;
   rating: number;
-  type: string;
+  icon: string;
   imgWidth: number;
   imgHeight: number;
   genres?: string[];
+  goToRoute: string;
 }>();
 
 const router = useRouter();
 
 const goToDetails = () => {
-  const subPath = props.indexed ? 'indexed' : 'not-indexed';
-
-  router.push(`/${props.type}/${subPath}/${props.id}`);
+  router.push(props.goToRoute);
 };
 
 const rating = ref<number>(props.rating);
@@ -26,13 +24,7 @@ const genresSlice = ref<string[] | undefined>(props.genres?.slice(0, 3));
 <template>
   <v-card>
     <v-card-title>
-      <v-icon
-        :icon="
-          type === 'authors'
-            ? 'mdi-card-account-details'
-            : 'mdi-book-open-page-variant'
-        "
-      ></v-icon>
+      <v-icon :icon="icon"></v-icon>
       {{ title }}
     </v-card-title>
     <div class="grid-container">
