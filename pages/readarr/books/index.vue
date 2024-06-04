@@ -4,7 +4,7 @@ import { useGetApiV1Book } from '~/thirdPartyApis/readarr';
 const { data: books, isLoading: isLoadingBooks } = useGetApiV1Book();
 
 const filterValue = ref('');
-const maxIndex = 10;
+const maxIndex = ref(10);
 const filteredBooks = computed(() => {
   if (filterValue.value === '' || filterValue.value === null) {
     return books.value;
@@ -44,7 +44,7 @@ const downloadedBooks = computed(() => {
 });
 
 const booksSlice = computed(() => {
-  return downloadedBooks.value?.slice(0, maxIndex);
+  return downloadedBooks.value?.slice(0, maxIndex.value);
 });
 </script>
 
