@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useGetApiV1Book, useGetApiV1Author } from '~/thirdPartyApis/readarr';
 import { getRelativePath } from '~/helpers/route';
+import { useDisplay } from 'vuetify';
 
 const { data: books, isLoading: isLoadingBooks } = useGetApiV1Book();
 const { data: authors, isLoading: isLoadingAuthors } = useGetApiV1Author();
@@ -11,16 +12,18 @@ const getImageFilePath = (item) => {
     subPath?.split('?')[0]
   }`;
 };
+const { mobile } = useDisplay();
+const maxItems = mobile ? 2 : 4;
 
 const booksSlice = computed(() => {
   const copy = books.value?.slice();
 
-  return copy?.reverse()?.slice(0, 4);
+  return copy?.reverse()?.slice(0, maxItems);
 });
 
 const authorsSlice = computed(() => {
   const copy = authors.value?.slice();
-  return copy?.reverse()?.slice(0, 4);
+  return copy?.reverse()?.slice(0, maxItems);
 });
 </script>
 
