@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { goToRelativePath } from '~/helpers/route';
+import { goToRelativePath, type BaseRoute } from '~/helpers/route';
 
 const props = defineProps<{
   title: string;
@@ -11,10 +11,11 @@ const props = defineProps<{
   imgHeight: number;
   genres?: string[];
   goToRoute: string;
+  baseRoute: BaseRoute;
 }>();
 
 const goToDetails = () => {
-  goToRelativePath(useRoute(), useRouter(), props.goToRoute);
+  goToRelativePath(props.baseRoute, useRouter(), props.goToRoute);
 };
 
 const rating = ref<number>(props.rating);

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { useDebounceFn } from '@vueuse/core';
 import { useDisplay } from 'vuetify';
+import AuthorCard from '~/components/books/AuthorCard.vue';
+import BookCard from '~/components/books/BookCard.vue';
 import {
   useGetApiV1Search,
   useGetApiV1AuthorId,
@@ -93,37 +95,29 @@ const getDetailsPathBook = (item: SearchResource) => {
       sm="6"
       md="4"
     >
-      <ProductCard
+      <BookCard
         v-if="item.book"
         :title="getTitle(item) ?? ''"
-        :imgUrl="getImg(item) ?? ''"
+        :img-url="getImg(item) ?? ''"
         :id="item.book.id ?? item.book?.foreignBookId ?? 0"
         :indexed="item.book?.id !== 0"
         :genres="item.book?.genres ?? []"
         :rating="item.book?.ratings?.value ?? 0"
-        :img-width="140"
-        :img-height="180"
-        icon="mdi-book-open-page-variant"
         :go-to-route="getDetailsPathBook(item)"
-      >
-        <p>Page count: {{ item?.book?.pageCount }}</p>
-      </ProductCard>
+        :pagecount="item?.book?.pageCount"
+      />
 
-      <ProductCard
+      <AuthorCard
         v-else
         :title="getTitle(item) ?? ''"
-        :imgUrl="getImg(item) ?? ''"
+        :img-url="getImg(item) ?? ''"
         :id="item.author?.id ?? item.author?.foreignAuthorId ?? 0"
         :genres="item.author?.genres ?? []"
         :indexed="item.author?.id !== 0"
         :rating="item.author?.ratings?.value ?? 0"
-        :img-width="200"
-        :img-height="180"
-        icon="mdi-card-account-details"
         :go-to-route="getDetailsPathAuthor(item)"
-      >
-        <p>{{ item.author?.overview }}</p>
-      </ProductCard>
+        :overview="item.author?.overview"
+      />
     </v-col>
   </v-row>
 </template>

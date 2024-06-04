@@ -2,6 +2,8 @@
 import { useGetApiV1Book, useGetApiV1Author } from '~/thirdPartyApis/readarr';
 import { getRelativePath } from '~/helpers/route';
 import { useDisplay } from 'vuetify';
+import BookCard from '~/components/books/BookCard.vue';
+import AuthorCard from '~/components/books/AuthorCard.vue';
 
 const { data: books, isLoading: isLoadingBooks } = useGetApiV1Book();
 const { data: authors, isLoading: isLoadingAuthors } = useGetApiV1Author();
@@ -43,26 +45,22 @@ const authorsSlice = computed(() => {
     </v-col>
     <template v-if="books">
       <v-col v-for="item in booksSlice" :key="item.id" cols="12" sm="6" md="3">
-        <ProductCard
+        <BookCard
           :title="item?.title ?? ''"
           :imgUrl="getImageFilePath(item)"
           :id="item?.id ?? 0"
           :genres="item?.genres ?? []"
           indexed
           :rating="item?.ratings?.value ?? 0"
-          :img-width="140"
-          :img-height="180"
-          icon="mdi-book-open-page-variant"
           :go-to-route="`books/indexed/${item?.id}`"
-        >
-          <p>{{ item?.pageCount }}</p>
-        </ProductCard>
+          :page-count="item?.pageCount"
+        />
       </v-col>
     </template>
   </v-row>
   <v-row>
     <v-col>
-      <NuxtLink :to="getRelativePath('books')">
+      <NuxtLink :to="getRelativePath(useRoute(), 'books')">
         <v-btn color="primary">View all books</v-btn>
       </NuxtLink>
     </v-col>
@@ -89,26 +87,22 @@ const authorsSlice = computed(() => {
         sm="6"
         md="3"
       >
-        <ProductCard
+        <AuthorCard
           :title="item?.authorName ?? ''"
           :imgUrl="getImageFilePath(item)"
           :id="item?.id ?? item?.foreignAuthorId ?? 0"
           :genres="item?.genres ?? []"
           indexed
           :rating="item?.ratings?.value ?? 0"
-          :img-width="200"
-          :img-height="180"
-          icon="mdi-card-account-details"
           :go-to-route="`authors/indexed/${item?.id}`"
-        >
-          <p>{{ item?.overview }}</p>
-        </ProductCard>
+          :overview="item?.overview"
+        />
       </v-col>
     </template>
   </v-row>
   <v-row>
     <v-col>
-      <NuxtLink :to="getRelativePath('authors')">
+      <NuxtLink :to="getRelativePath(useRoute(), 'authors')">
         <v-btn color="primary">View all authors</v-btn>
       </NuxtLink>
     </v-col>
@@ -116,7 +110,7 @@ const authorsSlice = computed(() => {
 
   <v-row>
     <v-col>
-      <NuxtLink :to="getRelativePath('bookshelf')">
+      <NuxtLink :to="getRelativePath(useRoute(), 'bookshelf')">
         <v-btn color="primary">See everything in the bookshelf</v-btn>
       </NuxtLink>
     </v-col>

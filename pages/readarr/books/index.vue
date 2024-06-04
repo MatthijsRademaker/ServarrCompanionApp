@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import BookCard from '~/components/books/BookCard.vue';
 import { useGetApiV1Book } from '~/thirdPartyApis/readarr';
 
 const { data: books, isLoading: isLoadingBooks } = useGetApiV1Book();
@@ -83,20 +84,16 @@ const booksSlice = computed(() => {
     </v-col>
     <template v-else>
       <v-col v-for="item in booksSlice" :key="item.id" cols="12" sm="6" md="4">
-        <ProductCard
+        <BookCard
           :title="item?.title ?? ''"
           :imgUrl="getImageFilePath(item)"
           :id="item?.id ?? 0"
           :genres="item?.genres ?? []"
           indexed
           :rating="item?.ratings?.value ?? 0"
-          :img-width="140"
-          :img-height="180"
-          icon="mdi-book-open-page-variant"
           :go-to-route="`books/indexed/${item?.id}`"
-        >
-          <p>{{ item?.pageCount }}</p>
-        </ProductCard>
+          :pagecount="item?.pageCount"
+        />
       </v-col>
     </template>
   </v-row>
