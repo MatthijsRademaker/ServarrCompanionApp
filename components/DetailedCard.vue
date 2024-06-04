@@ -27,8 +27,8 @@ const { mobile } = useDisplay();
   <v-row v-if="isLoading">
     <v-col cols="12" sm="6" md="4">
       <v-skeleton-loader
-        height="600"
-        width="1800"
+        :height="$vuetify.display.mobile ? 300 : 600"
+        :width="$vuetify.display.mobile ? 300 : 1800"
         type="card"
       ></v-skeleton-loader>
     </v-col>
