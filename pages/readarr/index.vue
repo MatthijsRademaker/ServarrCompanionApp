@@ -39,15 +39,20 @@ const authorsSlice = computed(() => {
     </v-col>
     <template v-if="books">
       <v-col v-for="item in booksSlice" :key="item.id" cols="12" sm="6" md="3">
-        <BookCard
+        <ProductCard
           :title="item?.title ?? ''"
           :imgUrl="getImageFilePath(item)"
-          :id="item.id ?? item?.foreignBookId ?? 0"
-          :indexed="item?.id !== 0"
+          :id="item?.id ?? item?.foreignAuthorId ?? 0"
           :genres="item?.genres ?? []"
+          indexed
           :rating="item?.ratings?.value ?? 0"
-          :pageCount="item?.pageCount ?? 0"
-        />
+          :img-width="140"
+          :img-height="180"
+          icon="mdi-book-open-page-variant"
+          :go-to-route="`books/indexed/${item?.id}`"
+        >
+          <p>{{ item?.pageCount }}</p>
+        </ProductCard>
       </v-col>
     </template>
   </v-row>
@@ -80,15 +85,20 @@ const authorsSlice = computed(() => {
         sm="6"
         md="3"
       >
-        <AuthorCard
+        <ProductCard
           :title="item?.authorName ?? ''"
           :imgUrl="getImageFilePath(item)"
-          :id="item.id ?? 0"
-          :indexed="item?.id !== 0"
+          :id="item?.id ?? item?.foreignAuthorId ?? 0"
           :genres="item?.genres ?? []"
+          indexed
           :rating="item?.ratings?.value ?? 0"
-          :overview="item?.overview ?? ''"
-        />
+          :img-width="200"
+          :img-height="180"
+          icon="mdi-card-account-details"
+          :go-to-route="`authors/indexed/${item?.id}`"
+        >
+          <p>{{ item?.overview }}</p>
+        </ProductCard>
       </v-col>
     </template>
   </v-row>

@@ -12,7 +12,7 @@ const queryRequest = ref({
 
 const enableSearch = computed(() => queryRequest.value.term?.length >= 3);
 
-const { data, isLoading } = useGetApiV1Search(queryRequest, {
+const { data, isLoading, error } = useGetApiV1Search(queryRequest, {
   query: {
     enabled: enableSearch,
   },
@@ -70,6 +70,8 @@ const getArtistRoute = (item) => {
         <v-skeleton-loader height="200" type="card"></v-skeleton-loader>
       </v-col>
     </template>
+    <v-alert v-else-if="error" type="error">{{ error.message }}</v-alert>
+    <v-alert v-else-if="!lidarrSearchResults?.length">No results</v-alert>
     <v-col
       v-else
       v-for="item in lidarrSearchResults"

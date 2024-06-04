@@ -2,28 +2,7 @@
 import { useGetApiV1AuthorId } from '~/thirdPartyApis/readarr';
 
 const route = useRoute();
-
-const { data: author } = useGetApiV1AuthorId(route.params.id as string);
-
-const imageFilePath = computed(() => {
-  const subPath = author.value?.images?.[0].url;
-  return `${import.meta.env.VITE_FILE_SERVER_URL}/readarr${
-    subPath?.split('?')[0]
-  }`;
-});
-
-const { data: books, isLoading: isLoadingBooks } = useGetApiV1Book();
-
-const getImageFilePath = (item: BookResource) => {
-  const subPath = item?.images?.[0].url;
-  return `${import.meta.env.VITE_FILE_SERVER_URL}/readarr${
-    subPath?.split('?')[0]
-  }`;
-};
-
-const isLoading = computed(() => {
-  return !author.value || !isLoadingBooks.value;
-});
+// TODO find goodreads id
 </script>
 <template>
   <!-- TODO fill with next book -->

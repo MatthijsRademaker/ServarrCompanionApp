@@ -19,7 +19,7 @@ const queryRequest = ref<GetApiV1SearchParams>({
 
 const enableSearch = computed(() => queryRequest.value.term?.length >= 3);
 
-const { data, isLoading } = useGetApiV1Search(queryRequest, {
+const { data, isLoading, error } = useGetApiV1Search(queryRequest, {
   query: {
     enabled: enableSearch,
   },
@@ -80,6 +80,8 @@ const getDetailsPathBook = (item: SearchResource) => {
         <v-skeleton-loader height="200" type="card"></v-skeleton-loader>
       </v-col>
     </template>
+    <v-alert v-else-if="error" type="error">{{ error.message }}</v-alert>
+    <v-alert v-else-if="!readarrSearchResults?.length">No results</v-alert>
     <v-col
       v-else
       v-for="(item, index) in readarrSearchResults"
@@ -103,7 +105,6 @@ const getDetailsPathBook = (item: SearchResource) => {
       >
         <p>Page count: {{ item?.book?.pageCount }}</p>
       </ProductCard>
-      <!-- TODO refactor to product cards -->
 
       <ProductCard
         v-else
@@ -120,7 +121,6 @@ const getDetailsPathBook = (item: SearchResource) => {
       >
         <p>{{ item.author?.overview }}</p>
       </ProductCard>
-      <AuthorCard />
     </v-col>
   </v-row>
 </template>
