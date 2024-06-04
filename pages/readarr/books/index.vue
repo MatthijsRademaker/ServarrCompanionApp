@@ -4,15 +4,17 @@ import { useGetApiV1Book } from '~/thirdPartyApis/readarr';
 const { data: books, isLoading: isLoadingBooks } = useGetApiV1Book();
 
 const filterValue = ref('');
-
+const maxIndex = 10;
 const filteredBooks = computed(() => {
   if (filterValue.value === '' || filterValue.value === null) {
     return books.value;
   }
 
-  return books.value?.filter((book) =>
+  const filtered = books.value?.filter((book) =>
     book?.title?.toLowerCase().includes(filterValue.value.toLowerCase())
   );
+
+  return filtered;
 });
 
 // TODO make util
@@ -39,6 +41,10 @@ const downloadedBooks = computed(() => {
   }
 
   return filteredBooks.value;
+});
+
+const booksSlice = computed(() => {
+  return downloadedBooks.value?.slice(0, maxIndex);
 });
 </script>
 
@@ -76,13 +82,7 @@ const downloadedBooks = computed(() => {
       ></v-skeleton-loader>
     </v-col>
     <template v-else>
-      <v-col
-        v-for="item in downloadedBooks"
-        :key="item.id"
-        cols="12"
-        sm="6"
-        md="4"
-      >
+      <v-col v-for="item in booksSlice" :key="item.id" cols="12" sm="6" md="4">
         <ProductCard
           :title="item?.title ?? ''"
           :imgUrl="getImageFilePath(item)"
@@ -99,6 +99,11 @@ const downloadedBooks = computed(() => {
         </ProductCard>
       </v-col>
     </template>
+  </v-row>
+  <v-row>
+    <v-col>
+      <v-btn color="primary" @click="maxIndex += 10">Show more</v-btn>
+    </v-col>
   </v-row>
 </template>
 

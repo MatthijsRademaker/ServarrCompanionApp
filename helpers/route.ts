@@ -1,10 +1,13 @@
-const route = useRoute();
-const router = useRouter();
+import type { RouteLocation, Router } from 'vue-router';
 
-export const goToRelativePath = (path: string) => {
+export const goToRelativePath = (
+  route: RouteLocation,
+  router: Router,
+  path: string
+) => {
   router.push(`${route.path}/${path}`);
 };
 
-export const getRelativePath = (path: string) => {
+export const getRelativePath = (route: RouteLocation, path: string) => {
   return `${route.path}/${path}`;
 };

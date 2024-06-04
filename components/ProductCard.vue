@@ -14,7 +14,7 @@ const props = defineProps<{
 }>();
 
 const goToDetails = () => {
-  goToRelativePath(props.goToRoute);
+  goToRelativePath(useRoute(), useRouter(), props.goToRoute);
 };
 
 const rating = ref<number>(props.rating);

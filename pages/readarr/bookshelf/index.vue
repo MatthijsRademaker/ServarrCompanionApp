@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { useGetApiV1Book, useGetApiV1Author } from '~/thirdPartyApis/readarr';
-import { goToRelativePath } from '~/helpers/route';
 
 const { data: books, isLoading: isLoadingBooks } = useGetApiV1Book();
 const { data: authors, isLoading: isLoadingAuthors } = useGetApiV1Author();
