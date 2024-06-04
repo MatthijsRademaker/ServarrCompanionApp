@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import logo from '~/assets/logo.png';
 const router = useRouter();
 const showDrawer = ref(false);
 const showSecondDrawer = ref(false);
@@ -11,17 +10,18 @@ const items = [
   { title: 'About', icon: 'mdi-information', to: '/about' },
 ];
 const subItemsBooks = [
-  { title: 'Home', icon: 'mdi-home', to: '/readarr' },
+  { title: 'Recent', icon: 'mdi-history', to: '/readarr' },
   { title: 'Search', icon: 'mdi-magnify', to: '/readarr/search' },
   {
     title: 'Bookshelf',
     icon: 'mdi-bookshelf',
     to: '/readarr/bookshelf',
   },
+  { title: 'All books', icon: 'mdi-book-multiple', to: '/readarr/books' },
 ];
 
 const subItemsMusic = [
-  { title: 'Home', icon: 'mdi-home', to: '/lidarr' },
+  { title: 'Recent', icon: 'mdi-history', to: '/lidarr' },
   { title: 'Search', icon: 'mdi-magnify', to: '/lidarr/search' },
   {
     title: 'Albums',
@@ -59,7 +59,9 @@ const setSubList = (title: string, to?: string) => {
       ></v-app-bar-nav-icon>
       <v-img src="/assets/logo.png" width="80" height="80" />
     </template>
-    <v-app-bar-title> Servarr Companion App </v-app-bar-title>
+    <v-app-bar-title v-if="!$vuetify.display.mobile">
+      Servarr Companion App
+    </v-app-bar-title>
 
     <v-spacer></v-spacer>
   </v-app-bar>
@@ -86,8 +88,9 @@ const setSubList = (title: string, to?: string) => {
     ></v-list>
   </v-navigation-drawer>
   <v-navigation-drawer
+    v-if="showSecondDrawer"
     v-model="showSecondDrawer"
-    :location="$vuetify.display.mobile ? 'top' : undefined"
+    :location="$vuetify.display.mobile ? 'bottom' : undefined"
     temporary
   >
     <v-list :items="subItems" nav
