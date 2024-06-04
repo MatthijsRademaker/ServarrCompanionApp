@@ -10,6 +10,7 @@ import type {
   GetApiV1SearchParams,
   SearchResource,
 } from '~/thirdPartyApis/readarr/models';
+
 const searchStore = useSearchStore();
 const { readarrSearchResults } = storeToRefs(searchStore);
 const query = ref<string>();
@@ -81,7 +82,9 @@ const getDetailsPathBook = (item: SearchResource) => {
       </v-col>
     </template>
     <v-alert v-else-if="error" type="error">{{ error.message }}</v-alert>
-    <v-alert v-else-if="!readarrSearchResults?.length">No results</v-alert>
+    <v-alert v-else-if="!readarrSearchResults?.length && query?.length > 3"
+      >No results</v-alert
+    >
     <v-col
       v-else
       v-for="(item, index) in readarrSearchResults"

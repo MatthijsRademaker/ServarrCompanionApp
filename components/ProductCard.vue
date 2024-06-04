@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { goToRelativePath } from '~/helpers/route';
+
 const props = defineProps<{
   title: string;
   imgUrl: string;
@@ -11,10 +13,8 @@ const props = defineProps<{
   goToRoute: string;
 }>();
 
-const router = useRouter();
-
 const goToDetails = () => {
-  router.push(props.goToRoute);
+  goToRelativePath(props.goToRoute);
 };
 
 const rating = ref<number>(props.rating);
@@ -22,8 +22,8 @@ const rating = ref<number>(props.rating);
 const genresSlice = ref<string[] | undefined>(props.genres?.slice(0, 3));
 </script>
 <template>
-  <v-card>
-    <v-card-title>
+  <v-card variant="elevated">
+    <v-card-title class="title">
       <v-icon :icon="icon"></v-icon>
       {{ title }}
     </v-card-title>
@@ -79,6 +79,19 @@ const genresSlice = ref<string[] | undefined>(props.genres?.slice(0, 3));
 </template>
 
 <style scoped>
+.title {
+  overflow: visible;
+  white-space: initial;
+  display: flex;
+  flex-direction: column;
+
+  @media screen and (min-width: 600px) {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
 .grid-container {
   padding: 16px 16px 0 16px;
   @media screen and (min-width: 900px) {

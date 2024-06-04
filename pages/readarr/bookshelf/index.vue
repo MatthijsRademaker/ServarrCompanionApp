@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { fi } from '@faker-js/faker';
 import { useGetApiV1Book, useGetApiV1Author } from '~/thirdPartyApis/readarr';
+import { goToRelativePath } from '~/helpers/route';
 
 const { data: books, isLoading: isLoadingBooks } = useGetApiV1Book();
 const { data: authors, isLoading: isLoadingAuthors } = useGetApiV1Author();
@@ -8,7 +8,7 @@ const { data: authors, isLoading: isLoadingAuthors } = useGetApiV1Author();
 const getBooksForAuthor = (authorId) => {
   const foundBooks = books.value?.filter((book) => book.authorId === authorId);
 
-  foundBooks.sort((a, b) => {
+  foundBooks?.sort((a, b) => {
     if (a.statistics.bookFileCount < b.statistics.bookFileCount) {
       return 1;
     }
@@ -37,7 +37,7 @@ const filteredAuthors = computed(() => {
 <template>
   <v-row>
     <v-col>
-      <h1>Bookshelve</h1>
+      <h1>Bookshelf</h1>
     </v-col>
   </v-row>
   <v-row>
@@ -47,7 +47,7 @@ const filteredAuthors = computed(() => {
         label="Filter"
         outlined
         clearable
-        placeholder="Author"
+        placeholder="Author name..."
         appendInnerIcon="mdi-filter"
       ></v-text-field>
     </v-col>
@@ -72,7 +72,8 @@ const filteredAuthors = computed(() => {
           <v-card-title>{{ item.authorName }}</v-card-title>
           <div class="bookfiles">
             <template v-for="book in getBooksForAuthor(item.id)">
-              <v-chip @click="() => $router.push(`/books/indexed/${book.id}`)"
+              <v-chip
+                @click="() => $router.push(`/readarr/books/indexed/${book.id}`)"
                 ><v-icon
                   :color="
                     book.statistics.bookFileCount > 0 ? 'success' : 'error'

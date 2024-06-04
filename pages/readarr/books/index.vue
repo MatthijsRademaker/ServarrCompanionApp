@@ -1,66 +1,112 @@
 <script setup lang="ts">
 import { useGetApiV1Book } from '~/thirdPartyApis/readarr';
 
-const { data: books, isLoading } = useGetApiV1Book();
+const { data: books, isLoading: isLoadingBooks } = useGetApiV1Book();
 
-const getImageFilePath = (item: BookResource) => {
-  const subPath = item?.images?.[0].url;
+const filterValue = ref('');
+
+const filteredBooks = computed(() => {
+  if (filterValue.value === '' || filterValue.value === null) {
+    return books.value;
+  }
+
+  return books.value?.filter((book) =>
+    book?.title?.toLowerCase().includes(filterValue.value.toLowerCase())
+  );
+});
+
+// TODO make util
+const getImageFilePath = (item) => {
+  const subPath = item?.images?.[0]?.url;
   return `${import.meta.env.VITE_FILE_SERVER_URL}/readarr${
     subPath?.split('?')[0]
   }`;
 };
+
+const showOnlyDownloaded = ref(false);
+
+watch(showOnlyDownloaded, (value) => {
+  if (value) {
+    filterValue.value = '';
+  }
+});
+
+const downloadedBooks = computed(() => {
+  if (showOnlyDownloaded.value) {
+    return filteredBooks.value?.filter(
+      (book) => book?.statistics?.bookFileCount > 0
+    );
+  }
+
+  return filteredBooks.value;
+});
 </script>
 
 <template>
   <v-row>
     <v-col>
-      <h1>Ready for download</h1>
+      <h1>All books</h1>
     </v-col>
   </v-row>
-
   <v-row>
-    <template v-if="fileData">
-      <v-col v-for="item in fileData" :key="item.id" cols="12" sm="6" md="4">
-        <BookCard
-          :title="item?.title ?? ''"
-          :imgUrl="getImageFilePath(item)"
-          :id="item.id ?? item?.foreignBookId ?? 0"
-          :indexed="item?.id !== 0"
-          :genres="item?.genres ?? []"
-          :rating="item?.ratings?.value ?? 0"
-          :pageCount="item?.pageCount ?? 0"
-        />
-      </v-col>
-    </template>
-  </v-row>
-  <v-row>
-    <v-col>
-      <h1>Already Indexed books</h1>
-    </v-col>
-  </v-row>
-  <v-row v-if="isLoading">
     <v-col cols="12" sm="6" md="4">
+      <v-text-field
+        v-model="filterValue"
+        label="Filter"
+        outlined
+        clearable
+        placeholder="Book title..."
+        appendInnerIcon="mdi-filter"
+      ></v-text-field>
+      <v-switch
+        v-model="showOnlyDownloaded"
+        label="Show only downloaded books"
+        hide-details
+        inset
+        color="primary"
+      ></v-switch>
+    </v-col>
+  </v-row>
+  <v-row>
+    <v-col v-if="isLoadingBooks || isLoadingBooks" cols="12" sm="6" md="4">
       <v-skeleton-loader
         height="600"
         width="1800"
         type="card"
       ></v-skeleton-loader>
     </v-col>
-  </v-row>
-
-  <v-row>
-    <template v-if="books">
-      <v-col v-for="item in books" :key="item.id" cols="12" sm="6" md="4">
-        <BookCard
+    <template v-else>
+      <v-col
+        v-for="item in downloadedBooks"
+        :key="item.id"
+        cols="12"
+        sm="6"
+        md="4"
+      >
+        <ProductCard
           :title="item?.title ?? ''"
           :imgUrl="getImageFilePath(item)"
-          :id="item.id ?? item?.foreignBookId ?? 0"
-          :indexed="item?.id !== 0"
+          :id="item?.id ?? 0"
           :genres="item?.genres ?? []"
+          indexed
           :rating="item?.ratings?.value ?? 0"
-          :pageCount="item?.pageCount ?? 0"
-        />
+          :img-width="140"
+          :img-height="180"
+          icon="mdi-book-open-page-variant"
+          :go-to-route="`books/indexed/${item?.id}`"
+        >
+          <p>{{ item?.pageCount }}</p>
+        </ProductCard>
       </v-col>
     </template>
   </v-row>
 </template>
+
+<style scoped>
+.bookfiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 0 16px 16px 16px;
+}
+</style>

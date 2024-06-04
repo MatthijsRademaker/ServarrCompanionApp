@@ -124,6 +124,8 @@ const { mobile } = useDisplay();
 .four {
   @media screen and (min-width: 600px) {
     margin-top: 32px;
+    max-height: 400px;
+    overflow-y: auto;
   }
   grid-column: 4;
   grid-row: 1;

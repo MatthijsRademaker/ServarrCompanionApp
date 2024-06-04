@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { useGetApiV1Book, useGetApiV1Author } from '~/thirdPartyApis/readarr';
+import { getRelativePath } from '~/helpers/route';
 
 const { data: books, isLoading: isLoadingBooks } = useGetApiV1Book();
 const { data: authors, isLoading: isLoadingAuthors } = useGetApiV1Author();
 
 const getImageFilePath = (item) => {
-  const subPath = item?.images?.[0].url;
+  const subPath = item?.images?.[0]?.url;
   return `${import.meta.env.VITE_FILE_SERVER_URL}/readarr${
     subPath?.split('?')[0]
   }`;
@@ -42,7 +43,7 @@ const authorsSlice = computed(() => {
         <ProductCard
           :title="item?.title ?? ''"
           :imgUrl="getImageFilePath(item)"
-          :id="item?.id ?? item?.foreignAuthorId ?? 0"
+          :id="item?.id ?? 0"
           :genres="item?.genres ?? []"
           indexed
           :rating="item?.ratings?.value ?? 0"
@@ -58,7 +59,7 @@ const authorsSlice = computed(() => {
   </v-row>
   <v-row>
     <v-col>
-      <NuxtLink to="/books">
+      <NuxtLink :to="getRelativePath('books')">
         <v-btn color="primary">View all books</v-btn>
       </NuxtLink>
     </v-col>
@@ -104,8 +105,16 @@ const authorsSlice = computed(() => {
   </v-row>
   <v-row>
     <v-col>
-      <NuxtLink to="/authors">
+      <NuxtLink :to="getRelativePath('authors')">
         <v-btn color="primary">View all authors</v-btn>
+      </NuxtLink>
+    </v-col>
+  </v-row>
+
+  <v-row>
+    <v-col>
+      <NuxtLink :to="getRelativePath('bookshelf')">
+        <v-btn color="primary">See everything in the bookshelf</v-btn>
       </NuxtLink>
     </v-col>
   </v-row>
