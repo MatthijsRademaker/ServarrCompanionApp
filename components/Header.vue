@@ -46,6 +46,7 @@ const setSubList = (title: string, to?: string) => {
   } else {
     subItems.value = subItemsMusic;
   }
+  showDrawer.value = false;
 
   showSecondDrawer.value = true;
 };
@@ -90,7 +91,7 @@ const setSubList = (title: string, to?: string) => {
   <v-navigation-drawer
     v-if="showSecondDrawer"
     v-model="showSecondDrawer"
-    :location="$vuetify.display.mobile ? 'bottom' : undefined"
+    :location="$vuetify.display.mobile ? 'top' : undefined"
     temporary
   >
     <v-list :items="subItems" nav

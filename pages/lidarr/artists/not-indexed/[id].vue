@@ -90,7 +90,7 @@ const addArtistToWatchList = () => {
       </v-row>
       <v-row>
         <v-col v-for="i in 9" :key="i" cols="12" sm="6" md="4">
-          <v-skeleton-loader height="200" type="card"></v-skeleton-loader>
+          <CardSkeletonLoader is-loading />
         </v-col>
       </v-row>
     </template>

@@ -67,7 +67,7 @@ const getArtistRoute = (item) => {
   <v-row>
     <template v-if="isLoading">
       <v-col v-for="i in 9" :key="i" cols="12" sm="6" md="4">
-        <v-skeleton-loader height="200" type="card"></v-skeleton-loader>
+        <CardSkeletonLoader is-loading />
       </v-col>
     </template>
     <v-alert v-else-if="error" type="error">{{ error.message }}</v-alert>

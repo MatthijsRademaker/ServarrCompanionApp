@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useDisplay } from 'vuetify';
+import CardSkeletonLoader from './CardSkeletonLoader.vue';
 
 const props = defineProps<{
   title: string;
@@ -25,13 +26,7 @@ const { mobile } = useDisplay();
 
 <template>
   <v-row v-if="isLoading">
-    <v-col cols="12" sm="6" md="4">
-      <v-skeleton-loader
-        :height="$vuetify.display.mobile ? 300 : 600"
-        :width="$vuetify.display.mobile ? 300 : 1800"
-        type="card"
-      ></v-skeleton-loader>
-    </v-col>
+    <v-col cols="12" sm="6" md="4"> <CardSkeletonLoader is-loading /> </v-col>
   </v-row>
   <v-row v-else>
     <v-col>

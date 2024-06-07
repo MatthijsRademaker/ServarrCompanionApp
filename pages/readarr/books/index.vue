@@ -76,11 +76,7 @@ const booksSlice = computed(() => {
   </v-row>
   <v-row>
     <v-col v-if="isLoadingBooks || isLoadingBooks" cols="12" sm="6" md="4">
-      <v-skeleton-loader
-        :height="$vuetify.display.mobile ? 300 : 600"
-        :width="$vuetify.display.mobile ? 300 : 1800"
-        type="card"
-      ></v-skeleton-loader>
+      <CardSkeletonLoader is-loading />
     </v-col>
     <template v-else>
       <v-col v-for="item in booksSlice" :key="item.id" cols="12" sm="6" md="4">
