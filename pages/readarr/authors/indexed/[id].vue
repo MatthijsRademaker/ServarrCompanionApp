@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useGetApiV1AuthorId, useGetApiV1Book } from '~/thirdPartyApis/readarr';
+import { getImageFilePath } from '~/helpers/files';
 
 const route = useRoute();
 
@@ -8,20 +9,13 @@ const { data: author, isLoading: isLoadingAuthor } = useGetApiV1AuthorId(
 );
 
 const imageFilePath = computed(() => {
-  const subPath = author.value?.images?.[0].url;
+  const subPath = author.value?.images?.[0]?.url;
   return `${import.meta.env.VITE_FILE_SERVER_URL}/readarr${
     subPath?.split('?')[0]
   }`;
 });
 
 const { data: books, isLoading: isLoadingBooks } = useGetApiV1Book();
-
-const getImageFilePath = (item: BookResource) => {
-  const subPath = item?.images?.[0]?.url;
-  return `${import.meta.env.VITE_FILE_SERVER_URL}/readarr${
-    subPath?.split('?')[0]
-  }`;
-};
 
 const isLoading = computed(() => {
   return isLoadingAuthor.value || isLoadingBooks.value;
@@ -39,10 +33,10 @@ const booksForAuthor = computed(() => {
     :main-image-path="imageFilePath"
     :main-overview="author?.overview"
     :side-title="author?.lastBook?.title"
-    :side-image-path="author?.images?.[0].url"
+    :side-image-path="author?.images?.[0]?.url"
     :side-overview="author?.overview"
     :genres="['todo']"
-    :good-reads-link="links?.[0].url"
+    :good-reads-link="links?.[0]?.url"
   >
     <template #buttons>
       <!-- TODO should be buttons to add entire catalog -->

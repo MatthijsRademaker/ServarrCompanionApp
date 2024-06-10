@@ -73,3 +73,9 @@ bun run preview
 ```
 
 Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+
+Generate types for supabase client
+
+```bash
+supabase gen types typescript --project-id vbwlwsukbtejxcrzrmel > models/database.types.ts
+```

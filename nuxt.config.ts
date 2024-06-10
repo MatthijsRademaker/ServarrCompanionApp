@@ -13,6 +13,10 @@ export default defineNuxtConfig({
     },
   },
 
+  supabase: {
+    redirect: false,
+  },
+
   devtools: { enabled: true },
   build: {
     transpile: ['vuetify'],
@@ -26,6 +30,7 @@ export default defineNuxtConfig({
     },
     '@hebilicious/vue-query-nuxt',
     '@pinia/nuxt',
+    '@nuxtjs/supabase',
   ],
   vite: {
     vue: {

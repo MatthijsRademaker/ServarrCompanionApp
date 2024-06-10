@@ -51,8 +51,8 @@ const addBookToWatchList = () => {
   <DetailedCard
     :is-loading="isLoadingSearch"
     :title="book?.title"
-    :main-image-path="filePath"
-    :main-overview="bookOverview?.overview"
+    :main-image-path="book?.images?.[0]?.url"
+    :main-overview="book?.overview"
     :side-title="book?.author?.authorName"
     :side-image-path="book?.author?.images?.[0].url"
     :side-overview="book?.author?.overview"

@@ -8,6 +8,7 @@ defineProps<{
   genres?: string[];
   goToRoute: string;
   pagecount?: number;
+  author?: string;
 }>();
 </script>
 <template>
@@ -24,6 +25,7 @@ defineProps<{
     :go-to-route="goToRoute"
     :base-route="'readarr'"
   >
-    <p>Page count: {{ pagecount }}</p>
+    <p><span class="font-weight-bold">Page count:</span> {{ pagecount }}</p>
+    <p><span class="font-weight-bold">Author:</span> {{ author }}</p>
   </ProductCard>
 </template>

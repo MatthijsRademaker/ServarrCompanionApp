@@ -34,7 +34,6 @@ const debouncedSearch = useDebounceFn(() => {
 
 watch(data, (newValue) => {
   if (newValue) {
-    debugger;
     searchStore.setReadarrSearchResults(newValue);
   }
 });
@@ -44,7 +43,9 @@ const getTitle = (item: SearchResource) => {
 };
 
 const getImg = (item: SearchResource) => {
-  return item.author ? item.author.images?.[0].url : item.book?.images?.[0].url;
+  return item.author
+    ? item.author.images?.[0]?.url
+    : item.book?.images?.[0]?.url;
 };
 
 const { mobile } = useDisplay();
@@ -105,6 +106,7 @@ const getDetailsPathBook = (item: SearchResource) => {
         :rating="item.book?.ratings?.value ?? 0"
         :go-to-route="getDetailsPathBook(item)"
         :pagecount="item?.book?.pageCount"
+        :author="item?.book?.author?.authorName"
       />
 
       <AuthorCard

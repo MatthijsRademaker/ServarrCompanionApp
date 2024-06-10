@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const router = useRouter();
-const showDrawer = ref(false);
-const showSecondDrawer = ref(false);
+const showDrawer = defineModel('showDrawer', { type: Boolean });
+const showSecondDrawer = defineModel('showSecondDrawer', { type: Boolean });
 
 const items = [
   { title: 'Home', icon: 'mdi-home', to: '/' },
@@ -53,20 +53,6 @@ const setSubList = (title: string, to?: string) => {
 </script>
 
 <template>
-  <v-app-bar class="header">
-    <template v-slot:prepend>
-      <v-app-bar-nav-icon
-        @click.stop="showDrawer = !showDrawer"
-      ></v-app-bar-nav-icon>
-      <v-img src="/assets/logo.png" width="80" height="80" />
-    </template>
-    <v-app-bar-title v-if="!$vuetify.display.mobile">
-      Servarr Companion App
-    </v-app-bar-title>
-
-    <v-spacer></v-spacer>
-  </v-app-bar>
-
   <v-navigation-drawer
     v-model="showDrawer"
     :location="$vuetify.display.mobile ? 'top' : undefined"
@@ -89,7 +75,6 @@ const setSubList = (title: string, to?: string) => {
     ></v-list>
   </v-navigation-drawer>
   <v-navigation-drawer
-    v-if="showSecondDrawer"
     v-model="showSecondDrawer"
     :location="$vuetify.display.mobile ? 'top' : undefined"
     temporary

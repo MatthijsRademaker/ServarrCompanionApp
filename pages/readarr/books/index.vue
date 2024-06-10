@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import BookCard from '~/components/books/BookCard.vue';
 import { useGetApiV1Book } from '~/thirdPartyApis/readarr';
+import { getImageFilePath } from '~/helpers/files';
 
 const { data: books, isLoading: isLoadingBooks } = useGetApiV1Book();
 
@@ -17,14 +18,6 @@ const filteredBooks = computed(() => {
 
   return filtered;
 });
-
-// TODO make util
-const getImageFilePath = (item) => {
-  const subPath = item?.images?.[0]?.url;
-  return `${import.meta.env.VITE_FILE_SERVER_URL}/readarr${
-    subPath?.split('?')[0]
-  }`;
-};
 
 const showOnlyDownloaded = ref(false);
 
@@ -75,9 +68,11 @@ const booksSlice = computed(() => {
     </v-col>
   </v-row>
   <v-row>
-    <v-col v-if="isLoadingBooks || isLoadingBooks" cols="12" sm="6" md="4">
-      <CardSkeletonLoader is-loading />
-    </v-col>
+    <template v-if="isLoadingBooks || isLoadingBooks">
+      <v-col v-for="i in 9" cols="12" sm="6" md="4">
+        <CardSkeletonLoader :key="i" is-loading />
+      </v-col>
+    </template>
     <template v-else>
       <v-col v-for="item in booksSlice" :key="item.id" cols="12" sm="6" md="4">
         <BookCard

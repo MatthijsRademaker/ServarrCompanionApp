@@ -1,5 +1,9 @@
 <script setup lang="ts">
 import { goToRelativePath, type BaseRoute } from '~/helpers/route';
+import {
+  addToAlertList,
+  getAlertList,
+} from '~/thirdPartyApis/supabase/alert-list';
 
 const props = defineProps<{
   title: string;
@@ -21,12 +25,26 @@ const goToDetails = () => {
 const rating = ref<number>(props.rating);
 
 const genresSlice = ref<string[] | undefined>(props.genres?.slice(0, 3));
+
+const user = useSupabaseUser();
+
+// TODO move to store
+const { data, error } = await getAlertList(user.value!.id);
+const alreadyInWatchList = computed(() => {
+  return data?.find((item) => item.book_id === props.id);
+});
 </script>
 <template>
   <v-card variant="elevated">
     <v-card-title class="title">
       <v-icon :icon="icon"></v-icon>
       {{ title }}
+      <v-spacer></v-spacer>
+      <v-icon
+        :disabled="!user || alreadyInWatchList"
+        @click="addToAlertList(user?.id, id)"
+        :icon="alreadyInWatchList ? 'mdi-check' : 'mdi-bell-outline'"
+      />
     </v-card-title>
     <div class="grid-container">
       <div class="one">
@@ -39,7 +57,7 @@ const genresSlice = ref<string[] | undefined>(props.genres?.slice(0, 3));
         }"
       >
         <template v-if="genres?.length && genresSlice?.length">
-          <h2>Genres</h2>
+          <h2 class="text-h5">Genres</h2>
           <div class="genre-container">
             <template v-for="(genre, index) in genresSlice">
               <v-chip>{{ genre }}</v-chip>
@@ -98,7 +116,8 @@ const genresSlice = ref<string[] | undefined>(props.genres?.slice(0, 3));
   @media screen and (min-width: 900px) {
     display: grid;
     grid-template-columns: 1fr 2fr;
-    grid-gap: 24px;
+    grid-column-gap: 24px;
+    grid-row-gap: 16px;
     padding: 16px;
   }
 }
@@ -110,7 +129,7 @@ const genresSlice = ref<string[] | undefined>(props.genres?.slice(0, 3));
 .two {
   grid-column: 2;
   grid-row: 1 / 2;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
   @media screen and (min-width: 600px) {
     margin-bottom: 0;
   }
@@ -146,7 +165,7 @@ const genresSlice = ref<string[] | undefined>(props.genres?.slice(0, 3));
   overflow: hidden;
 
   overflow-y: scroll;
-  max-height: 60px;
+  max-height: 80px;
 
   &::-webkit-scrollbar {
     width: 8px;

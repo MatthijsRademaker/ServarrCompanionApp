@@ -4,6 +4,7 @@ import { getRelativePath } from '~/helpers/route';
 import { useDisplay } from 'vuetify';
 import BookCard from '~/components/books/BookCard.vue';
 import AuthorCard from '~/components/books/AuthorCard.vue';
+import type { BookResource } from '~/thirdPartyApis/readarr/models';
 
 const { data: books, isLoading: isLoadingBooks } = useGetApiV1Book();
 const { data: authors, isLoading: isLoadingAuthors } = useGetApiV1Author();
@@ -15,24 +16,29 @@ const getImageFilePath = (item) => {
   }`;
 };
 const { mobile } = useDisplay();
-const maxItems = mobile ? 2 : 4;
+const maxItems = computed(() => (mobile.value ? 2 : 4));
 
 const booksSlice = computed(() => {
   const copy = books.value?.slice();
 
-  return copy?.reverse()?.slice(0, maxItems);
+  return copy?.reverse()?.slice(0, maxItems.value);
 });
 
 const authorsSlice = computed(() => {
   const copy = authors.value?.slice();
-  return copy?.reverse()?.slice(0, maxItems);
+  return copy?.reverse()?.slice(0, maxItems.value);
 });
+
+const getAuthorName = (item: BookResource) => {
+  return authors.value?.find((author) => author.id === item.authorId)
+    ?.authorName;
+};
 </script>
 
 <template>
   <v-row>
     <v-col>
-      <h1>Recently added books</h1>
+      <h1>Recently watched books</h1>
     </v-col>
   </v-row>
   <v-row>
@@ -50,6 +56,7 @@ const authorsSlice = computed(() => {
           :rating="item?.ratings?.value ?? 0"
           :go-to-route="`books/indexed/${item?.id}`"
           :page-count="item?.pageCount"
+          :author="getAuthorName(item)"
         />
       </v-col>
     </template>
@@ -64,7 +71,7 @@ const authorsSlice = computed(() => {
 
   <v-row>
     <v-col>
-      <h1>Recently added authors</h1>
+      <h1>Recently watched authors</h1>
     </v-col>
   </v-row>
   <v-row>
