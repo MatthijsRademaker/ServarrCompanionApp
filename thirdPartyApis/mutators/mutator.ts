@@ -1,4 +1,5 @@
 import ky from 'ky';
+import qs from 'qs';
 
 /**
  * Based on https://github.com/anymaniax/orval/blob/master/tests/mutators/custom-client.ts
@@ -38,10 +39,11 @@ export const mutator = <T>(
   const defaultHeaders = {
     'X-Api-Key': apiKey,
   };
+  const parsedParams = qs.stringify(params);
   return ky(url.startsWith('/') ? url.slice(1) : url, {
     prefixUrl: baseUrl,
     ...(method ? { method: method } : {}),
-    ...(params ? { searchParams: params } : {}),
+    ...(parsedParams ? { searchParams: parsedParams } : {}),
     ...(data ? { json: data } : {}),
     headers: {
       ...defaultHeaders,

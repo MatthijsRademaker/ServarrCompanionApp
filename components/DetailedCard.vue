@@ -2,6 +2,7 @@
 import { useDisplay } from 'vuetify';
 import CardSkeletonLoader from './CardSkeletonLoader.vue';
 
+// TODO add prop for displaying watchlist icon
 const props = defineProps<{
   title: string;
   mainImagePath: string;

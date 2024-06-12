@@ -2,7 +2,8 @@
 import type { AuthError } from '@supabase/supabase-js';
 import useVuelidate from '@vuelidate/core';
 import { email, minLength, required, sameAs } from '@vuelidate/validators';
-import { supabase } from '~/helpers/supabase';
+
+const supabase = useSupabaseClient();
 
 const signUpModel = ref({
   emailAddress: '',

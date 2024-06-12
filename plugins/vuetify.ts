@@ -15,7 +15,7 @@ export default defineNuxtPlugin((app) => {
             surface: '#F5EDE0',
             primary: '#9B5E34',
             secondary: '#D4A373',
-            accent: '#556B2F',
+            accent: '#E69A8D',
             error: '#FF5252',
             info: '#2196F3',
             success: '#4CAF50',

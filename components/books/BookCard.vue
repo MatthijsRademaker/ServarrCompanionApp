@@ -14,18 +14,15 @@ defineProps<{
 <template>
   <ProductCard
     :title="title"
+    :subTitle="`by ${author}`"
     :imgUrl="imgUrl"
     :id="id"
     :indexed="indexed"
     :genres="genres"
     :rating="rating"
-    :img-width="140"
-    :img-height="180"
-    icon="mdi-book-open-page-variant"
     :go-to-route="goToRoute"
     :base-route="'readarr'"
   >
-    <p><span class="font-weight-bold">Page count:</span> {{ pagecount }}</p>
-    <p><span class="font-weight-bold">Author:</span> {{ author }}</p>
+    <p><span class="text-caption">Page count:</span> {{ pagecount }}</p>
   </ProductCard>
 </template>

@@ -3,23 +3,14 @@ import useVuelidate from '@vuelidate/core';
 import { email, minLength, required } from '@vuelidate/validators';
 
 const visible = ref(false);
+const isLoading = ref(false);
 
 const emit = defineEmits<{
-  signUp: [];
-  login: [emailAddress: string, password: string];
-  forgotPassword: [];
+  eventHandled: [];
 }>();
 
 const emailAddress = ref('');
 const password = ref('');
-
-const OnLoginClick = () => {
-  v$.value.$validate();
-  if (v$.value.$error) {
-    return;
-  }
-  emit('login', emailAddress.value, password.value);
-};
 
 const rules = computed(() => ({
   emailAddress: {
@@ -33,6 +24,34 @@ const rules = computed(() => ({
 }));
 
 const v$ = useVuelidate(rules, { emailAddress, password });
+
+const OnLoginClick = () => {
+  v$.value.$validate();
+  if (v$.value.$error) {
+    return;
+  }
+  handleSignInWitEmail();
+};
+
+const supabase = useSupabaseClient();
+const handleSignInWitEmail = async () => {
+  isLoading.value = true;
+  await supabase.auth.signInWithPassword({
+    email: emailAddress.value,
+    password: password.value,
+  });
+  isLoading.value = false;
+
+  emit('eventHandled');
+  router.push('/user/alertlist');
+};
+
+const router = useRouter();
+
+const onSignUp = () => {
+  emit('eventHandled');
+  router.push('/auth/signup');
+};
 </script>
 
 <template>
@@ -45,7 +64,9 @@ const v$ = useVuelidate(rules, { emailAddress, password });
       placeholder="Enter your email address"
       prepend-inner-icon="mdi-email-outline"
       variant="outlined"
-      :error-messages="v$.value.emailAddress?.$errors"
+      :error-messages="
+        v$.emailAddress?.$errors?.map((e) => e.$message.toString())
+      "
     ></v-text-field>
 
     <div
@@ -60,8 +81,9 @@ const v$ = useVuelidate(rules, { emailAddress, password });
         target="_blank"
         @click="
           (event) => {
+            // TODO
             event.preventDefault();
-            $emit('forgotPassword');
+            $emit('eventHandled');
           }
         "
       >
@@ -78,7 +100,7 @@ const v$ = useVuelidate(rules, { emailAddress, password });
       prepend-inner-icon="mdi-lock-outline"
       variant="outlined"
       @click:append-inner="visible = !visible"
-      :error-messages="v$.value.password?.$errors"
+      :error-messages="v$.password?.$errors?.map((e) => e.$message.toString())"
     ></v-text-field>
 
     <v-btn
@@ -87,11 +109,12 @@ const v$ = useVuelidate(rules, { emailAddress, password });
       color="primary"
       block
       @click="OnLoginClick"
+      :loading="isLoading"
     >
       Log In
     </v-btn>
 
-    <v-btn color="secondary" size="large" block @click="$emit('signUp')">
+    <v-btn color="secondary" size="large" block @click="onSignUp">
       Sign up now <v-icon icon="mdi-chevron-right"></v-icon>
     </v-btn>
   </v-card>

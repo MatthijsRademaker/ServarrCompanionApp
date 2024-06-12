@@ -46,7 +46,7 @@ const getAuthorName = (item: BookResource) => {
       <CardSkeletonLoader is-loading />
     </v-col>
     <template v-if="books">
-      <v-col v-for="item in booksSlice" :key="item.id" cols="12" sm="6" md="3">
+      <v-col v-for="item in booksSlice" :key="item.id" cols="12" sm="6" lg="4">
         <BookCard
           :title="item?.title ?? ''"
           :imgUrl="getImageFilePath(item)"

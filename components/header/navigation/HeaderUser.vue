@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import Login from '~/components/auth/login/Login.vue';
+import EmailLoginCard from '~/components/auth/EmailLoginCard.vue';
 const showAccountDrawer = defineModel('showAccountDrawer', { type: Boolean });
 
 const user = useSupabaseUser();
+const supabase = useSupabaseClient();
 
 const showAccountInfo = computed(() => !!user.value && showAccountDrawer.value);
 
@@ -11,6 +12,10 @@ const showLoginButtons = computed(() => !user.value && showAccountDrawer.value);
 const showSignInModal = ref(false);
 
 const router = useRouter();
+
+const signOut = async () => {
+  await supabase.auth.signOut();
+};
 </script>
 
 <template>
@@ -55,7 +60,7 @@ const router = useRouter();
         v-if="showAccountInfo"
         v-for="(item, i) in [
           { path: 'Profile', icon: 'mdi-account-cog' },
-          { path: 'Watchlist', icon: 'mdi-bookmark-plus' },
+          { path: 'Alertlist', icon: 'mdi-bookmark-plus' },
         ]"
         :key="i"
         :value="item"
@@ -78,7 +83,7 @@ const router = useRouter();
         @click="
           () => {
             showAccountDrawer = false;
-            router.push('/auth/logout');
+            signOut();
           }
         "
       >
@@ -88,6 +93,6 @@ const router = useRouter();
   </v-navigation-drawer>
 
   <v-overlay v-model="showSignInModal" class="align-center justify-center">
-    <Login />
+    <EmailLoginCard @event-handled="showSignInModal = false" />
   </v-overlay>
 </template>
