@@ -2,7 +2,7 @@
 import { useDisplay } from 'vuetify';
 import { goToRelativePath, type BaseRoute } from '~/helpers/route';
 
-const props = defineProps<{
+interface Props {
   title: string;
   subTitle: string;
   imgUrl: string;
@@ -13,7 +13,13 @@ const props = defineProps<{
   goToRoute: string;
   baseRoute: BaseRoute;
   disabled: boolean;
-}>();
+  variant: 'default' | 'highlight';
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  disabled: false,
+  variant: 'default',
+});
 
 const goToDetails = () => {
   goToRelativePath(props.baseRoute, useRouter(), props.goToRoute);
@@ -49,17 +55,17 @@ const handleAlertListClick = () => {
     body: JSON.stringify({ bookId: props.id }),
   });
 };
-
+//END TODO
 const display = useDisplay();
 
 const minHeight = computed(() => {
   switch (display.name.value) {
     case 'xs':
-      return 150;
+      return props.variant === 'highlight' ? 140 : 150;
     case 'sm':
       return 240;
     default:
-      return 300;
+      return props.variant === 'highlight' ? 240 : 300;
   }
 });
 
@@ -75,9 +81,26 @@ const buttonSize = computed(() => {
 });
 </script>
 <template>
-  <v-card :key="id" class="grid" variant="elevated" :min-height="minHeight">
-    <v-img :src="imgUrl" :alt="title" class="grid-img" cover />
-    <div class="grid-title pl-2 pl-md-3 mb-2">
+  <v-card
+    :key="id"
+    :class="{
+      grid: variant === 'default',
+      'grid--highlight': variant === 'highlight',
+    }"
+    variant="elevated"
+    :color="variant === 'highlight' ? 'accent' : ''"
+    :min-height="minHeight"
+  >
+    <v-img
+      :src="imgUrl"
+      :alt="title"
+      :class="{
+        'grid-img': variant === 'default',
+        'grid-img--highlight': variant === 'highlight',
+      }"
+      cover
+    />
+    <div class="grid-title px-2 pl-md-3 mb-2">
       <p
         class="pt-2 text-sm-subtitle-1 text-xl-h6 text-caption font-weight-bold book-title"
         @click="goToDetails"
@@ -104,8 +127,15 @@ const buttonSize = computed(() => {
         </div>
       </template>
     </div>
-    <v-card-actions class="justify-end align-start grid-actions flex-column">
+    <v-card-actions
+      class="justify-end align-start flex-column"
+      :class="{
+        'grid-actions': variant === 'default',
+        'grid-actions--highlight': variant === 'highlight',
+      }"
+    >
       <v-rating
+        v-if="variant === 'default'"
         class="pl-2 mb-4"
         readonly
         density="compact"
@@ -167,9 +197,28 @@ const buttonSize = computed(() => {
     grid-template-columns: 180px 1fr;
   }
 }
+
+.grid--highlight {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+
+  @media screen and (min-width: 768px) {
+    grid-template-columns: 140px 1fr;
+  }
+
+  @media screen and (min-width: 1441px) {
+    grid-template-columns: 180px 1fr;
+  }
+}
+
 .grid-img {
   grid-column: 1;
   grid-row: 1 / 4;
+}
+
+.grid-img--highlight {
+  grid-column: 1;
+  grid-row: 1 / 3;
 }
 .grid-title {
   grid-column: 2;
@@ -185,6 +234,13 @@ const buttonSize = computed(() => {
   grid-row: 3;
   padding-left: 0;
 }
+
+.grid-actions--highlight {
+  grid-column: 2;
+  grid-row: 2;
+  padding-left: 0;
+}
+
 .book-title {
   cursor: pointer;
 }

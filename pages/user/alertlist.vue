@@ -5,6 +5,7 @@ import {
   useGetApiV1Bookfile,
 } from '~/thirdPartyApis/readarr';
 import { getImageFilePath } from '~/helpers/files';
+import BookCard from '~/components/books/BookCard.vue';
 
 const user = useSupabaseUser();
 const router = useRouter();
@@ -92,70 +93,19 @@ const sortedBooksBasedOnDisk = computed(() => {
             <v-col
               cols="12"
               sm="6"
-              md="3"
+              lg="3"
               v-for="item in sortedBooksBasedOnDisk"
             >
-              <v-card
-                :key="item.id"
-                class="grid"
-                color="accent"
-                variant="elevated"
-                min-height="140"
-              >
-                <v-img
-                  :src="getImageFilePath(item)"
-                  :alt="item.title"
-                  class="grid-img"
-                  cover
-                />
-                <div class="grid-title">
-                  <p
-                    @click="router.push(`/readarr/books/indexed/${item.id}`)"
-                    class="pl-4 pt-2 text-md-6 text-caption font-weight-bold book-title"
-                  >
-                    {{ item.title }}
-                  </p>
-                  <v-card-subtitle
-                    @click="
-                      router.push(`/readarr/authors/indexed/${item.authorId}`)
-                    "
-                    class="author-title"
-                  >
-                    by {{ getAuthorName(item.authorId) }}</v-card-subtitle
-                  >
-                </div>
-                <v-card-actions class="justify-space-between align-end">
-                  <!-- TODO download button -->
-                  <v-btn
-                    :disabled="!isBookOnDisk(item.id)"
-                    @click="router.push(`/readarr/books/indexed/${item.id}`)"
-                    icon
-                    size="medium"
-                  >
-                    <v-icon>mdi-download</v-icon>
-                  </v-btn>
-                  <!-- TODO share button -->
-                  <v-btn
-                    @click="router.push(`/readarr/books/indexed/${item.id}`)"
-                    icon
-                    size="medium"
-                  >
-                    <v-icon>mdi-share</v-icon>
-                  </v-btn>
-                  <v-btn
-                    size="medium"
-                    @click="
-                      useFetch('/api/remove-from-alert-list', {
-                        method: 'POST',
-                        body: JSON.stringify({ bookId: item.id }),
-                      })
-                    "
-                    icon
-                  >
-                    <v-icon>mdi-delete</v-icon>
-                  </v-btn>
-                </v-card-actions>
-              </v-card>
+              <BookCard
+                variant="highlight"
+                :title="item.title"
+                :imgUrl="getImageFilePath(item)"
+                :id="item.id"
+                :indexed="true"
+                :go-to-route="`books/indexed/${item.id}`"
+                :pagecount="item.pageCount"
+                :author="getAuthorName(item.authorId)"
+              />
             </v-col>
           </v-row>
         </v-card-text>
