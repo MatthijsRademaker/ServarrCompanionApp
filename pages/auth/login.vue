@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import Login from '~/components/auth/login/Login.vue';
+import EmailLoginCard from '~/components/auth/EmailLoginCard.vue';
 </script>
 <template>
-  <Login />
+  <EmailLoginCard />
 </template>
