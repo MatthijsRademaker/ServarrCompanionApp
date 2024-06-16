@@ -36,14 +36,14 @@ const OnLoginClick = () => {
 const supabase = useSupabaseClient();
 const handleSignInWitEmail = async () => {
   isLoading.value = true;
-  await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email: emailAddress.value,
     password: password.value,
   });
   isLoading.value = false;
 
   emit('eventHandled');
-  router.push('/user/alertlist');
+  router.push('/user/wishlist');
 };
 
 const router = useRouter();

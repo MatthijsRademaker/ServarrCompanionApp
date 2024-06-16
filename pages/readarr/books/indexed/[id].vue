@@ -1,72 +1,47 @@
 <script setup lang="ts">
-import {
-  useGetApiV1Bookfile,
-  useGetApiV1BookId,
-  useGetApiV1BookIdOverview,
-  usePutApiV1BookMonitor,
-} from '~/thirdPartyApis/readarr';
+import { usePutApiV1BookMonitor } from '~/thirdPartyApis/readarr';
 
 const route = useRoute();
 
-const { data: book, refetch: refetchGetBook } = useGetApiV1BookId(
-  route.params.id as string
-);
+const {
+  book,
+  imageFilePath,
+  bookOverview,
+  fileData,
+  isLoading,
+  AddToWishlist,
+  DownloadBook,
+} = useIndexedBook(route.params.id as string);
 
-const imageFilePath = computed(() => {
-  const subPath = book.value?.images?.[0].url;
-  return `${import.meta.env.VITE_FILE_SERVER_URL}/readarr${
-    subPath?.split('?')[0]
-  }`;
-});
+const presentOnDisk = computed(() => fileData.value?.length > 0);
 
-const bookFileParams = computed(() => ({
-  bookId: [Number(route.params.id)],
-  authorId: book.value?.authorId,
-  bookFileIds: [0],
-}));
-
-const { data: fileData, refetch: refetchFile } = useGetApiV1Bookfile(
-  bookFileParams,
-  {
-    query: {
-      enabled: false,
-    },
-  }
-);
-
-watch(book, (newValue) => {
-  if (newValue) {
-    refetchFile();
-  }
-});
-
-const { data: bookOverview } = useGetApiV1BookIdOverview(
-  Number(route.params.id)
-);
-
-const download = () => {
-  const url = String(fileData.value?.[0].path);
-  const strippedUrl = url.substring(3);
-  window.open(`${import.meta.env.VITE_FILE_SERVER_URL}/books/${strippedUrl}`);
+const onDownloadClick = async () => {
+  DownloadBook();
 };
 
-const isLoading = computed(() => {
-  return !book.value || !bookOverview.value || !fileData.value;
-});
-const { mutate } = usePutApiV1BookMonitor();
+const onAddToWishlist = async () => {
+  await AddToWishlist();
+};
 
-const addBookToWatchList = () => {
-  if (!book.value?.id) return;
+const user = useSupabaseUser();
 
-  mutate(
-    { data: { bookIds: [book.value?.id], monitored: true } },
-    {
-      onSuccess: () => {
-        refetchGetBook();
-      },
-    }
+const supaBaseStore = useSupabaseStore();
+const { wishList, isLoggedIn } = storeToRefs(supaBaseStore);
+
+const alreadyOnWishList = computed(() => {
+  return (
+    wishList.value?.find(
+      (item) => item.book_id === book.value?.id?.toString()
+    ) !== undefined
   );
-};
+});
+
+const wishListToolTipContent = computed(() => {
+  if (!isLoggedIn.value) {
+    return 'Login to add to wishlist';
+  }
+  return alreadyOnWishList.value ? 'Already on wishlist' : 'Add to wishlist';
+});
 </script>
 <template>
   <DetailedCard
@@ -75,41 +50,36 @@ const addBookToWatchList = () => {
     :main-image-path="imageFilePath"
     :main-overview="bookOverview?.overview"
     :side-title="book?.author?.authorName"
-    :side-image-path="book?.author?.images?.[0].url"
+    :side-image-path="book?.author?.images?.[0]?.url"
     :side-overview="book?.author?.overview"
     :genres="book?.genres"
-    :good-reads-link="book?.links?.[0].url"
+    :good-reads-link="book?.links?.[0]?.url"
   >
     <template #buttons>
       <v-tooltip
-        :text="fileData?.length === 0 ? 'Not present on disk' : 'Download file'"
+        :text="presentOnDisk ? 'Download file' : 'Not present on disk'"
         location="top"
       >
         <template v-slot:activator="{ props }">
           <div v-bind="props">
             <v-btn
-              @click="download"
+              @click="onDownloadClick"
               color="primary"
-              :disabled="fileData?.length === 0"
+              :disabled="!presentOnDisk"
               ><v-icon :icon="'mdi-download'" />Download</v-btn
             >
           </div>
         </template> </v-tooltip
-      ><v-tooltip
-        :text="book?.monitored ? 'Already on watchlist' : 'Add to watchlist'"
-        location="top"
-      >
+      ><v-tooltip :text="wishListToolTipContent" location="top">
         <template v-slot:activator="{ props }">
           <div v-bind="props">
             <v-btn
               color="primary"
-              :disabled="book?.monitored"
-              @click="addBookToWatchList"
+              :disabled="alreadyOnWishList && user !== null"
+              @click="onAddToWishlist"
               ><v-icon
-                :icon="
-                  book?.monitored ? 'mdi-bookmark' : 'mdi-bookmark-outline'
-                "
-              />Add To WatchList</v-btn
+                :icon="alreadyOnWishList ? 'mdi-heart' : 'mdi-heart-outline'"
+              />Add To wishlist</v-btn
             >
           </div>
         </template>

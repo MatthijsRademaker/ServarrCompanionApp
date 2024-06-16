@@ -15,7 +15,7 @@ export default defineNuxtConfig({
 
   supabase: {
     url: import.meta.env.VITE_SUPABASE_URL,
-    key: import.meta.env.VITE_SUPABASE_KEY,
+    key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZid2x3c3VrYnRlanhjcnpybWVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTc5NjE1NzUsImV4cCI6MjAzMzUzNzU3NX0.jJd744ZSlyrrPqcMusBCg3VBUXEOMagYVI-N8pmhlh4',
     redirect: false,
   },
 

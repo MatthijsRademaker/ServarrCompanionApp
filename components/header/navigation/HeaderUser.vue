@@ -60,7 +60,7 @@ const signOut = async () => {
         v-if="showAccountInfo"
         v-for="(item, i) in [
           { path: 'Profile', icon: 'mdi-account-cog' },
-          { path: 'Alertlist', icon: 'mdi-bookmark-plus' },
+          { path: 'Wishlist', icon: 'mdi-heart' },
         ]"
         :key="i"
         :value="item"

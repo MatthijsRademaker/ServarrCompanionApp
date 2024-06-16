@@ -8,18 +8,28 @@ interface Props {
   imgUrl: string;
   id: number | string;
   rating: number;
-  icon: string;
   genres?: string[];
   goToRoute: string;
   baseRoute: BaseRoute;
   disabled: boolean;
-  variant: 'default' | 'highlight';
+  showDownloadButton: boolean;
+  alreadyOnWishList: boolean;
+  isWishlistButtonDisabled: boolean;
+  variant: 'default' | 'highlight' | 'compact';
 }
 
 const props = withDefaults(defineProps<Props>(), {
   disabled: false,
   variant: 'default',
+  showDownloadButton: false,
+  alreadyOnWishList: false,
 });
+
+defineEmits<{
+  downloadClick: [];
+  shareClick: [];
+  wishListClick: [];
+}>();
 
 const goToDetails = () => {
   goToRelativePath(props.baseRoute, useRouter(), props.goToRoute);
@@ -29,33 +39,6 @@ const rating = ref<number>(props.rating);
 
 const genresSlice = ref<string[] | undefined>(props.genres?.slice(0, 3));
 
-// TODO move to indexed and not-indexed book routes
-// On not indexed book routes immediately add to watchlist for readarr
-// On indexed book routes add to personal watchlist
-const supaBaseStore = useSupabaseStore();
-supaBaseStore.getAlertList();
-
-const { alertList } = storeToRefs(supaBaseStore);
-const alreadyInWatchList = computed(() => {
-  return alertList.value?.data?.find(
-    (item) => item.book_id === props.id.toString()
-  );
-});
-
-const handleAlertListClick = () => {
-  if (alreadyInWatchList.value) {
-    useFetch('/api/remove-from-alert-list', {
-      method: 'POST',
-      body: JSON.stringify({ bookId: props.id }),
-    });
-    return;
-  }
-  useFetch('/api/add-to-alert-list', {
-    method: 'POST',
-    body: JSON.stringify({ bookId: props.id }),
-  });
-};
-//END TODO
 const display = useDisplay();
 
 const minHeight = computed(() => {
@@ -86,21 +69,14 @@ const buttonSize = computed(() => {
     :class="{
       grid: variant === 'default',
       'grid--highlight': variant === 'highlight',
+      'grid-compact': variant === 'compact',
     }"
     variant="elevated"
     :color="variant === 'highlight' ? 'accent' : ''"
     :min-height="minHeight"
   >
-    <v-img
-      :src="imgUrl"
-      :alt="title"
-      :class="{
-        'grid-img': variant === 'default',
-        'grid-img--highlight': variant === 'highlight',
-      }"
-      cover
-    />
-    <div class="grid-title px-2 pl-md-3 mb-2">
+    <v-img :src="imgUrl" :alt="title" class="img" cover />
+    <div class="title px-2 pl-md-3 mb-2">
       <p
         class="pt-2 text-sm-subtitle-1 text-xl-h6 text-caption font-weight-bold book-title"
         @click="goToDetails"
@@ -112,7 +88,7 @@ const buttonSize = computed(() => {
         {{ subTitle }}</v-card-subtitle
       >
     </div>
-    <div v-if="$vuetify.display.mdAndUp" class="grid-additional-details">
+    <div v-if="$vuetify.display.mdAndUp" class="additional-details">
       <template v-if="genres?.length && genresSlice?.length">
         <div class="mb-4 pl-2">
           <template v-for="genre in genresSlice">
@@ -127,13 +103,7 @@ const buttonSize = computed(() => {
         </div>
       </template>
     </div>
-    <v-card-actions
-      class="justify-end align-start flex-column"
-      :class="{
-        'grid-actions': variant === 'default',
-        'grid-actions--highlight': variant === 'highlight',
-      }"
-    >
+    <v-card-actions class="justify-end align-start flex-column actions">
       <v-rating
         v-if="variant === 'default'"
         class="pl-2 mb-4"
@@ -146,8 +116,9 @@ const buttonSize = computed(() => {
       ></v-rating>
       <div class="d-flex justify-space-between w-100">
         <v-btn
+          v-if="showDownloadButton"
           :disabled="disabled"
-          @click="router.push(`/readarr/books/indexed/${item.id}`)"
+          @click="$emit('downloadClick')"
           icon
           :size="buttonSize"
         >
@@ -155,35 +126,37 @@ const buttonSize = computed(() => {
             >mdi-download</v-icon
           >
         </v-btn>
-        <v-btn
-          @click="router.push(`/readarr/books/indexed/${item.id}`)"
-          icon
-          :size="buttonSize"
-        >
+        <v-btn @click="$emit('shareClick')" icon :size="buttonSize">
           <v-icon :size="$vuetify.display.xs ? 'default' : 'large'"
             >mdi-share</v-icon
           >
         </v-btn>
-        <!-- TODO add/remove from watchlist -->
         <v-btn
+          :disabled="isWishlistButtonDisabled"
           :size="buttonSize"
-          @click="
-            useFetch('/api/remove-from-alert-list', {
-              method: 'POST',
-              body: JSON.stringify({ bookId: item.id }),
-            })
-          "
+          @click="$emit('wishListClick')"
           icon
         >
-          <v-icon :size="$vuetify.display.xs ? 'default' : 'large'"
-            >mdi-heart</v-icon
-          >
+          <v-icon
+            :size="$vuetify.display.xs ? 'default' : 'large'"
+            :icon="alreadyOnWishList ? 'mdi-heart' : 'mdi-heart-outline'"
+          />
         </v-btn>
       </div>
     </v-card-actions>
   </v-card>
 </template>
 <style scoped>
+.title {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.additional-details {
+  grid-column: 2;
+  grid-row: 2;
+}
+
 .grid {
   display: grid;
   grid-template-columns: 100px 1fr;
@@ -195,6 +168,17 @@ const buttonSize = computed(() => {
 
   @media screen and (min-width: 900px) {
     grid-template-columns: 180px 1fr;
+  }
+
+  .img {
+    grid-column: 1;
+    grid-row: 1 / 4;
+  }
+
+  .actions {
+    grid-column: 2;
+    grid-row: 3;
+    padding-left: 0;
   }
 }
 
@@ -209,41 +193,40 @@ const buttonSize = computed(() => {
   @media screen and (min-width: 1441px) {
     grid-template-columns: 180px 1fr;
   }
+
+  .img {
+    grid-column: 1;
+    grid-row: 1 / 3;
+  }
+
+  .actions {
+    grid-column: 2;
+    grid-row: 2;
+    padding-left: 0;
+  }
 }
 
-.grid-img {
-  grid-column: 1;
-  grid-row: 1 / 4;
-}
+.grid-compact {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 240px;
 
-.grid-img--highlight {
-  grid-column: 1;
-  grid-row: 1 / 3;
-}
-.grid-title {
-  grid-column: 2;
-  grid-row: 1;
-}
-.grid-additional-details {
-  grid-column: 2;
-  grid-row: 2;
-}
+  .img {
+    grid-column: 1 / 3;
+    grid-row: 1;
+  }
 
-.grid-actions {
-  grid-column: 2;
-  grid-row: 3;
-  padding-left: 0;
-}
+  .title {
+    grid-column: 1 / 3;
+    grid-row: 2;
+  }
 
-.grid-actions--highlight {
-  grid-column: 2;
-  grid-row: 2;
-  padding-left: 0;
+  .additional-details {
+    grid-column: 1 / 3;
+    grid-row: 3;
+  }
 }
-
-.book-title {
-  cursor: pointer;
-}
+.book-title,
 .author-title {
   cursor: pointer;
 }

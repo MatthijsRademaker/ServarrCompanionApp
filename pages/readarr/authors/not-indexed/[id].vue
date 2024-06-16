@@ -34,7 +34,7 @@ const route = useRoute();
           </div>
         </template> </v-tooltip
       ><v-tooltip
-        :text="book?.monitored ? 'Already on watchlist' : 'Add to watchlist'"
+        :text="book?.monitored ? 'Already on wishlist' : 'Add to wishlist'"
         location="top"
       >
         <template v-slot:activator="{ props }">
@@ -44,9 +44,7 @@ const route = useRoute();
               :disabled="book?.monitored"
               @click="addBookToWatchList"
               ><v-icon
-                :icon="
-                  book?.monitored ? 'mdi-bookmark' : 'mdi-bookmark-outline'
-                "
+                :icon="book?.monitored ? 'mdi-heart' : 'mdi-heart-outline'"
               />Add To WatchList</v-btn
             >
           </div>

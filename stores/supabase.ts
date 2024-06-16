@@ -1,24 +1,31 @@
 export const useSupabaseStore = defineStore('supabase', () => {
   const user = useSupabaseUser();
   const {
-    data: alertList,
+    data: wishListData,
     error,
-    execute: fetchAlertList,
-  } = useFetch('/api/get-alert-list', {
+    execute: fetchWishList,
+  } = useFetch('/api/wishlist/get-wish-list', {
     immediate: false,
   });
-
-  const getAlertList = () => {
-    if (user.value?.id && !alertList.value) {
-      fetchAlertList();
+  fetchWishList();
+  const getWishList = () => {
+    if (user.value?.id && !wishListData.value) {
+      fetchWishList();
     }
-    return alertList;
+    return wishListData;
   };
 
-  useApplicationListen('supabase:alertListUpdated', () => {
-    console.log('🚀 ~ useSupabaseStore ~ alertListUpdated');
-    fetchAlertList();
+  useApplicationListen('supabase:wishListUpdated', () => {
+    console.log('🚀 ~ useSupabaseStore ~ wishListUpdated');
+    fetchWishList();
   });
 
-  return { alertList, getAlertList };
+  const isLoggedIn = computed(
+    () => user.value !== null && user.value !== undefined
+  );
+
+  const wishList = computed(() => {
+    return wishListData.value?.data;
+  });
+  return { wishList, getWishList, isLoggedIn };
 });

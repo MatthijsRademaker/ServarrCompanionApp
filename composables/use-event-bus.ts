@@ -1,7 +1,7 @@
 import mitt from 'mitt';
 
 type ApplicationEvents = {
-  'supabase:alertListUpdated': void;
+  'supabase:wishListUpdated': void;
 };
 
 const emitter = mitt<ApplicationEvents>();

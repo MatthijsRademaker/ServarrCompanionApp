@@ -12,6 +12,7 @@ import type {
   GetApiV1SearchParams,
   SearchResource,
 } from '~/thirdPartyApis/readarr/models';
+import { isBookIndexed } from '~/helpers/indexed';
 
 const searchStore = useSearchStore();
 const { readarrSearchResults } = storeToRefs(searchStore);
@@ -101,7 +102,7 @@ const getDetailsPathBook = (item: SearchResource) => {
         :title="getTitle(item) ?? ''"
         :img-url="getImg(item) ?? ''"
         :id="item.book.id ?? item.book?.foreignBookId ?? 0"
-        :indexed="item.book?.id !== 0"
+        :indexed="isBookIndexed(item.book)"
         :genres="item.book?.genres ?? []"
         :rating="item.book?.ratings?.value ?? 0"
         :go-to-route="getDetailsPathBook(item)"

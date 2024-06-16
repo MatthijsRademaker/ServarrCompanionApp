@@ -15,20 +15,24 @@ if (!user.value) {
 }
 
 const supaBaseStore = useSupabaseStore();
-supaBaseStore.getAlertList();
+supaBaseStore.getWishList();
 
-const { alertList } = storeToRefs(supaBaseStore);
+const { wishList } = storeToRefs(supaBaseStore);
 
 const requestParams = computed(() => {
   return {
-    bookIds: alertList.value?.data?.map((item) => item.book_id),
+    bookIds: wishList.value?.map((item) => item.book_id),
   };
+});
+
+const isGetApiV1BookEnabled = computed(() => {
+  return requestParams.value?.bookIds?.length > 0;
 });
 const { data: books, isLoading: isLoadingBooks } = useGetApiV1Book(
   requestParams,
   {
     query: {
-      enabled: !!requestParams.value,
+      enabled: isGetApiV1BookEnabled,
     },
   }
 );
@@ -50,7 +54,7 @@ const getAuthorName = (authorId: string) => {
 };
 
 const getAlertItemCreatedAt = (bookId: string) => {
-  const createdAt = alertList.value?.data?.find(
+  const createdAt = wishList.value?.data?.find(
     (item) => item.book_id === bookId
   )?.created_at;
 
@@ -63,7 +67,7 @@ const bookFileParams = computed(() => ({
 
 const { data: fileData } = useGetApiV1Bookfile(bookFileParams, {
   query: {
-    enabled: !!bookFileParams.value,
+    enabled: bookFileParams.value?.bookId?.length > 0,
   },
 });
 
@@ -89,12 +93,20 @@ const sortedBooksBasedOnDisk = computed(() => {
       <v-card :loading="isLoadingBooks || !requestParams">
         <v-card-title>Wish list</v-card-title>
         <v-card-text>
-          <v-row>
+          <v-row
+            v-if="!isLoadingBooks && (books === null || books === undefined)"
+          >
+            <v-col cols="12" lg="6">
+              <v-alert type="info">No books in your wish list</v-alert>
+            </v-col>
+          </v-row>
+          <v-row v-else>
             <v-col
               cols="12"
               sm="6"
               lg="3"
               v-for="item in sortedBooksBasedOnDisk"
+              :key="item.id"
             >
               <BookCard
                 variant="highlight"

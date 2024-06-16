@@ -14,15 +14,14 @@ defineProps<{
   <ProductCard
     :title="title"
     :imgUrl="imgUrl"
+    :sub-title="`known for`"
     :id="id"
     :indexed="indexed"
     :genres="genres"
     :rating="rating"
-    :img-width="200"
-    :img-height="180"
-    icon="mdi-card-account-details"
     :go-to-route="goToRoute"
     :base-route="'readarr'"
+    variant="compact"
   >
     <p>{{ overview }}</p>
   </ProductCard>
