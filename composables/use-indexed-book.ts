@@ -1,5 +1,5 @@
 import { ref, computed, watch } from 'vue';
-import { wrapToPromise } from '~/api/helpers/wrap-to-promise';
+import { wrapToPromise } from '~/helpers/wrap-to-promise';
 import {
   useGetApiV1Bookfile,
   useGetApiV1BookId,
