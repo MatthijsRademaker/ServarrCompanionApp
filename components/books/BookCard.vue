@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { usePutApiV1BookMonitor } from '~/thirdPartyApis/readarr';
-
 const props = defineProps<{
   title: string;
   imgUrl: string;

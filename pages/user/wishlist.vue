@@ -53,7 +53,7 @@ const getAuthorName = (authorId: string) => {
   return author?.authorName;
 };
 
-const getAlertItemCreatedAt = (bookId: string) => {
+const getWishListItemCreatedAt = (bookId: string) => {
   const createdAt = wishList.value?.data?.find(
     (item) => item.book_id === bookId
   )?.created_at;

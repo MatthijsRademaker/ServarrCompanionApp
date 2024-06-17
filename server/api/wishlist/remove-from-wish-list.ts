@@ -11,7 +11,7 @@ export default eventHandler(async (event) => {
     .from(WishListTableName)
     .delete()
     .eq('user_id', user!.id)
-    .eq('book_id', body.bookId);
+    .eq('book_id', body.bookId.toString());
 
   console.log('🚀 ~ eventHandler ~ error:', error);
   console.log('🚀 ~ eventHandler ~ data:', data);
