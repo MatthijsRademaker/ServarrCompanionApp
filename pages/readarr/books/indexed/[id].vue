@@ -3,15 +3,9 @@ import { usePutApiV1BookMonitor } from '~/thirdPartyApis/readarr';
 
 const route = useRoute();
 
-const {
-  book,
-  imageFilePath,
-  bookOverview,
-  fileData,
-  isLoading,
-  AddToWishlist,
-  DownloadBook,
-} = useIndexedBook(route.params.id as string);
+const indexedBook = useIndexedBook(route.params.id as string);
+const { book, imageFilePath, bookOverview, fileData, isLoading, DownloadBook } =
+  indexedBook;
 
 const presentOnDisk = computed(() => fileData.value?.length > 0);
 
@@ -19,28 +13,33 @@ const onDownloadClick = async () => {
   DownloadBook();
 };
 
-const onAddToWishlist = async () => {
-  await AddToWishlist();
-};
-
 const user = useSupabaseUser();
 
+const {
+  addToWishList,
+  canAddToWishList,
+  isWishlistLoading,
+  alreadyInWishList,
+} = useWishList(indexedBook);
+
+const onAddToWishlist = async () => {
+  await addToWishList();
+};
+
 const supaBaseStore = useSupabaseStore();
-const { wishList, isLoggedIn } = storeToRefs(supaBaseStore);
-
-const alreadyOnWishList = computed(() => {
-  return (
-    wishList.value?.find(
-      (item) => item.book_id === book.value?.id?.toString()
-    ) !== undefined
-  );
-});
-
+const { isLoggedIn } = storeToRefs(supaBaseStore);
 const wishListToolTipContent = computed(() => {
   if (!isLoggedIn.value) {
     return 'Login to add to wishlist';
   }
-  return alreadyOnWishList.value ? 'Already on wishlist' : 'Add to wishlist';
+  return alreadyInWishList.value ? 'Already on wishlist' : 'Add to wishlist';
+});
+
+const wishListContent = computed(() => {
+  if (!isLoggedIn.value) {
+    return 'Login to add to wishlist';
+  }
+  return alreadyInWishList.value ? 'Remove from wishlist' : 'Add to wishlist';
 });
 </script>
 <template>
@@ -75,11 +74,12 @@ const wishListToolTipContent = computed(() => {
           <div v-bind="props">
             <v-btn
               color="primary"
-              :disabled="alreadyOnWishList && user !== null"
+              :disabled="!canAddToWishList"
+              :loading="isWishlistLoading"
               @click="onAddToWishlist"
               ><v-icon
-                :icon="alreadyOnWishList ? 'mdi-heart' : 'mdi-heart-outline'"
-              />Add To wishlist</v-btn
+                :icon="alreadyInWishList ? 'mdi-heart' : 'mdi-heart-outline'"
+              />{{ wishListContent }}</v-btn
             >
           </div>
         </template>

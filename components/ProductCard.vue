@@ -15,6 +15,7 @@ interface Props {
   showDownloadButton: boolean;
   alreadyOnWishList: boolean;
   isWishlistButtonDisabled: boolean;
+  isWishlistLoading: boolean;
   variant: 'default' | 'highlight' | 'compact';
 }
 
@@ -23,6 +24,8 @@ const props = withDefaults(defineProps<Props>(), {
   variant: 'default',
   showDownloadButton: false,
   alreadyOnWishList: false,
+  isWishlistButtonDisabled: false,
+  isWishlistLoading: false,
 });
 
 defineEmits<{
@@ -133,6 +136,7 @@ const buttonSize = computed(() => {
         </v-btn>
         <v-btn
           :disabled="isWishlistButtonDisabled"
+          :loading="isWishlistLoading"
           :size="buttonSize"
           @click="$emit('wishListClick')"
           icon

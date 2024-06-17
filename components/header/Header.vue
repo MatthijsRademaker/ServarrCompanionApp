@@ -40,7 +40,10 @@ const user = useSupabaseUser();
     :show-drawer="showMenuDrawer"
     :show-second-drawer="showSubMenuDrawer"
   />
-  <HeaderUser :show-account-drawer="showAccountDrawer" />
+  <HeaderUser
+    v-if="showAccountDrawer"
+    :show-account-drawer="showAccountDrawer"
+  />
 </template>
 
 <style scoped>

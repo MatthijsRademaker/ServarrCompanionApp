@@ -14,36 +14,21 @@ const props = defineProps<{
 const book = useBook(props.id.toString(), props.indexed);
 
 const showDownloadButton = computed(
-  () => props.indexed && (book as IndexedBook).fileData.value?.length > 0
+  () =>
+    props.indexed &&
+    isLoggedIn.value &&
+    (book as IndexedBook).fileData.value?.length > 0
 );
 
 const supaBaseStore = useSupabaseStore();
 supaBaseStore.getWishList();
 
-const { wishList, isLoggedIn } = storeToRefs(supaBaseStore);
-const alreadyInWishList = computed(() => {
-  return (
-    wishList.value?.find((item) => item.book_id === props.id.toString()) !==
-    undefined
-  );
-});
+const { isLoggedIn } = storeToRefs(supaBaseStore);
+
+const { alreadyInWishList, addToWishList } = useWishList(book);
 
 const onDownloadClick = () => {
   (book as IndexedBook).DownloadBook();
-};
-
-const onWishListClick = async () => {
-  if (alreadyInWishList.value) {
-    await $fetch('/api/wishlist/remove-from-wish-list', {
-      method: 'POST',
-      body: JSON.stringify({ bookId: props.id }),
-    });
-
-    useApplicationEvent('supabase:wishListUpdated');
-    return;
-  }
-
-  await book.AddToWishlist();
 };
 
 const author = computed(() => {
@@ -65,7 +50,7 @@ const author = computed(() => {
     :is-wishlist-button-disabled="!isLoggedIn"
     :already-on-wish-list="alreadyInWishList"
     @download-click="onDownloadClick"
-    @wish-list-click="onWishListClick"
+    @wish-list-click="addToWishList"
     @share-click="() => {}"
   >
     <p>

@@ -16,7 +16,6 @@ export const useSupabaseStore = defineStore('supabase', () => {
   };
 
   useApplicationListen('supabase:wishListUpdated', () => {
-    console.log('🚀 ~ useSupabaseStore ~ wishListUpdated');
     fetchWishList();
   });
 

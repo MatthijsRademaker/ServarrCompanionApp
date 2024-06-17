@@ -59,15 +59,12 @@ export function useNotIndexedBook(id: string): NotIndexedBook {
         ...book.value,
         ...addOptionsBook,
         ...addOptionsAuthor,
-        // TODO add monitor true?
         monitor: true,
       };
 
       mutate({ data: postData });
-      console.log('🚀 ~ callBack ~ data:', data);
 
       watch(data, async (newValue) => {
-        debugger;
         if (newValue) {
           bookValue.value = newValue;
           await $fetch('/api/wishlist/add-to-wish-list', {

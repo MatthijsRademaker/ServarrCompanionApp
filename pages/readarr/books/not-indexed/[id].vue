@@ -3,10 +3,14 @@ const route = useRoute();
 const router = useRouter();
 const id = route.params.id as string;
 
-const { isLoading, book, AddToWishlist } = useNotIndexedBook(id);
+const notIndexedBook = useNotIndexedBook(id);
+const { book, isLoading } = notIndexedBook;
+
+const { addToWishList, canAddToWishList, isWishlistLoading } =
+  useWishList(notIndexedBook);
 
 const onAddToWishlist = async () => {
-  await AddToWishlist();
+  await addToWishList();
   router.push(`/readarr/books/indexed/${book.value?.id}`);
 };
 </script>
@@ -29,8 +33,8 @@ const onAddToWishlist = async () => {
             <v-btn
               color="primary"
               class="w-100"
-              :loading="isLoading"
-              :disabled="book?.monitored || isLoading"
+              :loading="isLoading || isWishlistLoading"
+              :disabled="!canAddToWishList"
               @click="onAddToWishlist"
               ><v-icon icon="mdi-heart-outline" />Add To Wishlist</v-btn
             >

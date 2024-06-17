@@ -55,7 +55,7 @@ const setSubList = (title: string, to?: string) => {
 <template>
   <v-navigation-drawer
     v-model="showDrawer"
-    :location="$vuetify.display.mobile ? 'top' : undefined"
+    :location="$vuetify.display.mobile ? 'top' : 'left'"
     permanent
     ><v-list :items="items" nav
       ><v-list-item
@@ -75,8 +75,9 @@ const setSubList = (title: string, to?: string) => {
     ></v-list>
   </v-navigation-drawer>
   <v-navigation-drawer
+    v-if="showSecondDrawer"
     v-model="showSecondDrawer"
-    :location="$vuetify.display.mobile ? 'top' : undefined"
+    :location="$vuetify.display.mobile ? 'top' : 'left'"
     temporary
   >
     <v-list :items="subItems" nav

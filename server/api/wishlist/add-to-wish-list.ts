@@ -22,7 +22,6 @@ export default eventHandler(async (event) => {
     currentWishList.length > 0 &&
     currentWishList.some((book) => book.book_id === body.bookId.toString())
   ) {
-    console.log('🚀 ~ addToWishList ~ already in wish list');
     return { data: currentWishList, error: null };
   }
 
